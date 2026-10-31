@@ -8,18 +8,18 @@ Task-level detail is in `TASK_TRACKER.md`. Hour figures below were **computed fr
 |---|---|
 | Tracker total (all 91 tasks) | 167 |
 | MVP tasks only (80 tasks) | 145 |
-| MVP still to do (T-101–T-104, T-201–T-203 done) | 136.0 |
+| MVP still to do (T-101–T-104, T-201–T-204 done) | 135.0 |
 | Brief's own expectation | ~1.5–2 days of focused work, 4-day deadline |
 
 The full blueprint is larger than what the brief asks for. The tracker therefore uses **scope levels**; build level by level and stop when time runs out. Every level ends in something demo-able.
 
 | Level | What it adds | Tasks | Hours | Cumulative (remaining) |
 |---|---|---|---|---|
-| *Completed* | Setup & database (`T-101`–`T-104`, `T-201`–`T-203`) | 7 | 9.0 | 9.0 (done) |
-| **L1 — Demo-able core** | Scaffold, models, seed, full engine (calendar → demand → supply → validator → explainer → CP-SAT), generate/read/impact/suggestion APIs, roster grid + views + conflict drawer + impact simulator, deployment, README, video | 44 | 84.0 | 84.0 |
-| **L2 — Complete product** | CRUD screens for all master data, leaves UI, auth + roles, cell edit/lock, publish + versioning, cell popover with live impact, unit/property tests, security hardening | 20 | 38.5 | 122.5 |
-| **L3 — Polish** | Greedy fallback generator, comp-off ledger, dashboard, audit API, optimistic cache, API tests, perf tuning, dependency audit, CHANGELOG sync | 11 | 15.5 | 136.0 |
-| **Stretch** | Local repair, export, compare, LLM explanations, mobile agenda, e2e tests, CI, a11y, Settings screen, visual mockup | 11 | 22.0 | 158.0 (+9.0h done = 167h total) |
+| *Completed* | Setup & migrations (`T-101`–`T-104`, `T-201`–`T-204`) | 8 | 10.0 | 10.0 (done) |
+| **L1 — Demo-able core** | Scaffold, models, seed, full engine (calendar → demand → supply → validator → explainer → CP-SAT), generate/read/impact/suggestion APIs, roster grid + views + conflict drawer + impact simulator, deployment, README, video | 43 | 83.0 | 83.0 |
+| **L2 — Complete product** | CRUD screens for all master data, leaves UI, auth + roles, cell edit/lock, publish + versioning, cell popover with live impact, unit/property tests, security hardening | 20 | 38.5 | 121.5 |
+| **L3 — Polish** | Greedy fallback generator, comp-off ledger, dashboard, audit API, optimistic cache, API tests, perf tuning, dependency audit, CHANGELOG sync | 11 | 15.5 | 135.0 |
+| **Stretch** | Local repair, export, compare, LLM explanations, mobile agenda, e2e tests, CI, a11y, Settings screen, visual mockup | 11 | 22.0 | 157.0 (+10.0h done = 167h total) |
 
 **Target scope confirmed (Q11):** 4-day deadline (~1.5–2 days focused effort per brief). Build focus is locked to **Level 1 (demo-able core, 87h)** first to guarantee a complete and working submission, expanding into L2 and L3 as velocity permits.
 

@@ -20,3 +20,4 @@ services:
 volumes:
   pgdata:
     driver: local
+
