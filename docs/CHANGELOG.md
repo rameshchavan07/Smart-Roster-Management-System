@@ -5,6 +5,7 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 ## [Unreleased]
 
 ### Added
+- FastAPI backend scaffold and tooling setup (Task T-202 marked Completed in `TASK_TRACKER.md`): `pyproject.toml` with Python 3.12, pydantic-settings, structured logging, uniform error envelope, `/health` and `/ready` endpoints, and verified test suite passing with ruff and mypy.
 - Monorepo repository skeleton and tooling configuration (Task T-201 marked Completed in `TASK_TRACKER.md`): initialized git repository, root `.gitignore`, root `.editorconfig`, `backend/` and `frontend/` directory structures.
 
 ### Changed

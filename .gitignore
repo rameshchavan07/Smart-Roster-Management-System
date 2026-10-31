@@ -36,6 +36,8 @@ MANIFEST
 .mypy_cache/
 .ruff_cache/
 .hypothesis/
+.uv_cache/
+.python/
 .coverage
 .coverage.*
 htmlcov/
@@ -70,3 +72,4 @@ Thumbs.db
 *.swo
 *~
 *.log
+
