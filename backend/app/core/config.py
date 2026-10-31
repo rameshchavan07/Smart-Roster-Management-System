@@ -19,8 +19,13 @@ class Settings(BaseSettings):
     APP_VERSION: str = "0.1.0"
     APP_ENV: str = "local"  # local | test | production
 
-    # Database
+    # Database & Connection Pooling
     DATABASE_URL: str = "postgresql+psycopg://rosterops:rosterops@localhost:5432/rosterops"
+    DB_POOL_SIZE: int = 5
+    DB_MAX_OVERFLOW: int = 10
+    DB_POOL_TIMEOUT_S: int = 30
+    DB_POOL_RECYCLE_S: int = 1800
+    DB_POOL_PRE_PING: bool = True
 
     # Auth & Security
     JWT_SECRET: str = "dev-insecure-secret-key-change-in-production-1234567890"

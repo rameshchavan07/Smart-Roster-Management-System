@@ -5,6 +5,7 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 ## [Unreleased]
 
 ### Added
+- PostgreSQL 16 container definition and connection pooling configuration (Task T-203 marked Completed in `TASK_TRACKER.md`): `docker-compose.yml` with health checks, updated `.env.example`, SQLAlchemy 2.0 `QueuePool` configuration in `backend/app/db/session.py`, and verified unit tests.
 - FastAPI backend scaffold and tooling setup (Task T-202 marked Completed in `TASK_TRACKER.md`): `pyproject.toml` with Python 3.12, pydantic-settings, structured logging, uniform error envelope, `/health` and `/ready` endpoints, and verified test suite passing with ruff and mypy.
 - Monorepo repository skeleton and tooling configuration (Task T-201 marked Completed in `TASK_TRACKER.md`): initialized git repository, root `.gitignore`, root `.editorconfig`, `backend/` and `frontend/` directory structures.
 

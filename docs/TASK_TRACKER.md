@@ -20,7 +20,7 @@
 |---|---|---|---|---|---|---|---|---|
 | T-201 | Repo and monorepo skeleton | Create git repo, `backend/`, `frontend/`, `docs/`, `.gitignore`, `.editorconfig` | High | T-104 | Initial commit | Completed | 0.5h | MVP |
 | T-202 | Backend scaffold | FastAPI app, settings via pydantic-settings, uv project, ruff + mypy + pytest config | High | T-201 | Running `/health` | Completed | 1.5h | MVP |
-| T-203 | Local database | docker-compose with Postgres 16, `.env.example`, connection pooling config | High | T-201 | `docker compose up` works | Not Started | 1h | MVP |
+| T-203 | Local database | docker-compose with Postgres 16, `.env.example`, connection pooling config | High | T-201 | `docker compose up` works | Completed | 1h | MVP |
 | T-204 | ORM base and migrations | SQLAlchemy 2.0 base, session management, Alembic configured | High | T-202, T-203 | `alembic upgrade head` runs | Not Started | 1h | MVP |
 | T-205 | Frontend scaffold | Vite + React + TS + Tailwind + Router + TanStack Query + lint/format | High | T-201 | Blank shell on :5173 | Not Started | 1.5h | MVP |
 | T-206 | Design tokens and base components | Tailwind theme from `DESIGN_SYSTEM.md`, fonts, global CSS | Medium | T-205 | Theme + token page | Not Started | 1.5h | MVP |
