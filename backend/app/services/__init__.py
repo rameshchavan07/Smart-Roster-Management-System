@@ -1,5 +1,6 @@
 """Services package exporting domain services."""
 
+from app.services.audit import AuditLogService
 from app.services.auth import AuthService
 from app.services.compoff import CompOffService
 from app.services.master_data import (
@@ -20,6 +21,7 @@ from app.services.rules import (
 
 __all__ = [
     "AssignmentService",
+    "AuditLogService",
     "AuthService",
     "BrandProcessService",
     "BrandService",
