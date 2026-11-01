@@ -5,6 +5,14 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 ## [Unreleased]
 
 ### Added
+- API and Permission RBAC Matrix Tests (Task T-804 marked Completed in `TASK_TRACKER.md`):
+  - Expanded `backend/tests/api/test_rbac_api.py` with comprehensive negative and positive tests covering the complete RBAC matrix (`OPS_MANAGER`, `POD_LEAD`, `EMPLOYEE`, and unauthenticated requests) across all application endpoints:
+    - Roster lifecycle matrix: Verified that roster generation, batch entry mutations, cell freezing/locking, conflict acknowledgment overrides, and publishing are strictly guarded for `OPS_MANAGER` only (401 for anonymous, 403 for employee and pod lead).
+    - Roster management tools: Verified that local window repair, suggestions, cloning, and comp-off accruals are accessible to `POD_LEAD` and `OPS_MANAGER`, while strictly rejecting `EMPLOYEE` (403) and anonymous callers (401).
+    - Audit log permissions: Verified that query access to audit trails is restricted to management tiers (`POD_LEAD` and `OPS_MANAGER`), returning 403 for regular employees.
+    - Master data & rules scoping: Verified cross-pod boundaries for staffing assignments, coverage rules, and weekly-off rules.
+    - Uniform error envelope: Verified that all 401 and 403 authorization rejections strictly format error codes (`UNAUTHENTICATED`, `FORBIDDEN`), messages, details, and correlation `request_id` (matching `X-Request-ID` header) per `API_DOCUMENTATION.md` §3.
+  - Hardened local roster repair in `backend/app/services/roster.py` against conflicts with null date ranges.
 - Generator Hypothesis Property-Based Tests (Task T-803 marked Completed in `TASK_TRACKER.md`):
   - Created `backend/tests/unit/scheduler/test_generator_properties.py` implementing comprehensive property-based tests using Hypothesis for the scheduling engine invariants (`TESTING_DOCUMENTATION.md` §3):
     - Invariant 1: Demand evaluates to strictly 0 on every non-operating day across random calendar types, dates, holidays, and high headcount overrides.

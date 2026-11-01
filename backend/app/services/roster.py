@@ -2560,10 +2560,13 @@ class RosterService:
         # If no specific dates given, derive from all active conflicts in this period
         if not impacted_dates:
             for c in period.conflicts:
-                cur = c.date_from
-                while cur <= c.date_to:
-                    impacted_dates.add(cur)
-                    cur += dt.timedelta(days=1)
+                if c.date_from and c.date_to:
+                    cur = c.date_from
+                    while cur <= c.date_to:
+                        impacted_dates.add(cur)
+                        cur += dt.timedelta(days=1)
+                elif c.date_from:
+                    impacted_dates.add(c.date_from)
 
         # Clamp to month bounds
         impacted_dates = {d for d in impacted_dates if month_start <= d <= month_end}
