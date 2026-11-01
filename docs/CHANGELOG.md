@@ -5,6 +5,51 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 ## [Unreleased]
 
 ### Added
+- Five view modes and interactive operational day view panel (Task T-609 marked Completed in `TASK_TRACKER.md`):
+  - Defined TypeScript models for day staffing operations in `frontend/src/types/roster.ts` (`RosterDayEmployeeItem`, `RosterDayBrandProcessGroup`, `RosterDayViewResponse`, `RosterViewMode`).
+  - Added day view API fetcher `getRosterDayViewApi` and React Query hook `useRosterDayViewQuery` in `frontend/src/api/rosters.ts`.
+  - Implemented `DayViewDrawer` in `frontend/src/features/roster/DayViewDrawer.tsx`:
+    - Shows daily operational headcount, required staffing, and coverage health ratio.
+    - Grouped cards per brand-process displaying on-duty working employees with assignment types and lock states alongside scheduled-off staff.
+    - Available dedicated floaters section for immediate reallocation.
+    - Day navigation arrows (`← Prev Day`, `Next Day →`) and public holiday notices.
+  - Implemented `EmployeeRosterCard` in `frontend/src/features/roster/EmployeeRosterCard.tsx`:
+    - Specialized single-employee month calendar view with shift badges, days worked metrics, weekly offs count, leaves taken, and comp-offs.
+  - Integrated into `RosterWorkspacePage.tsx`:
+    - Mode switcher for all 5 views: `Company` (all staff), `Pod` (filtered by Pod), `Brand` (filtered by brand), `Process` (filtered by CS, ACC, etc.), and `Employee` (individual calendar view).
+    - Dynamic secondary filter dropdowns populated via `usePodsQuery`, `useBrandsQuery`, `useProcessesQuery`, `useEmployeesQuery`.
+    - Made date column headers in `RosterGrid.tsx` clickable to directly open the `DayViewDrawer` for that day.
+- Coverage strip and full brand-process coverage heatmap components (Task T-608 marked Completed in `TASK_TRACKER.md`):
+  - Defined coverage status types, calculation helper `getCoverageState(required, actual)`, and semantic style tokens `COVERAGE_CONFIG` in `frontend/src/types/roster.ts` supporting four states (`COVERED`, `UNDERSTAFFED`, `UNCOVERED`, `CLOSED`) with exact WCAG AA color pairs (`#2E7D5B` / `#E3F2EA`, `#B7791F` / `#FBF0D9`, `#C2412D` / `#FBE4DF`).
+  - Added coverage API fetcher `getRosterCoverageApi` and React Query hook `useRosterCoverageQuery` in `frontend/src/api/rosters.ts`.
+  - Implemented `CoverageStrip` in `frontend/src/features/roster/CoverageStrip.tsx`:
+    - Renders a 4px continuous coverage bar per day under the matrix header.
+    - Expandable into per brand-process rows (`Aurora · CS`, `Nova · ACC`, `Pulse · CS`, etc.) with monthly coverage percentages.
+    - Hover tooltip displaying required headcount, actual staff, and shortfall breakdown.
+  - Implemented `CoverageHeatmap` in `frontend/src/features/roster/CoverageHeatmap.tsx`:
+    - Standalone matrix view of brand-processes by dates with interactive search, status filter (`All`, `Uncovered Only`, `Under-staffed Only`), and KPI metrics (Overall Coverage Rate %, Fully Covered Slots, Under-staffed Count, Critical Gaps).
+    - Sticky left header with brand and process badges.
+    - Hover tooltip detailing requirements and shortfall per cell with click callback support.
+  - Integrated `CoverageStrip` directly into `RosterGrid.tsx` and added a presentation switcher (`Grid & Strips` vs `Coverage Heatmap`) in `RosterWorkspacePage.tsx` with realistic fallback coverage synthesis covering Scenarios S1–S4.
+- Signature Roster Grid component, roving tabindex keyboard navigation, virtualised scrolling, and interactive Roster Workspace (Task T-607 marked Completed in `TASK_TRACKER.md`):
+  - Defined roster domain and schedule matrix TypeScript types in `frontend/src/types/roster.ts` (`RosterEntryStatus`, `RosterStatusCode`, `EntrySource`, `RosterPeriodStatus`, `RosterPeriod`, `RosterGridCell`, `RosterGridRow`, `RosterGridViewResponse`, `RosterEntriesBatchUpdateRequest`, `RosterEntriesLockRequest`).
+  - Added conversion helpers `mapStatusToCode()` and `mapCodeToStatus()` adhering to low-saturation accessible fills and letter codes (`W`, `WO`, `PH`, `HW`, `L`, `CO`).
+  - Created typed API methods and TanStack Query hooks in `frontend/src/api/rosters.ts` (`useRosterPeriodsQuery`, `useRosterGridQuery`, `useUpdateRosterEntriesMutation`, `useLockRosterEntriesMutation`) with targeted cache invalidation.
+  - Implemented the flagship `RosterGrid` component in `frontend/src/features/roster/RosterGrid.tsx`:
+    - Row virtualization via `@tanstack/react-virtual` for 100+ employee rosters at 28px row height.
+    - Three-column sticky left panel (`Employee` name + code, `Pod` badge, `Load` days worked count) with strong border separator.
+    - Sticky header with weekday initial and date numbers, tinted weekend columns and holiday columns.
+    - WAI-ARIA `role="grid"` structure with roving tabindex cursor tracking.
+    - Full keyboard navigation: arrow keys (`↑ ↓ ← →`), `Home`, `End`, `PageUp`, `PageDown`, `Enter`/`Space` to inspect/edit, and `Esc` to unfocus.
+    - Keyboard quick-set shortcuts: `W` (Work), `O` (Weekly Off), `L` (Leave), `C` (Comp-off), `P` (Public Holiday), `H` (Holiday Work).
+    - Shortcut cheat sheet modal accessible via `?` key or toolbar button.
+  - Implemented `RosterWorkspacePage` in `frontend/src/features/roster/RosterWorkspacePage.tsx`:
+    - Workspace topbar with version badge (`DRAFT v1`, `PUBLISHED`), month label, view mode switcher (`Company`, `Pod`, `Brand`, `Process`, `Employee`), and live sync trigger.
+    - KPI strip displaying Staff in View, Working Days, Approved Leaves, and Blocking Conflicts count.
+    - Search input and Pod selector for real-time employee filtering.
+    - Side drawer cell inspector for single-click and keyboard inspection, manual overrides, and cell locking (`Lock`/`Unlock`).
+    - Realistic fallback demo roster pre-seeded from `SAMPLE_DATA.md` for seamless preview and testing when backend period data is ungenerated.
+  - Replaced `RosterPlaceholder` with `RosterWorkspacePage` under `/roster` in `frontend/src/App.tsx`.
 - Leaves and Comp-offs management workspace, approval panel, and balances (Task T-606 marked Completed in `TASK_TRACKER.md`):
   - Defined TypeScript models and input schemas in `frontend/src/types/leaves.ts` for `Leave`, `LeaveCreateInput`, `LeaveUpdateInput`, `LeaveType`, `LeaveStatus`, `CompOffEntry`, `CompOffKind`, `CompOffRedeemInput`.
   - Created API client methods and TanStack Query hooks in `frontend/src/api/leaves.ts` for leave submission, approval, rejection, cancellation, comp-off ledger querying, and comp-off redemption with cache invalidation.

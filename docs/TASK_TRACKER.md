@@ -82,9 +82,9 @@
 | T-604 | Brands and Processes screens | Master–detail brands, brand-processes, assignments editor | High | T-602 | Screens | Completed | 3h | MVP |
 | T-605 | Rules and Holidays screens | Coverage rule editor with preview, holiday calendar | High | T-602 | Screens | Completed | 2.5h | MVP |
 | T-606 | Leaves and Comp-offs screens | List, create/edit panel, approve/reject, balances | High | T-602 | Screens | Completed | 2h | MVP |
-| T-607 | Roster grid component | Virtualised grid, sticky headers/columns, status cells, keyboard navigation | High | T-602 | `RosterGrid` | Not Started | 4h | MVP |
-| T-608 | Coverage strip and heatmap | Per brand-process strips and dashboard heatmap with tooltips | High | T-607 | Components | Not Started | 2h | MVP |
-| T-609 | Five view modes and day view | Company / Pod / Brand / Process / Employee layouts + day panel | High | T-607 | Views | Not Started | 3h | MVP |
+| T-607 | Roster grid component | Virtualised grid, sticky headers/columns, status cells, keyboard navigation | High | T-602 | `RosterGrid` | Completed | 4h | MVP |
+| T-608 | Coverage strip and heatmap | Per brand-process strips and dashboard heatmap with tooltips | High | T-607 | Components | Completed | 2h | MVP |
+| T-609 | Five view modes and day view | Company / Pod / Brand / Process / Employee layouts + day panel | High | T-607 | Views | Completed | 3h | MVP |
 | T-610 | Cell edit popover with live impact | Status picker, lock, inline impact line | High | T-607 | Interaction | Not Started | 2h | MVP |
 | T-611 | Conflict drawer and list | Filters, explanations, suggestions, apply, acknowledge | High | T-602 | Screens | Not Started | 2.5h | MVP |
 | T-612 | Impact simulator screen | Before/after, remaining-employees matrix, apply/repair | High | T-611 | Screen | Not Started | 2.5h | MVP |

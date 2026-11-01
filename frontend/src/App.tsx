@@ -1,12 +1,13 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Layout, DashboardPlaceholder, RosterPlaceholder } from './routes';
+import { Layout, DashboardPlaceholder } from './routes';
 import { DesignSystemPage } from './features/design-system/DesignSystemPage';
 import { TeamPage } from './features/team/TeamPage';
 import { BrandsPage } from './features/brands/BrandsPage';
 import { LeavesPage } from './features/leaves/LeavesPage';
 import { RulesHolidaysPage } from './features/rules/RulesHolidaysPage';
+import { RosterWorkspacePage } from './features/roster/RosterWorkspacePage';
 import { AuthProvider, useAuth } from './features/auth/AuthContext';
 import { MonthProvider } from './context/MonthContext';
 import { ToastProvider } from './components/ui';
@@ -52,7 +53,7 @@ export const App: React.FC = () => {
               }
             >
               <Route index element={<RootRedirect />} />
-              <Route path="roster" element={<RosterPlaceholder />} />
+              <Route path="roster" element={<RosterWorkspacePage />} />
               <Route
                 path="conflicts"
                 element={
