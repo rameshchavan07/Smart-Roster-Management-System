@@ -526,6 +526,11 @@ export const RosterWorkspacePage: React.FC = () => {
           },
           {
             onError: (err) => {
+              setLocalOverrides((prev) => {
+                const next = { ...prev };
+                delete next[overrideKey];
+                return next;
+              });
               showApiErrorToast(err, toast, 'Quick status update failed');
             },
           }
@@ -590,6 +595,11 @@ export const RosterWorkspacePage: React.FC = () => {
 
         toast.success('Schedule Updated', `Saved schedule for ${row.employee_name} on ${date}`);
       } catch (err: unknown) {
+        setLocalOverrides((prev) => {
+          const next = { ...prev };
+          delete next[overrideKey];
+          return next;
+        });
         showApiErrorToast(err, toast, 'Failed to update schedule cell');
       }
     } else {

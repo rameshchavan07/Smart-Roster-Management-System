@@ -158,6 +158,11 @@ export function useApproveLeaveMutation() {
     onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: ['leaves'] });
       queryClient.invalidateQueries({ queryKey: ['leave', id] });
+      queryClient.invalidateQueries({ queryKey: ['roster-grid'] });
+      queryClient.invalidateQueries({ queryKey: ['roster-coverage'] });
+      queryClient.invalidateQueries({ queryKey: ['roster-conflicts'] });
+      queryClient.invalidateQueries({ queryKey: ['roster-day-view'] });
+      queryClient.invalidateQueries({ queryKey: ['rosters'] });
     },
   });
 }
@@ -169,6 +174,8 @@ export function useRejectLeaveMutation() {
     onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: ['leaves'] });
       queryClient.invalidateQueries({ queryKey: ['leave', id] });
+      queryClient.invalidateQueries({ queryKey: ['roster-conflicts'] });
+      queryClient.invalidateQueries({ queryKey: ['rosters'] });
     },
   });
 }
@@ -180,6 +187,11 @@ export function useCancelLeaveMutation() {
     onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: ['leaves'] });
       queryClient.invalidateQueries({ queryKey: ['leave', id] });
+      queryClient.invalidateQueries({ queryKey: ['roster-grid'] });
+      queryClient.invalidateQueries({ queryKey: ['roster-coverage'] });
+      queryClient.invalidateQueries({ queryKey: ['roster-conflicts'] });
+      queryClient.invalidateQueries({ queryKey: ['roster-day-view'] });
+      queryClient.invalidateQueries({ queryKey: ['rosters'] });
     },
   });
 }

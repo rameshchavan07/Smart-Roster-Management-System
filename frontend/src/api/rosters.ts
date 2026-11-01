@@ -7,6 +7,7 @@ import type {
   RosterCloneRequest,
   RosterGridViewResponse,
   RosterEntriesBatchUpdateRequest,
+  RosterEntryUpdateItem,
   RosterEntriesUpdateResponse,
   RosterEntriesLockRequest,
   RosterEntriesLockResponse,
@@ -241,7 +242,64 @@ export function useUpdateRosterEntriesMutation() {
       periodId: string;
       request: RosterEntriesBatchUpdateRequest;
     }) => updateRosterEntriesApi(periodId, request),
-    onSuccess: () => {
+    onMutate: async ({ request }) => {
+      // 1. Cancel outgoing queries
+      await queryClient.cancelQueries({ queryKey: ['roster-grid'] });
+
+      // 2. Snapshot previous grid state
+      const previousGrids = queryClient.getQueriesData<RosterGridViewResponse>({
+        queryKey: ['roster-grid'],
+      });
+
+      // 3. Build lookup of pending entry updates
+      const updateMap = new Map<string, RosterEntryUpdateItem>();
+      if (request.entries) {
+        for (const entry of request.entries) {
+          updateMap.set(`${entry.employee_id}:${entry.date}`, entry);
+        }
+      }
+
+      // 4. Optimistically update all matching grid caches
+      queryClient.setQueriesData<RosterGridViewResponse>(
+        { queryKey: ['roster-grid'] },
+        (old) => {
+          if (!old || !old.rows) return old;
+          return {
+            ...old,
+            rows: old.rows.map((row) => {
+              let modified = false;
+              const newCells = { ...row.cells };
+              for (const [date, cell] of Object.entries(row.cells)) {
+                const key = `${row.employee_id}:${date}`;
+                const upd = updateMap.get(key);
+                if (upd) {
+                  modified = true;
+                  newCells[date] = {
+                    ...cell,
+                    status: upd.status,
+                    source: 'MANUAL',
+                    is_locked: typeof upd.is_locked === 'boolean' ? upd.is_locked : cell.is_locked,
+                    note: upd.reason !== undefined ? upd.reason : cell.note,
+                  };
+                }
+              }
+              return modified ? { ...row, cells: newCells } : row;
+            }),
+          };
+        }
+      );
+
+      return { previousGrids };
+    },
+    onError: (_err, _variables, context) => {
+      // Rollback to previous state
+      if (context?.previousGrids) {
+        for (const [queryKey, data] of context.previousGrids) {
+          queryClient.setQueryData(queryKey, data);
+        }
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['roster-grid'] });
       queryClient.invalidateQueries({ queryKey: ['roster-coverage'] });
       queryClient.invalidateQueries({ queryKey: ['roster-conflicts'] });
@@ -261,7 +319,55 @@ export function useLockRosterEntriesMutation() {
       periodId: string;
       request: RosterEntriesLockRequest;
     }) => lockRosterEntriesApi(periodId, request),
-    onSuccess: () => {
+    onMutate: async ({ request }) => {
+      await queryClient.cancelQueries({ queryKey: ['roster-grid'] });
+      const previousGrids = queryClient.getQueriesData<RosterGridViewResponse>({
+        queryKey: ['roster-grid'],
+      });
+
+      const lockMap = new Map<string, boolean>();
+      if (request.cells) {
+        for (const item of request.cells) {
+          lockMap.set(`${item.employee_id}:${item.date}`, item.is_locked ?? true);
+        }
+      }
+
+      queryClient.setQueriesData<RosterGridViewResponse>(
+        { queryKey: ['roster-grid'] },
+        (old) => {
+          if (!old || !old.rows) return old;
+          return {
+            ...old,
+            rows: old.rows.map((row) => {
+              let modified = false;
+              const newCells = { ...row.cells };
+              for (const [date, cell] of Object.entries(row.cells)) {
+                const key = `${row.employee_id}:${date}`;
+                const lockedState = lockMap.get(key);
+                if (lockedState !== undefined) {
+                  modified = true;
+                  newCells[date] = {
+                    ...cell,
+                    is_locked: lockedState,
+                  };
+                }
+              }
+              return modified ? { ...row, cells: newCells } : row;
+            }),
+          };
+        }
+      );
+
+      return { previousGrids };
+    },
+    onError: (_err, _variables, context) => {
+      if (context?.previousGrids) {
+        for (const [queryKey, data] of context.previousGrids) {
+          queryClient.setQueryData(queryKey, data);
+        }
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['roster-grid'] });
       queryClient.invalidateQueries({ queryKey: ['rosters'] });
     },
@@ -327,8 +433,39 @@ export function useAcknowledgeConflictMutation() {
       periodId: string;
       request: RosterAcknowledgeRequest;
     }) => acknowledgeRosterConflictApi(periodId, request),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['roster-conflicts', variables.periodId] });
+    onMutate: async ({ request }) => {
+      await queryClient.cancelQueries({ queryKey: ['roster-conflicts'] });
+      const previousConflicts = queryClient.getQueriesData<RosterConflict[]>({
+        queryKey: ['roster-conflicts'],
+      });
+
+      queryClient.setQueriesData<RosterConflict[]>(
+        { queryKey: ['roster-conflicts'] },
+        (old) => {
+          if (!old || !Array.isArray(old)) return old;
+          return old.map((c) =>
+            c.id === request.conflict_id
+              ? {
+                  ...c,
+                  is_acknowledged: true,
+                  acknowledged_reason: request.reason,
+                }
+              : c
+          );
+        }
+      );
+
+      return { previousConflicts };
+    },
+    onError: (_err, _variables, context) => {
+      if (context?.previousConflicts) {
+        for (const [queryKey, data] of context.previousConflicts) {
+          queryClient.setQueryData(queryKey, data);
+        }
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['roster-conflicts'] });
       queryClient.invalidateQueries({ queryKey: ['rosters'] });
     },
   });

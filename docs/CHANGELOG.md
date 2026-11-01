@@ -5,6 +5,15 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 ## [Unreleased]
 
 ### Added
+- Cache Invalidation and Optimistic Edits (Task T-706 marked Completed in `TASK_TRACKER.md`):
+  - Implemented instant optimistic updates with automatic rollback in `frontend/src/api/rosters.ts`:
+    - `useUpdateRosterEntriesMutation`: Cancels outgoing queries, snapshots cached grid state, optimistically updates matching employee cells with manual source and audit notes, rolls back on server rejection, and invalidates all related queries (`roster-grid`, `roster-coverage`, `roster-conflicts`, `roster-day-view`, `rosters`) upon settlement.
+    - `useLockRosterEntriesMutation`: Optimistically toggles cell freeze status (`is_locked`) across all cached views with rollback on failure.
+    - `useAcknowledgeConflictMutation`: Optimistically marks conflicts as acknowledged with reasons across cached queries with rollback on failure.
+  - Linked Leave Status lifecycle in `frontend/src/api/leaves.ts`:
+    - Leave approvals, rejections, and cancellations now automatically invalidate roster grid, coverage heatmap, conflicts, and operational day views to ensure immediate scheduling consistency across the application.
+  - Hardened state rollbacks in `frontend/src/features/roster/RosterWorkspacePage.tsx` reverting local overrides if the backend rejects quick keyboard or popover edits.
+
 - Wire Conflicts, Impact Simulator, and Suggestions (Task T-705 marked Completed in `TASK_TRACKER.md`):
   - Connected Conflict Resolution Drawer in `frontend/src/features/roster/ConflictDrawer.tsx` to live recommendations (`GET /api/v1/rosters/{period_id}/suggestions?conflict_id={id}`), conflict acknowledgment (`POST /api/v1/rosters/{period_id}/acknowledge`), and automated recommendation application (`PUT /api/v1/rosters/{period_id}/entries`) with structured error mapping and parent cache updates.
   - Connected What-If Impact Simulator in `frontend/src/features/roster/ImpactSimulatorPage.tsx` to `POST /api/v1/rosters/{period_id}/impact` for real-time schedule diffing (`new_conflicts`, `resolved_conflicts`, `net_conflict_change`, `affected_dates`) and local CP-SAT solver window repair (`POST /api/v1/rosters/{period_id}/repair`).
