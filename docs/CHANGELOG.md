@@ -5,6 +5,15 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 ## [Unreleased]
 
 ### Added
+- Schemas and uniform error handling middleware (Task T-305 marked Completed in `TASK_TRACKER.md`):
+  - Created Pydantic v2 schemas across:
+    - `backend/app/schemas/common.py`: generic `PaginatedResponse[T]`, `PaginationParams`, `MessageResponse`, `EntityCreatedResponse`.
+    - `backend/app/schemas/core.py`: create, update, and read models for pods, employees, processes, brands, brand-processes, and assignments.
+    - `backend/app/schemas/rules.py`: models and validators for coverage rules (`weekday` vs `specific_date` mutual exclusivity), holidays, leaves (`end_date >= start_date`), comp-off ledger & balance, weekly-off rules, and employee preferences.
+    - `backend/app/schemas/auth.py`: login/refresh request, user read/update, token response, and audit log models.
+    - `backend/app/schemas/roster.py`: roster generation, cell batch updates, lock/unlock requests, conflicts, acknowledgements, grid matrix rows/cells, and what-if impact simulation payloads.
+  - Enhanced uniform error envelope in `backend/app/core/errors.py` with typed exceptions (`BadRequestError`, `AuthenticationError`, `ForbiddenError`, `NotFoundError`, `ConflictError`, `BusinessValidationError`, `RosterBlockedError`, `RateLimitedError`) and fallback `generic_exception_handler` (500 `INTERNAL_ERROR`), ensuring `X-Request-ID` is uniformly delivered in headers and JSON payloads per `API_DOCUMENTATION.md` §3.
+  - Added unit test suite in `backend/tests/unit/test_schemas_and_errors.py` verifying schema validators, serialization, and HTTP error envelope compliance for all status codes.
 - Initial Alembic database migration (Task T-304 marked Completed in `TASK_TRACKER.md`):
   - Created initial schema revision `backend/alembic/versions/754504684d23_0001_initial_schema.py` covering all 16 application tables:
     - Core: `pods`, `processes`, `brands`, `employees`, `brand_processes`, `assignments`.

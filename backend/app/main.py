@@ -13,6 +13,7 @@ from app.core.config import get_settings
 from app.core.errors import (
     AppError,
     app_error_handler,
+    generic_exception_handler,
     http_exception_handler,
     validation_exception_handler,
 )
@@ -65,6 +66,7 @@ def create_app() -> FastAPI:
         RequestValidationError,
         validation_exception_handler,  # type: ignore
     )
+    app.add_exception_handler(Exception, generic_exception_handler)  # type: ignore
 
     # Mount Root Health Endpoints (for container/Render probes)
     app.include_router(health_router)
