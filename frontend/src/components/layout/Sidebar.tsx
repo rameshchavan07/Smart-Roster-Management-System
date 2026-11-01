@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -14,19 +14,58 @@ import {
   Palette,
   LogOut,
   X,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { useAuth } from '../../features/auth/AuthContext';
 
 export interface SidebarProps {
   isOpenOnMobile?: boolean;
   onCloseMobile?: () => void;
+  isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
   isOpenOnMobile = false,
   onCloseMobile,
+  isCollapsed: controlledCollapsed,
+  onToggleCollapse,
 }) => {
   const { user, logout, isOpsManager, isEmployee } = useAuth();
+
+  // Internal collapse state with auto-collapse between 768px and 1279px (Tablet breakpoint)
+  const [internalCollapsed, setInternalCollapsed] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth >= 768 && window.innerWidth < 1280;
+    }
+    return false;
+  });
+
+  const isCollapsed = controlledCollapsed !== undefined ? controlledCollapsed : internalCollapsed;
+
+  const handleToggle = () => {
+    if (onToggleCollapse) {
+      onToggleCollapse();
+    } else {
+      setInternalCollapsed((prev) => !prev);
+    }
+  };
+
+  // Responsive listener for auto-collapsing to 56px icon rail on tablet
+  useEffect(() => {
+    const handleResize = () => {
+      const width = window.innerWidth;
+      if (width >= 768 && width < 1280) {
+        setInternalCollapsed(true);
+      } else if (width >= 1280) {
+        // preserve user choice if desktop
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const getRoleBadge = () => {
     switch (user?.role) {
@@ -44,28 +83,43 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const roleInfo = getRoleBadge();
 
   const navLinkClass = ({ isActive }: { isActive: boolean }) =>
-    `flex items-center gap-2.5 rounded-ctl px-2.5 py-2 transition-colors ${
+    `flex items-center ${
+      isCollapsed ? 'justify-center px-0 h-10 w-10 mx-auto' : 'gap-2.5 px-2.5 py-2'
+    } rounded-ctl transition-colors ${
       isActive
         ? 'bg-accent-50 font-semibold text-accent-700 border-l-2 border-accent-600'
         : 'text-ink-2 hover:bg-surface-2 hover:text-ink'
     }`;
 
   const sidebarContent = (
-    <aside className="flex h-full w-56 flex-col border-r border-border bg-surface text-ink">
+    <aside
+      className={`flex h-full flex-col border-r border-border bg-surface text-ink transition-all duration-200 ${
+        isCollapsed ? 'w-14' : 'w-56'
+      }`}
+    >
       {/* Brand header */}
-      <div className="flex h-14 items-center justify-between px-4 border-b border-border">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-7 w-7 items-center justify-center rounded-ctl bg-accent-600 text-surface font-semibold text-sm shadow-sm">
+      <div
+        className={`flex h-14 items-center ${
+          isCollapsed ? 'justify-center px-2' : 'justify-between px-4'
+        } border-b border-border`}
+      >
+        <div className="flex items-center gap-2.5 overflow-hidden">
+          <div
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-ctl bg-accent-600 text-surface font-semibold text-sm shadow-sm"
+            title="RosterOps Scheduler"
+          >
             R
           </div>
-          <div>
-            <h1 className="text-sm font-semibold tracking-tight text-ink leading-tight">
-              RosterOps
-            </h1>
-            <p className="text-[10px] text-ink-3 uppercase tracking-wider font-medium">
-              Scheduler
-            </p>
-          </div>
+          {!isCollapsed && (
+            <div className="truncate">
+              <h1 className="text-sm font-semibold tracking-tight text-ink leading-tight truncate">
+                RosterOps
+              </h1>
+              <p className="text-[10px] text-ink-3 uppercase tracking-wider font-medium truncate">
+                Scheduler
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Mobile close button */}
@@ -85,121 +139,220 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <nav className="flex-1 space-y-1 p-2 text-xs font-medium overflow-y-auto">
         {/* Main section */}
         {!isEmployee && (
-          <NavLink to="/" end className={navLinkClass} onClick={onCloseMobile}>
+          <NavLink
+            to="/"
+            end
+            title="Dashboard"
+            className={navLinkClass}
+            onClick={onCloseMobile}
+          >
             <LayoutDashboard className="h-4 w-4 shrink-0" />
-            <span>Dashboard</span>
+            {!isCollapsed && <span>Dashboard</span>}
           </NavLink>
         )}
 
-        <NavLink to="/roster" className={navLinkClass} onClick={onCloseMobile}>
+        <NavLink
+          to="/roster"
+          title={isEmployee ? 'My Roster' : 'Roster Workspace'}
+          className={navLinkClass}
+          onClick={onCloseMobile}
+        >
           <Calendar className="h-4 w-4 shrink-0" />
-          <span>{isEmployee ? 'My Roster' : 'Roster Workspace'}</span>
+          {!isCollapsed && <span>{isEmployee ? 'My Roster' : 'Roster Workspace'}</span>}
         </NavLink>
 
         {!isEmployee && (
-          <NavLink to="/conflicts" className={navLinkClass} onClick={onCloseMobile}>
+          <NavLink
+            to="/conflicts"
+            title="Conflicts"
+            className={navLinkClass}
+            onClick={onCloseMobile}
+          >
             <AlertTriangle className="h-4 w-4 shrink-0 text-warn" />
-            <span>Conflicts</span>
+            {!isCollapsed && <span>Conflicts</span>}
           </NavLink>
         )}
 
         {!isEmployee && (
-          <NavLink to="/simulator" className={navLinkClass} onClick={onCloseMobile}>
+          <NavLink
+            to="/simulator"
+            title="Impact Simulator"
+            className={navLinkClass}
+            onClick={onCloseMobile}
+          >
             <Sparkles className="h-4 w-4 shrink-0 text-accent-700" />
-            <span>Impact Simulator</span>
+            {!isCollapsed && <span>Impact Simulator</span>}
           </NavLink>
         )}
 
-        <NavLink to="/leaves" className={navLinkClass} onClick={onCloseMobile}>
+        <NavLink
+          to="/leaves"
+          title="Leaves & Comp-offs"
+          className={navLinkClass}
+          onClick={onCloseMobile}
+        >
           <Clock className="h-4 w-4 shrink-0" />
-          <span>Leaves & Comp-offs</span>
+          {!isCollapsed && <span>Leaves & Comp-offs</span>}
         </NavLink>
 
         {/* Management section */}
         {!isEmployee && (
           <>
-            <div className="pt-3 pb-1 px-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-3">
-              Management
-            </div>
+            {!isCollapsed ? (
+              <div className="pt-3 pb-1 px-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-3">
+                Management
+              </div>
+            ) : (
+              <div className="my-2 border-t border-border" />
+            )}
 
-            <NavLink to="/team" className={navLinkClass} onClick={onCloseMobile}>
+            <NavLink
+              to="/team"
+              title="Team & Pods"
+              className={navLinkClass}
+              onClick={onCloseMobile}
+            >
               <Users className="h-4 w-4 shrink-0" />
-              <span>Team & Pods</span>
+              {!isCollapsed && <span>Team & Pods</span>}
             </NavLink>
 
-            <NavLink to="/brands" className={navLinkClass} onClick={onCloseMobile}>
+            <NavLink
+              to="/brands"
+              title="Brands & Processes"
+              className={navLinkClass}
+              onClick={onCloseMobile}
+            >
               <Briefcase className="h-4 w-4 shrink-0" />
-              <span>Brands & Processes</span>
+              {!isCollapsed && <span>Brands & Processes</span>}
             </NavLink>
 
-            <NavLink to="/rules" className={navLinkClass} onClick={onCloseMobile}>
+            <NavLink
+              to="/rules"
+              title="Rules & Holidays"
+              className={navLinkClass}
+              onClick={onCloseMobile}
+            >
               <CalendarDays className="h-4 w-4 shrink-0" />
-              <span>Rules & Holidays</span>
+              {!isCollapsed && <span>Rules & Holidays</span>}
             </NavLink>
 
-            <NavLink to="/reports" className={navLinkClass} onClick={onCloseMobile}>
+            <NavLink
+              to="/reports"
+              title="Reports & Export"
+              className={navLinkClass}
+              onClick={onCloseMobile}
+            >
               <FileText className="h-4 w-4 shrink-0" />
-              <span>Reports & Export</span>
+              {!isCollapsed && <span>Reports & Export</span>}
             </NavLink>
           </>
         )}
 
-        {/* Settings & Reference */}
+        {/* Administration section */}
         {isOpsManager && (
           <>
-            <div className="pt-3 pb-1 px-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-3">
-              Administration
-            </div>
+            {!isCollapsed ? (
+              <div className="pt-3 pb-1 px-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-3">
+                Administration
+              </div>
+            ) : (
+              <div className="my-2 border-t border-border" />
+            )}
 
-            <NavLink to="/settings" className={navLinkClass} onClick={onCloseMobile}>
+            <NavLink
+              to="/settings"
+              title="Settings & Audit"
+              className={navLinkClass}
+              onClick={onCloseMobile}
+            >
               <Sliders className="h-4 w-4 shrink-0" />
-              <span>Settings & Audit</span>
+              {!isCollapsed && <span>Settings & Audit</span>}
             </NavLink>
           </>
         )}
 
-        <div className="pt-3 pb-1 px-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-3">
-          Reference
-        </div>
+        {!isCollapsed ? (
+          <div className="pt-3 pb-1 px-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-3">
+            Reference
+          </div>
+        ) : (
+          <div className="my-2 border-t border-border" />
+        )}
 
-        <NavLink to="/design-system" className={navLinkClass} onClick={onCloseMobile}>
+        <NavLink
+          to="/design-system"
+          title="Design System"
+          className={navLinkClass}
+          onClick={onCloseMobile}
+        >
           <Palette className="h-4 w-4 shrink-0 text-accent-600" />
-          <span>Design System</span>
+          {!isCollapsed && <span>Design System</span>}
         </NavLink>
       </nav>
 
+      {/* Collapse / Expand Toggle Button for Desktop */}
+      <div className="hidden md:flex border-t border-border p-2">
+        <button
+          type="button"
+          onClick={handleToggle}
+          title={isCollapsed ? 'Expand sidebar (232px)' : 'Collapse sidebar to icon rail (56px)'}
+          aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          className={`flex h-8 w-full items-center ${
+            isCollapsed ? 'justify-center' : 'justify-between px-2.5'
+          } rounded-ctl text-ink-3 hover:text-ink hover:bg-surface-2 transition-colors text-xs`}
+        >
+          {!isCollapsed && <span className="text-[11px] font-medium">Collapse Rail</span>}
+          {isCollapsed ? (
+            <ChevronRight className="h-4 w-4" />
+          ) : (
+            <ChevronLeft className="h-4 w-4" />
+          )}
+        </button>
+      </div>
+
       {/* User profile footer with Logout */}
-      <div className="flex items-center justify-between border-t border-border p-3 text-xs bg-surface">
-        <div className="flex items-center gap-2 overflow-hidden">
+      <div
+        className={`flex items-center ${
+          isCollapsed ? 'justify-center p-2' : 'justify-between p-3'
+        } border-t border-border text-xs bg-surface`}
+      >
+        <div
+          className="flex items-center gap-2 overflow-hidden"
+          title={`${roleInfo.label} (${user?.email})`}
+        >
           <div
             className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full font-semibold text-xs ${roleInfo.color}`}
           >
             {roleInfo.initials}
           </div>
-          <div className="truncate">
-            <p className="font-medium text-ink truncate leading-tight">{roleInfo.label}</p>
-            <p className="text-[11px] text-ink-3 truncate leading-tight font-mono">
-              {user?.email}
-            </p>
-          </div>
+          {!isCollapsed && (
+            <div className="truncate">
+              <p className="font-medium text-ink truncate leading-tight">{roleInfo.label}</p>
+              <p className="text-[11px] text-ink-3 truncate leading-tight font-mono">
+                {user?.email}
+              </p>
+            </div>
+          )}
         </div>
 
-        <button
-          type="button"
-          onClick={() => logout()}
-          title="Sign out"
-          aria-label="Sign out"
-          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-ctl text-ink-3 hover:text-bad hover:bg-bad/10 transition-colors focus:outline-none focus:ring-2 focus:ring-accent-600"
-        >
-          <LogOut className="h-4 w-4" />
-        </button>
+        {!isCollapsed && (
+          <button
+            type="button"
+            onClick={() => logout()}
+            title="Sign out"
+            aria-label="Sign out"
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-ctl text-ink-3 hover:text-bad hover:bg-bad/10 transition-colors focus:outline-none focus:ring-2 focus:ring-accent-600"
+          >
+            <LogOut className="h-4 w-4" />
+          </button>
+        )}
       </div>
     </aside>
   );
 
   return (
     <>
-      {/* Desktop Persistent Sidebar */}
+      {/* Desktop & Tablet Persistent Sidebar */}
       <div className="hidden md:flex h-full shrink-0">{sidebarContent}</div>
 
       {/* Mobile Drawer Overlay */}
@@ -216,4 +369,3 @@ export const Sidebar: React.FC<SidebarProps> = ({
     </>
   );
 };
-

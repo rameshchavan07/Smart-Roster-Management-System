@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { Topbar } from './Topbar';
 import { CommandPalette } from './CommandPalette';
+import { BottomTabBar } from './BottomTabBar';
 
 export const AppShell: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -37,11 +38,14 @@ export const AppShell: React.FC = () => {
           onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
         />
 
-        {/* Viewport Outlet */}
-        <main className="flex-1 overflow-auto p-4 sm:p-6 focus:outline-none" tabIndex={-1}>
+        {/* Viewport Outlet - pb-20 on mobile to clear bottom tab bar */}
+        <main className="flex-1 overflow-auto p-4 sm:p-6 pb-20 md:pb-6 focus:outline-none" tabIndex={-1}>
           <Outlet />
         </main>
       </div>
+
+      {/* Mobile Bottom Tab Bar (< 768px) */}
+      <BottomTabBar />
 
       {/* Command Palette Overlay */}
       <CommandPalette

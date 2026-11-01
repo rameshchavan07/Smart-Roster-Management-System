@@ -8,6 +8,7 @@ import {
   LayoutGrid,
   BarChart2,
   Calendar,
+  CalendarDays,
   Sparkles,
   ShieldCheck,
 } from 'lucide-react';
@@ -39,6 +40,7 @@ import { CellEditPopover } from './CellEditPopover';
 import { GenerateRosterModal } from './GenerateRosterModal';
 import { PublishConfirmModal } from './PublishConfirmModal';
 import { VersionHistoryDropdown } from './VersionHistoryDropdown';
+import { MobileAgendaRoster } from './MobileAgendaRoster';
 import type {
   RosterGridRow,
   RosterGridCell,
@@ -85,8 +87,13 @@ export const RosterWorkspacePage: React.FC = () => {
 
   const canEdit = isOpsManager || isPodLead;
 
-  // Active workspace presentation tab: 'GRID' (Matrix with 4px strips) or 'HEATMAP' (Coverage heatmap)
-  const [workspaceTab, setWorkspaceTab] = useState<'GRID' | 'HEATMAP'>('GRID');
+  // Active workspace presentation tab: 'GRID' (Matrix with 4px strips), 'HEATMAP' (Coverage heatmap), or 'AGENDA' (Mobile agenda)
+  const [workspaceTab, setWorkspaceTab] = useState<'GRID' | 'HEATMAP' | 'AGENDA'>(() => {
+    if (typeof window !== 'undefined' && window.innerWidth < 768) {
+      return 'AGENDA';
+    }
+    return 'GRID';
+  });
 
   // View state: 'company' | 'pod' | 'brand' | 'process' | 'employee'
   const [viewMode, setViewMode] = useState<RosterViewMode>('company');
@@ -667,6 +674,19 @@ export const RosterWorkspacePage: React.FC = () => {
               <BarChart2 className="w-3.5 h-3.5" />
               <span>Coverage Heatmap</span>
             </button>
+
+            <button
+              type="button"
+              onClick={() => setWorkspaceTab('AGENDA')}
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium transition-colors ${
+                workspaceTab === 'AGENDA'
+                  ? 'bg-surface-1 text-text-primary shadow-sm font-semibold'
+                  : 'text-text-muted hover:text-text-primary'
+              }`}
+            >
+              <CalendarDays className="w-3.5 h-3.5" />
+              <span>Agenda</span>
+            </button>
           </div>
 
           {workspaceTab === 'GRID' && (
@@ -965,7 +985,7 @@ export const RosterWorkspacePage: React.FC = () => {
             </>
           )}
         </>
-      ) : (
+      ) : workspaceTab === 'HEATMAP' ? (
         /* Standalone Coverage Heatmap View */
         <CoverageHeatmap
           coverageCells={effectiveCoverageCells}
@@ -977,6 +997,19 @@ export const RosterWorkspacePage: React.FC = () => {
               `Demand: ${cell.required} · Actual: ${cell.actual} · Shortfall: ${cell.shortfall}`
             );
           }}
+        />
+      ) : (
+        /* Mobile Agenda Roster View */
+        <MobileAgendaRoster
+          monthDates={monthDates}
+          rows={filteredRows}
+          holidaysSet={holidaysSet}
+          canEdit={canEdit}
+          onCellClick={(row, date, cell, e) => {
+            const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+            setSelectedCellInfo({ row, date, cell, anchorRect: rect });
+          }}
+          onOpenDayView={(d) => setDayViewDate(d)}
         />
       )}
 
