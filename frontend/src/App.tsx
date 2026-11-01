@@ -95,6 +95,7 @@ export const App: React.FC = () => {
             </Route>
           </Routes>
         </BrowserRouter>
+        </ToastProvider>
         </MonthProvider>
       </AuthProvider>
     </QueryClientProvider>

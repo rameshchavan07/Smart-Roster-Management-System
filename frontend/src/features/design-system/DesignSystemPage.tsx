@@ -9,6 +9,16 @@ import {
   Drawer,
   StatusCell,
   RosterStatusCode,
+  Select,
+  Combobox,
+  Popover,
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+  useToast,
 } from '../../components/ui';
 import { Calendar, AlertTriangle, Layers, Info } from 'lucide-react';
 
@@ -16,6 +26,9 @@ export const DesignSystemPage: React.FC = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedCell, setSelectedCell] = useState<RosterStatusCode>('W');
+  const [selectVal, setSelectVal] = useState('dec-2026');
+  const [comboVal, setComboVal] = useState('emp-1');
+  const toast = useToast();
 
   const statusCodes: RosterStatusCode[] = ['W', 'WO', 'PH', 'HW', 'L', 'CO'];
 
@@ -317,6 +330,143 @@ export const DesignSystemPage: React.FC = () => {
               onAction={() => alert('Navigate to roster')}
             />
           </div>
+        </div>
+      </section>
+
+      {/* 8. Advanced Inputs, Popover, Table & Toast */}
+      <section className="space-y-6">
+        <h2 className="text-lg font-semibold text-ink">8. Select, Combobox, Popover, Table & Toasts</h2>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Select Component */}
+          <div className="bg-surface p-5 rounded-ctl border border-border space-y-3">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-ink-3">Select Component</h3>
+            <Select
+              label="Operating Calendar"
+              value={selectVal}
+              onChange={setSelectVal}
+              options={[
+                { value: 'dec-2026', label: 'December 2026 (Planning)' },
+                { value: 'nov-2026', label: 'November 2026' },
+                { value: 'jan-2027', label: 'January 2027' },
+                { value: 'archived', label: 'October 2026 (Archived)', disabled: true },
+              ]}
+            />
+            <p className="text-[11px] text-ink-3 font-mono">Selected: {selectVal}</p>
+          </div>
+
+          {/* Combobox Searchable */}
+          <div className="bg-surface p-5 rounded-ctl border border-border space-y-3">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-ink-3">Searchable Combobox</h3>
+            <Combobox
+              label="Assign Employee"
+              value={comboVal}
+              onChange={setComboVal}
+              allowClear
+              options={[
+                { value: 'emp-1', label: 'Riya Shah', subtitle: 'Pod A · Primary Aurora' },
+                { value: 'emp-2', label: 'Kabir Nair', subtitle: 'Pod F · Primary Zenith' },
+                { value: 'emp-3', label: 'Ananya Sharma', subtitle: 'Pod B · Backup CS' },
+                { value: 'emp-4', label: 'Dev Patel', subtitle: 'Pod C · Floater' },
+              ]}
+            />
+            <p className="text-[11px] text-ink-3 font-mono">Selected: {comboVal || 'None'}</p>
+          </div>
+
+          {/* Popover & Toasts */}
+          <div className="bg-surface p-5 rounded-ctl border border-border space-y-3">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-ink-3">Popover & Toasts</h3>
+            <div className="flex flex-wrap gap-2">
+              <Popover
+                trigger={
+                  <Button variant="secondary" size="sm">
+                    Open Popover
+                  </Button>
+                }
+              >
+                {({ close }) => (
+                  <div className="w-56 p-2 space-y-2">
+                    <p className="text-xs font-semibold text-ink">Cell Quick Actions</p>
+                    <p className="text-[11px] text-ink-3">Modify assignment status or lock cell.</p>
+                    <div className="flex gap-1.5 pt-1">
+                      <Button variant="primary" size="sm" onClick={close}>
+                        Apply
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={close}>
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </Popover>
+
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => toast.success('Roster published', 'Version 1 is now published and active.')}
+              >
+                Success Toast
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() =>
+                  toast.error('Validation conflict', 'Aurora CS has 0 of 1 required staff on 14 Dec.')
+                }
+              >
+                Error Toast
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Dense Table */}
+        <div className="space-y-3">
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-ink-3">Accessible Data Table</h3>
+          <Table dense>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Code</TableHead>
+                <TableHead>Employee Name</TableHead>
+                <TableHead>Pod</TableHead>
+                <TableHead>Primary Brand</TableHead>
+                <TableHead>Days Worked</TableHead>
+                <TableHead>Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <TableRow>
+                <TableCell className="font-mono text-ink-3">EMP-001</TableCell>
+                <TableCell className="font-medium text-ink">Riya Shah</TableCell>
+                <TableCell>Pod Alpha</TableCell>
+                <TableCell>Aurora CS</TableCell>
+                <TableCell className="font-mono">22</TableCell>
+                <TableCell>
+                  <Badge variant="SUCCESS" size="sm">Active</Badge>
+                </TableCell>
+              </TableRow>
+              <TableRow isSelected>
+                <TableCell className="font-mono text-ink-3">EMP-002</TableCell>
+                <TableCell className="font-medium text-ink">Kabir Nair</TableCell>
+                <TableCell>Pod Foxtrot</TableCell>
+                <TableCell>Zenith CS</TableCell>
+                <TableCell className="font-mono">23</TableCell>
+                <TableCell>
+                  <Badge variant="SUCCESS" size="sm">Active</Badge>
+                </TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell className="font-mono text-ink-3">EMP-003</TableCell>
+                <TableCell className="font-medium text-ink">Ananya Sharma</TableCell>
+                <TableCell>Pod Beta</TableCell>
+                <TableCell>Nova Support</TableCell>
+                <TableCell className="font-mono">21</TableCell>
+                <TableCell>
+                  <Badge variant="WARNING" size="sm">Pending Leave</Badge>
+                </TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
         </div>
       </section>
     </div>

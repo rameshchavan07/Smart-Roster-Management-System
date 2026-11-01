@@ -5,6 +5,15 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 ## [Unreleased]
 
 ### Added
+- Complete shared component library conforming to Design System tokens (Task T-602 marked Completed in `TASK_TRACKER.md`):
+  - Created `Select` component in `frontend/src/components/ui/Select.tsx` with single selection, label, error display, placeholder, custom trigger, and accessible keyboard navigation (`Enter`, `ArrowUp`/`ArrowDown`, `Escape`).
+  - Created searchable `Combobox` component in `frontend/src/components/ui/Combobox.tsx` with instant query filtering, subtitle support, clearable selection, keyboard navigation, and empty match state.
+  - Created `Popover` primitive in `frontend/src/components/ui/Popover.tsx` supporting custom trigger, alignment (`left`/`right`/`center`), side (`top`/`bottom`), and outside click / `Escape` dismissal.
+  - Created accessible `Table` components in `frontend/src/components/ui/Table.tsx` (`Table`, `TableHeader`, `TableBody`, `TableFooter`, `TableRow`, `TableHead`, `TableCell`, `TableCaption`) with dense mode (`28px`), zebra styling, row hover tints, and selected row highlights.
+  - Created `Toast` system in `frontend/src/components/ui/Toast.tsx` (`ToastProvider`, `useToast` hook) supporting semantic alerts (`success`, `error`, `warning`, `info`), configurable duration, manual dismissal, and viewport positioning.
+  - Integrated `ToastProvider` in `frontend/src/App.tsx`.
+  - Exported all shared UI components (`Button`, `Input`, `Select`, `Combobox`, `Badge`, `Skeleton`, `EmptyState`, `Modal`, `Drawer`, `Popover`, `Table`, `Toast`, `StatusCell`) through `frontend/src/components/ui/index.ts`.
+  - Added live interactive showcases for `Select`, `Combobox`, `Popover`, `Table`, and `Toast` notifications in `frontend/src/features/design-system/DesignSystemPage.tsx`.
 - App shell layout, month switcher, command palette, and breadcrumbs (Task T-601 marked Completed in `TASK_TRACKER.md`):
   - Created `MonthContext` and `useMonth` hook in `frontend/src/context/MonthContext.tsx` managing active planning horizon (default `2026-12`), step navigation (`prevMonth`/`nextMonth`), date boundaries (`startDate`/`endDate`), and planning horizon lookup.
   - Implemented interactive `MonthSwitcher` component in `frontend/src/components/layout/MonthSwitcher.tsx` with chevrons, quick dropdown month picker, and target reset button conforming to `DESIGN_SYSTEM.md`.
