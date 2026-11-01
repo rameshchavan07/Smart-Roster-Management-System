@@ -5,6 +5,27 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 ## [Unreleased]
 
 ### Added
+- Generation and Publish UX with Gating Checks and Version Management (Task T-614 marked Completed in `TASK_TRACKER.md`):
+  - Defined `RosterCloneRequest` in `frontend/src/types/roster.ts`.
+  - Added API fetchers and React Query mutation hooks in `frontend/src/api/rosters.ts` (`publishRosterApi`, `usePublishRosterMutation`, `cloneRosterApi`, `useCloneRosterMutation`).
+  - Implemented `GenerateRosterModal` in `frontend/src/features/roster/GenerateRosterModal.tsx`:
+    - Configuration: Presets for solver time limit (10s Fast, 20s Balanced, 45s Thorough), random seed input for reproducibility, and greedy fallback toggle.
+    - Live UX microcopy and progress calculation ("Optimising… 8 s of 20 s • best roster so far covers ~98.9%").
+    - Real-time solver stage indicators: Loading master data & leaves $\to$ Formulating CP-SAT decision variables & slacks $\to$ Searching assignments and fairness $\to$ Running validator.
+    - Post-generation summary metrics card: Solver status badge (`OPTIMAL`, `FEASIBLE`, `TIME_LIMIT`), coverage %, and blocking/warning conflict counts.
+  - Implemented `PublishConfirmModal` in `frontend/src/features/roster/PublishConfirmModal.tsx`:
+    - Rule A-13 Publish Gating review: Detects unacknowledged BLOCKING conflicts; disables publish button when blocking issues remain with microcopy: *"X blocking issues remain. Resolve them or acknowledge each with a reason before publishing."*
+    - Inline override input for Ops Managers: Allows direct logged acknowledgment reason ($\ge 5$ chars) per blocking conflict directly from the modal, or one-click jump to Conflict Drawer.
+    - Comp-off accrual notification: Explains that publishing transitions status to `PUBLISHED`, archives previously published version, and credits 1 comp-off per employee for holiday work (`HW`) shifts.
+  - Implemented `VersionHistoryDropdown` in `frontend/src/features/roster/VersionHistoryDropdown.tsx`:
+    - Header indicator showing current active version, status (`DRAFT`, `PUBLISHED`, `ARCHIVED`), and stale status flag.
+    - Interactive dropdown listing all versions for the target month with solver status, creation timestamps, and selection switcher.
+    - "Clone as New Draft (vN+1)" action: Allows Ops Managers and Pod Leads to safely branch off any version into a new editable draft without modifying the live published schedule.
+    - Optional side-by-side version comparison trigger.
+  - Integrated into `RosterWorkspacePage.tsx` and `DashboardPage.tsx`:
+    - Stale roster banner when inputs have changed since generation.
+    - Empty roster state when no schedule exists for the month with direct "Generate Roster" CTA.
+    - Generate and Publish action buttons wired to modals.
 - Dashboard screen conforming to S2 specifications (Task T-613 marked Completed in `TASK_TRACKER.md`):
   - Defined roster generation request/response types in `frontend/src/types/roster.ts` (`RosterGenerateRequest`, `RosterSummaryMetrics`, `RosterGenerateResponse`).
   - Added `generateRosterApi` and `useGenerateRosterMutation()` in `frontend/src/api/rosters.ts`.

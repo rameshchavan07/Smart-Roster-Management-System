@@ -9,12 +9,14 @@ import {
   BarChart2,
   Calendar,
   Sparkles,
+  ShieldCheck,
 } from 'lucide-react';
 import {
   Button,
   Input,
   Select,
   Badge,
+  EmptyState,
   useToast,
 } from '../../components/ui';
 import { useMonth } from '../../context/MonthContext';
@@ -34,12 +36,16 @@ import { CoverageHeatmap } from './CoverageHeatmap';
 import { DayViewDrawer } from './DayViewDrawer';
 import { EmployeeRosterCard } from './EmployeeRosterCard';
 import { CellEditPopover } from './CellEditPopover';
+import { GenerateRosterModal } from './GenerateRosterModal';
+import { PublishConfirmModal } from './PublishConfirmModal';
+import { VersionHistoryDropdown } from './VersionHistoryDropdown';
 import type {
   RosterGridRow,
   RosterGridCell,
   RosterEntryStatus,
   RosterCoverageCell,
   RosterViewMode,
+  RosterPeriod,
 } from '../../types/roster';
 
 // Sample fallback employees from SAMPLE_DATA.md when no backend period is active yet
@@ -122,6 +128,11 @@ export const RosterWorkspacePage: React.FC = () => {
   // Local fallback modifications map (employeeId + date -> updated cell)
   const [localOverrides, setLocalOverrides] = useState<Record<string, RosterGridCell>>({});
 
+  // Modal dialog states
+  const [isGenerateModalOpen, setIsGenerateModalOpen] = useState<boolean>(false);
+  const [isPublishModalOpen, setIsPublishModalOpen] = useState<boolean>(false);
+  const [selectedPeriodId, setSelectedPeriodId] = useState<string | null>(null);
+
   // Fetch roster periods for the active month
   const {
     data: periods,
@@ -129,7 +140,14 @@ export const RosterWorkspacePage: React.FC = () => {
     refetch: refetchPeriods,
   } = useRosterPeriodsQuery(currentMonth);
 
-  const activePeriod = periods && periods.length > 0 ? periods[0] : null;
+  const activePeriod = useMemo<RosterPeriod | null>(() => {
+    if (!periods || periods.length === 0) return null;
+    if (selectedPeriodId) {
+      const match = periods.find((p) => p.id === selectedPeriodId);
+      if (match) return match;
+    }
+    return periods[0];
+  }, [periods, selectedPeriodId]);
 
   // Fetch grid data for active period
   const {
@@ -597,18 +615,21 @@ export const RosterWorkspacePage: React.FC = () => {
             <h1 className="text-xl font-semibold text-text-primary tracking-tight">
               Roster Workspace
             </h1>
-            <Badge
-              variant={
-                activePeriod?.status === 'PUBLISHED'
-                  ? 'SUCCESS'
-                  : activePeriod?.status === 'DRAFT'
-                  ? 'WARNING'
-                  : 'neutral'
-              }
-              className="font-mono text-xs"
-            >
-              {activePeriod ? `${activePeriod.status} v${activePeriod.version}` : 'DRAFT v1'}
-            </Badge>
+            {periods && periods.length > 0 ? (
+              <VersionHistoryDropdown
+                periods={periods}
+                activePeriod={activePeriod}
+                onSelectPeriod={(p) => setSelectedPeriodId(p.id)}
+                onPeriodCloned={(p) => {
+                  setSelectedPeriodId(p.id);
+                  refetchPeriods();
+                }}
+              />
+            ) : (
+              <Badge variant="WARNING" className="font-mono text-xs">
+                No Roster
+              </Badge>
+            )}
             <Badge variant="neutral" className="text-xs font-mono">
               {monthLabel}
             </Badge>
@@ -734,6 +755,30 @@ export const RosterWorkspacePage: React.FC = () => {
             Simulator
           </Button>
 
+          {canEdit && (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setIsGenerateModalOpen(true)}
+              title="Generate new roster version with CP-SAT solver"
+            >
+              <Sparkles className="w-3.5 h-3.5 mr-1 text-accent-700" />
+              Generate
+            </Button>
+          )}
+
+          {isOpsManager && activePeriod && activePeriod.status === 'DRAFT' && (
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => setIsPublishModalOpen(true)}
+              title="Review gating checks and publish official roster"
+            >
+              <ShieldCheck className="w-3.5 h-3.5 mr-1" />
+              Publish
+            </Button>
+          )}
+
           <Button
             variant="secondary"
             size="sm"
@@ -749,6 +794,40 @@ export const RosterWorkspacePage: React.FC = () => {
           </Button>
         </div>
       </div>
+
+      {/* Stale Roster Banner (A-10) */}
+      {activePeriod?.is_stale && (
+        <div className="flex items-center justify-between p-3 bg-warn/10 border border-warn/30 rounded-ctl text-xs text-ink">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-warn shrink-0" />
+            <span>
+              <strong>Stale roster:</strong> Inputs (approved leaves, holidays, or coverage rules) have changed since this version was generated.
+            </span>
+          </div>
+          {canEdit && (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setIsGenerateModalOpen(true)}
+              className="text-xs h-7 shrink-0"
+            >
+              <Sparkles className="w-3 h-3 mr-1 text-accent-700" />
+              Re-generate
+            </Button>
+          )}
+        </div>
+      )}
+
+      {/* Empty State when no roster periods exist for this month */}
+      {!isPeriodsLoading && (!periods || periods.length === 0) && (
+        <EmptyState
+          title={`No roster for ${monthLabel} yet`}
+          description="Generate one from your current team, rules and leaves."
+          icon={Calendar}
+          actionLabel={canEdit ? 'Generate Roster' : undefined}
+          onAction={canEdit ? () => setIsGenerateModalOpen(true) : undefined}
+        />
+      )}
 
       {/* KPI Stats Strip */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -931,6 +1010,29 @@ export const RosterWorkspacePage: React.FC = () => {
           readOnly={!canEdit}
         />
       )}
+
+      {/* Generate Roster Modal */}
+      <GenerateRosterModal
+        isOpen={isGenerateModalOpen}
+        onClose={() => setIsGenerateModalOpen(false)}
+        onGenerated={(res) => {
+          setSelectedPeriodId(res.id);
+          refetchPeriods();
+          refetchGrid();
+          refetchCoverage();
+        }}
+      />
+
+      {/* Publish Confirmation Modal with Gating Checks */}
+      <PublishConfirmModal
+        isOpen={isPublishModalOpen}
+        onClose={() => setIsPublishModalOpen(false)}
+        period={activePeriod}
+        onPublished={() => {
+          refetchPeriods();
+          refetchGrid();
+        }}
+      />
     </div>
   );
 };

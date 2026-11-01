@@ -11,7 +11,6 @@ import {
   Clock,
   Sparkles,
   Users,
-  Loader2,
   Play,
   ChevronRight,
   ExternalLink,
@@ -21,8 +20,6 @@ import {
   Badge,
   Input,
   Select,
-  Modal,
-  useToast,
 } from '../../components/ui';
 import { useMonth } from '../../context/MonthContext';
 import { useAuth } from '../auth/AuthContext';
@@ -31,13 +28,13 @@ import {
   useRosterConflictsQuery,
   useRosterCoverageQuery,
   useRosterGridQuery,
-  useGenerateRosterMutation,
 } from '../../api/rosters';
 import { useLeavesQuery } from '../../api/leaves';
 import { useHolidaysQuery, useCoverageRulesQuery } from '../../api/rules';
 import { useBrandsQuery } from '../../api/brands';
 import { useEmployeesQuery, usePodsQuery } from '../../api/team';
 import { ConflictDrawer } from '../roster/ConflictDrawer';
+import { GenerateRosterModal } from '../roster/GenerateRosterModal';
 import type {
   RosterConflict,
   RosterCoverageCell,
@@ -130,7 +127,6 @@ export const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
   const { currentMonth, monthLabel, daysInMonth } = useMonth();
   const { isOpsManager, isPodLead } = useAuth();
-  const { success, error } = useToast();
 
   const canManage = isOpsManager || isPodLead;
 
@@ -143,8 +139,6 @@ export const DashboardPage: React.FC = () => {
 
   // Generation dialog state
   const [isGenerateModalOpen, setIsGenerateModalOpen] = useState<boolean>(false);
-  const [genSeed, setGenSeed] = useState<number>(42);
-  const [genTimeLimit, setGenTimeLimit] = useState<number>(20);
 
   // Queries
   const { data: periods, isLoading: isPeriodsLoading, refetch: refetchPeriods } = useRosterPeriodsQuery(currentMonth);
@@ -159,9 +153,6 @@ export const DashboardPage: React.FC = () => {
   const { data: brandsResult } = useBrandsQuery({ limit: 100 });
   const { data: employeesResult } = useEmployeesQuery({ limit: 200 });
   const { data: podsResult } = usePodsQuery({ limit: 100 });
-
-  // Generation mutation
-  const generateMutation = useGenerateRosterMutation();
 
   // Active conflicts list
   const conflicts: RosterConflict[] = useMemo(() => {
@@ -316,24 +307,6 @@ export const DashboardPage: React.FC = () => {
 
     return Array.from(map.values()).slice(0, 6); // top 6 brand-processes for compact card
   }, [coverageResult]);
-
-  // Execute roster generation
-  const handleGenerateRoster = async () => {
-    try {
-      await generateMutation.mutateAsync({
-        month: currentMonth,
-        seed: genSeed,
-        time_limit_s: genTimeLimit,
-      });
-      success('Roster Generated', `Successfully generated draft roster version for ${monthLabel}.`);
-      setIsGenerateModalOpen(false);
-      refetchPeriods();
-      refetchConflicts();
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Roster generation failed';
-      error('Generation Error', msg);
-    }
-  };
 
   const podOptions = useMemo(() => {
     const list = podsResult?.items || [];
@@ -801,68 +774,14 @@ export const DashboardPage: React.FC = () => {
       </div>
 
       {/* Roster Generation Modal Dialog */}
-      <Modal
+      <GenerateRosterModal
         isOpen={isGenerateModalOpen}
         onClose={() => setIsGenerateModalOpen(false)}
-        title={`Generate Roster for ${monthLabel}`}
-      >
-        <div className="space-y-4 text-xs text-ink">
-          <p className="text-ink-2">
-            The CP-SAT scheduling engine will evaluate all operating demand, approved leaves, and employee preferences to build a deterministic roster version.
-          </p>
-
-          <div className="space-y-3 bg-surface-2 p-3 rounded-ctl border border-border">
-            <div>
-              <label className="block text-[11px] font-semibold text-ink-3 uppercase tracking-wider mb-1">
-                Solver Time Limit (Seconds)
-              </label>
-              <Input
-                type="number"
-                min={5}
-                max={120}
-                value={genTimeLimit}
-                onChange={(e) => setGenTimeLimit(parseInt(e.target.value, 10) || 20)}
-                className="text-xs font-mono"
-              />
-            </div>
-
-            <div>
-              <label className="block text-[11px] font-semibold text-ink-3 uppercase tracking-wider mb-1">
-                Random Seed (Determinism)
-              </label>
-              <Input
-                type="number"
-                value={genSeed}
-                onChange={(e) => setGenSeed(parseInt(e.target.value, 10) || 42)}
-                className="text-xs font-mono"
-              />
-            </div>
-          </div>
-
-          <div className="flex items-center justify-end gap-2 pt-2 border-t border-border">
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              disabled={generateMutation.isPending}
-              onClick={() => setIsGenerateModalOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              variant="primary"
-              size="sm"
-              disabled={generateMutation.isPending}
-              onClick={handleGenerateRoster}
-              className="flex items-center gap-1.5"
-            >
-              {generateMutation.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-              <span>{generateMutation.isPending ? 'Solving Schedule...' : 'Generate Now'}</span>
-            </Button>
-          </div>
-        </div>
-      </Modal>
+        onGenerated={() => {
+          refetchPeriods();
+          refetchConflicts();
+        }}
+      />
 
       {/* Conflict Detail & Resolution Drawer */}
       <ConflictDrawer

@@ -26,6 +26,11 @@ export interface RosterGenerateRequest {
   use_fallback?: boolean;
 }
 
+export interface RosterCloneRequest {
+  parent_period_id?: string | null;
+  note?: string | null;
+}
+
 export interface RosterSummaryMetrics {
   blocking: number;
   warnings: number;

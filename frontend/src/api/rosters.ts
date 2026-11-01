@@ -4,6 +4,7 @@ import type {
   RosterPeriod,
   RosterGenerateRequest,
   RosterGenerateResponse,
+  RosterCloneRequest,
   RosterGridViewResponse,
   RosterEntriesBatchUpdateRequest,
   RosterEntriesUpdateResponse,
@@ -38,6 +39,22 @@ export async function getRosterPeriodsApi(month?: string): Promise<RosterPeriod[
   if (month) query.set('month', month);
   const qs = query.toString();
   return apiClient<RosterPeriod[]>(`/rosters${qs ? `?${qs}` : ''}`);
+}
+
+export async function publishRosterApi(periodId: string): Promise<RosterPeriod> {
+  return apiClient<RosterPeriod>(`/rosters/${periodId}/publish`, {
+    method: 'POST',
+  });
+}
+
+export async function cloneRosterApi(
+  periodId: string,
+  request?: RosterCloneRequest
+): Promise<RosterPeriod> {
+  return apiClient<RosterPeriod>(`/rosters/${periodId}/clone`, {
+    method: 'POST',
+    body: request ? JSON.stringify(request) : JSON.stringify({}),
+  });
 }
 
 export async function getRosterGridApi(
@@ -335,6 +352,32 @@ export function useGenerateRosterMutation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (request: RosterGenerateRequest) => generateRosterApi(request),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['rosters'] });
+    },
+  });
+}
+
+export function usePublishRosterMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (periodId: string) => publishRosterApi(periodId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['rosters'] });
+    },
+  });
+}
+
+export function useCloneRosterMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      periodId,
+      request,
+    }: {
+      periodId: string;
+      request?: RosterCloneRequest;
+    }) => cloneRosterApi(periodId, request),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['rosters'] });
     },
