@@ -10,7 +10,12 @@ export interface EmployeeRosterCardProps {
   row: RosterGridRow;
   dates: string[]; // YYYY-MM-DD
   monthLabel: string;
-  onCellClick?: (cell: RosterGridCell, row: RosterGridRow, date: string) => void;
+  onCellClick?: (
+    cell: RosterGridCell,
+    row: RosterGridRow,
+    date: string,
+    targetEl?: HTMLElement | null
+  ) => void;
   className?: string;
 }
 
@@ -199,7 +204,7 @@ export const EmployeeRosterCard: React.FC<EmployeeRosterCardProps> = ({
                   return (
                     <div
                       key={dIdx}
-                      onClick={() => onCellClick?.(day.cell!, row, day.dateStr!)}
+                      onClick={(e) => onCellClick?.(day.cell!, row, day.dateStr!, e.currentTarget)}
                       className={`h-16 p-1.5 flex flex-col justify-between cursor-pointer hover:bg-surface-2/80 transition-colors ${
                         isWeekend ? 'bg-surface-2/20' : 'bg-surface-1'
                       }`}

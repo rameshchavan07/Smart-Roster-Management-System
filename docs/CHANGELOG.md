@@ -5,6 +5,18 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 ## [Unreleased]
 
 ### Added
+- Cell edit popover with live impact line simulation (Task T-610 marked Completed in `TASK_TRACKER.md`):
+  - Added simulation types in `frontend/src/types/roster.ts` (`ImpactChangeType`, `RosterImpactChangeItem`, `RosterImpactConflictItem`, `RosterImpactRequest`, `RosterImpactResponse`).
+  - Added `simulateRosterImpactApi` and React Query mutation hook `useRosterImpactMutation` in `frontend/src/api/rosters.ts`.
+  - Built `CellEditPopover` in `frontend/src/features/roster/CellEditPopover.tsx`:
+    - Shift status picker for all 6 statuses (`W`, `WO`, `L`, `CO`, `PH`, `HW`) with letter code badges and descriptions.
+    - Lock toggle with checkbox and indicator to freeze cells against solver re-runs or repairs.
+    - Audit note/reason input field.
+    - Live inline impact line updating before apply (e.g., "Opens 1 gap: Aurora · CS 14 Dec" or "✓ Preserves coverage (0 new gaps)"), powered by `POST /api/v1/rosters/{period_id}/impact`.
+    - Portal rendering with smart viewport-aware positioning clamped to viewport boundaries.
+    - Keyboard and outside click handling (`Escape` to close, click backdrop/outside, Enter to submit).
+  - Updated `RosterGrid.tsx` and `EmployeeRosterCard.tsx` to pass the target anchor element on cell selection.
+  - Integrated `CellEditPopover` into `RosterWorkspacePage.tsx`, replacing the static drawer with instant anchored popover editing and live impact evaluation.
 - Five view modes and interactive operational day view panel (Task T-609 marked Completed in `TASK_TRACKER.md`):
   - Defined TypeScript models for day staffing operations in `frontend/src/types/roster.ts` (`RosterDayEmployeeItem`, `RosterDayBrandProcessGroup`, `RosterDayViewResponse`, `RosterViewMode`).
   - Added day view API fetcher `getRosterDayViewApi` and React Query hook `useRosterDayViewQuery` in `frontend/src/api/rosters.ts`.

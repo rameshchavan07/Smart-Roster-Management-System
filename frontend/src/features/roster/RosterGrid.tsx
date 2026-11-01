@@ -17,7 +17,12 @@ export interface RosterGridProps {
   holidays?: Set<string>; // Set of YYYY-MM-DD holiday dates
   coverageCells?: RosterCoverageCell[];
   selectedCell?: { employeeId: string; date: string } | null;
-  onCellClick?: (cell: RosterGridCell, row: RosterGridRow, date: string) => void;
+  onCellClick?: (
+    cell: RosterGridCell,
+    row: RosterGridRow,
+    date: string,
+    targetEl?: HTMLElement | null
+  ) => void;
   onCoverageCellClick?: (cell: RosterCoverageCell) => void;
   onDayHeaderClick?: (date: string) => void;
   onCellStatusChange?: (
@@ -201,7 +206,7 @@ export const RosterGrid: React.FC<RosterGridProps> = ({
           if (targetRow && targetDate) {
             const cell = targetRow.cells[targetDate];
             if (cell) {
-              onCellClick?.(cell, targetRow, targetDate);
+              onCellClick?.(cell, targetRow, targetDate, activeCellRef.current);
             }
           }
           break;
@@ -504,9 +509,9 @@ export const RosterGrid: React.FC<RosterGridProps> = ({
                         isLocked={cell.is_locked}
                         isSelected={isSelected || isFocused}
                         tabIndex={isFocused ? 0 : -1}
-                        onClick={() => {
+                        onClick={(e) => {
                           setFocusedCoord({ rowIndex, colIndex });
-                          onCellClick?.(cell, row, dateStr);
+                          onCellClick?.(cell, row, dateStr, e.currentTarget);
                         }}
                         className={`w-[36px] h-[28px] ${
                           hasConflict ? 'ring-1 ring-inset ring-[#C2412D]' : ''

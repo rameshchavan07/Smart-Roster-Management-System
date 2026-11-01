@@ -155,6 +155,53 @@ export interface RosterCellLockItem {
   is_locked?: boolean;
 }
 
+export type ImpactChangeType =
+  | 'ADD_LEAVE'
+  | 'REMOVE_LEAVE'
+  | 'CELL_EDIT'
+  | 'MARK_UNAVAILABLE';
+
+export interface RosterImpactChangeItem {
+  type: ImpactChangeType | string;
+  employee_id?: string;
+  start_date?: string;
+  end_date?: string;
+  date?: string;
+  status?: RosterEntryStatus;
+  brand_process_id?: string;
+}
+
+export interface RosterImpactConflictItem {
+  code: string;
+  severity: ConflictSeverity | string;
+  brand_process_id?: string | null;
+  brand?: string | null;
+  process?: string | null;
+  employee_id?: string | null;
+  employee?: string | null;
+  date?: string | null;
+  date_from?: string | null;
+  date_to?: string | null;
+  message: string;
+  root_causes?: string[];
+  suggestions?: Array<Record<string, unknown>>;
+}
+
+export interface RosterImpactRequest {
+  changes?: RosterImpactChangeItem[];
+  edits?: RosterEntryUpdateItem[];
+}
+
+export interface RosterImpactResponse {
+  is_feasible: boolean;
+  new_conflicts: RosterImpactConflictItem[];
+  resolved_conflicts: RosterImpactConflictItem[];
+  unchanged_conflicts: RosterImpactConflictItem[];
+  unchanged: number;
+  net_conflict_change: number;
+  affected_dates: string[];
+}
+
 export interface RosterEntriesLockRequest {
   cells?: RosterCellLockItem[];
   employee_ids?: string[];

@@ -3,8 +3,6 @@ import {
   Search,
   CheckCircle2,
   AlertTriangle,
-  Lock,
-  Unlock,
   RefreshCw,
   LayoutGrid,
   BarChart2,
@@ -15,8 +13,6 @@ import {
   Input,
   Select,
   Badge,
-  Drawer,
-  StatusCell,
   useToast,
 } from '../../components/ui';
 import { useMonth } from '../../context/MonthContext';
@@ -35,11 +31,11 @@ import { RosterGrid } from './RosterGrid';
 import { CoverageHeatmap } from './CoverageHeatmap';
 import { DayViewDrawer } from './DayViewDrawer';
 import { EmployeeRosterCard } from './EmployeeRosterCard';
+import { CellEditPopover } from './CellEditPopover';
 import type {
   RosterGridRow,
   RosterGridCell,
   RosterEntryStatus,
-  RosterStatusCode,
   RosterCoverageCell,
   RosterViewMode,
 } from '../../types/roster';
@@ -76,7 +72,7 @@ const SAMPLE_EMPLOYEES = [
 export const RosterWorkspacePage: React.FC = () => {
   const { currentMonth, monthLabel, daysInMonth, year } = useMonth();
   const { isOpsManager, isPodLead } = useAuth();
-  const { success } = useToast();
+  const { success, error } = useToast();
 
   const canEdit = isOpsManager || isPodLead;
 
@@ -112,17 +108,13 @@ export const RosterWorkspacePage: React.FC = () => {
     return undefined;
   }, [viewMode, selectedPodId, selectedBrandId, selectedProcessId, selectedEmployeeId]);
 
-  // Selected cell for side inspector drawer
+  // Selected cell for CellEditPopover with live impact
   const [selectedCellInfo, setSelectedCellInfo] = useState<{
     row: RosterGridRow;
     date: string;
     cell: RosterGridCell;
+    anchorRect: DOMRect | null;
   } | null>(null);
-
-  // Edit drawer form state
-  const [targetStatus, setTargetStatus] = useState<RosterEntryStatus>('WORK');
-  const [isCellLocked, setIsCellLocked] = useState<boolean>(false);
-  const [editReason, setEditReason] = useState<string>('');
 
   // Local fallback modifications map (employeeId + date -> updated cell)
   const [localOverrides, setLocalOverrides] = useState<Record<string, RosterGridCell>>({});
@@ -450,13 +442,16 @@ export const RosterWorkspacePage: React.FC = () => {
     processesResult,
   ]);
 
-  // Handle cell click (opens right drawer)
+  // Handle cell click (opens CellEditPopover anchored to clicked cell)
   const handleCellClick = useCallback(
-    (cell: RosterGridCell, row: RosterGridRow, date: string) => {
-      setSelectedCellInfo({ cell, row, date });
-      setTargetStatus(cell.status);
-      setIsCellLocked(cell.is_locked);
-      setEditReason(cell.note || '');
+    (
+      cell: RosterGridCell,
+      row: RosterGridRow,
+      date: string,
+      targetEl?: HTMLElement | null
+    ) => {
+      const anchorRect = targetEl ? targetEl.getBoundingClientRect() : null;
+      setSelectedCellInfo({ cell, row, date, anchorRect });
     },
     []
   );
@@ -503,18 +498,22 @@ export const RosterWorkspacePage: React.FC = () => {
     [canEdit, activePeriod, updateEntriesMutation, success]
   );
 
-  // Save drawer edits
-  const handleSaveDrawerEdit = () => {
+  // Apply edits from CellEditPopover
+  const handleApplyCellEdit = async (params: {
+    status: RosterEntryStatus;
+    isLocked: boolean;
+    note: string;
+  }) => {
     if (!selectedCellInfo || !canEdit) return;
 
-    const { row, date } = selectedCellInfo;
+    const { row, date, cell } = selectedCellInfo;
     const overrideKey = `${row.employee_id}:${date}`;
     const updatedCell: RosterGridCell = {
       date,
-      status: targetStatus,
+      status: params.status,
       source: 'MANUAL',
-      is_locked: isCellLocked,
-      note: editReason || null,
+      is_locked: params.isLocked,
+      note: params.note || null,
       conflicts: [],
     };
 
@@ -524,33 +523,40 @@ export const RosterWorkspacePage: React.FC = () => {
     }));
 
     if (activePeriod?.id) {
-      updateEntriesMutation.mutate({
-        periodId: activePeriod.id,
-        request: {
-          entries: [
-            {
-              employee_id: row.employee_id,
-              date,
-              status: targetStatus,
-              source: 'MANUAL',
-              is_locked: isCellLocked,
-              reason: editReason || undefined,
-            },
-          ],
-        },
-      });
-
-      if (isCellLocked !== selectedCellInfo.cell.is_locked) {
-        lockMutation.mutate({
+      try {
+        await updateEntriesMutation.mutateAsync({
           periodId: activePeriod.id,
           request: {
-            cells: [{ employee_id: row.employee_id, date, is_locked: isCellLocked }],
+            entries: [
+              {
+                employee_id: row.employee_id,
+                date,
+                status: params.status,
+                source: 'MANUAL',
+                is_locked: params.isLocked,
+                reason: params.note || undefined,
+              },
+            ],
           },
         });
-      }
-    }
 
-    success('Schedule Updated', `Saved schedule for ${row.employee_name} on ${date}`);
+        if (params.isLocked !== cell.is_locked) {
+          await lockMutation.mutateAsync({
+            periodId: activePeriod.id,
+            request: {
+              cells: [{ employee_id: row.employee_id, date, is_locked: params.isLocked }],
+            },
+          });
+        }
+
+        success('Schedule Updated', `Saved schedule for ${row.employee_name} on ${date}`);
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : 'Failed to update schedule cell';
+        error('Update Failed', msg);
+      }
+    } else {
+      success('Schedule Updated', `Saved schedule for ${row.employee_name} on ${date}`);
+    }
 
     setSelectedCellInfo(null);
   };
@@ -897,145 +903,21 @@ export const RosterWorkspacePage: React.FC = () => {
         isHoliday={holidaysSet.has(dayViewDate || '')}
       />
 
-      {/* Right Detail / Edit Drawer */}
-      <Drawer
-        isOpen={Boolean(selectedCellInfo)}
-        onClose={() => setSelectedCellInfo(null)}
-        title="Schedule Cell Inspector"
-        subtitle="Inspect and adjust daily shift assignment"
-      >
-        {selectedCellInfo && (
-          <div className="space-y-5 text-xs text-text-primary">
-            {/* Employee & Date Summary Box */}
-            <div className="p-3 bg-surface-2 border border-border rounded-md space-y-2">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h4 className="font-semibold text-sm text-text-primary">
-                    {selectedCellInfo.row.employee_name}
-                  </h4>
-                  <span className="font-mono text-text-muted text-[11px]">
-                    {selectedCellInfo.row.employee_code} · {selectedCellInfo.row.pod_name || 'No Pod'}
-                  </span>
-                </div>
-                <Badge variant="neutral" className="font-mono text-xs">
-                  {selectedCellInfo.date}
-                </Badge>
-              </div>
-
-              {selectedCellInfo.row.primary_assignments.length > 0 && (
-                <div className="text-[11px] text-text-secondary pt-1 border-t border-border flex items-center gap-1">
-                  <span className="font-medium">Assignment:</span>
-                  <span>{selectedCellInfo.row.primary_assignments.join(', ')}</span>
-                </div>
-              )}
-            </div>
-
-            {/* Current Status Preview */}
-            <div>
-              <label className="block text-[11px] font-medium uppercase text-text-muted mb-2">
-                Select Status
-              </label>
-              <div className="grid grid-cols-3 gap-2">
-                {[
-                  { code: 'W', status: 'WORK', label: 'Working' },
-                  { code: 'WO', status: 'WEEKLY_OFF', label: 'Weekly Off' },
-                  { code: 'PH', status: 'PUBLIC_HOLIDAY', label: 'Holiday' },
-                  { code: 'HW', status: 'HOLIDAY_WORK', label: 'Holiday Work' },
-                  { code: 'L', status: 'LEAVE', label: 'Leave' },
-                  { code: 'CO', status: 'COMP_OFF', label: 'Comp-Off' },
-                ].map((item) => {
-                  const isCurrent = targetStatus === item.status;
-                  return (
-                    <button
-                      key={item.status}
-                      type="button"
-                      disabled={!canEdit}
-                      onClick={() => setTargetStatus(item.status as RosterEntryStatus)}
-                      className={`flex items-center gap-2 p-2 rounded-md border text-left transition-all ${
-                        isCurrent
-                          ? 'border-accent-600 bg-accent-50/60 ring-1 ring-accent-600 font-semibold'
-                          : 'border-border bg-surface-1 hover:bg-surface-2 text-text-primary'
-                      }`}
-                    >
-                      <StatusCell
-                        status={item.code as RosterStatusCode}
-                        size="sm"
-                        disabled
-                        className="pointer-events-none"
-                      />
-                      <div className="truncate">
-                        <span className="block text-xs leading-tight">{item.label}</span>
-                        <span className="text-[10px] font-mono text-text-muted">
-                          {item.code}
-                        </span>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Lock Cell Specification */}
-            <div className="flex items-center justify-between p-3 bg-surface-1 border border-border rounded-md">
-              <div className="flex items-center gap-2">
-                {isCellLocked ? (
-                  <Lock className="w-4 h-4 text-accent-600" />
-                ) : (
-                  <Unlock className="w-4 h-4 text-text-muted" />
-                )}
-                <div>
-                  <span className="font-medium text-xs text-text-primary block">
-                    Lock cell assignment
-                  </span>
-                  <span className="text-[11px] text-text-muted">
-                    Prevents solver repairs from altering this slot
-                  </span>
-                </div>
-              </div>
-              <input
-                type="checkbox"
-                checked={isCellLocked}
-                disabled={!canEdit}
-                onChange={(e) => setIsCellLocked(e.target.checked)}
-                className="w-4 h-4 rounded border-border-strong text-accent-600 focus:ring-accent-600 cursor-pointer"
-              />
-            </div>
-
-            {/* Edit Reason / Note */}
-            <div>
-              <label className="block text-[11px] font-medium uppercase text-text-muted mb-1.5">
-                Note / Reason
-              </label>
-              <Input
-                value={editReason}
-                disabled={!canEdit}
-                onChange={(e) => setEditReason(e.target.value)}
-                placeholder="Optional explanation for manual override..."
-                className="text-xs"
-              />
-            </div>
-
-            {/* Actions */}
-            <div className="flex items-center justify-end gap-2 pt-4 border-t border-border">
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setSelectedCellInfo(null)}
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="primary"
-                size="sm"
-                disabled={!canEdit}
-                onClick={handleSaveDrawerEdit}
-              >
-                Save Cell
-              </Button>
-            </div>
-          </div>
-        )}
-      </Drawer>
+      {/* Cell Edit Popover with Live Impact */}
+      {selectedCellInfo && (
+        <CellEditPopover
+          isOpen={Boolean(selectedCellInfo)}
+          onClose={() => setSelectedCellInfo(null)}
+          periodId={activePeriod?.id || ''}
+          row={selectedCellInfo.row}
+          date={selectedCellInfo.date}
+          cell={selectedCellInfo.cell}
+          anchorRect={selectedCellInfo.anchorRect}
+          onApply={handleApplyCellEdit}
+          isSaving={updateEntriesMutation.isPending || lockMutation.isPending}
+          readOnly={!canEdit}
+        />
+      )}
     </div>
   );
 };

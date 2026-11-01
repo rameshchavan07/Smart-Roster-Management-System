@@ -9,6 +9,8 @@ import type {
   RosterEntriesLockResponse,
   RosterCoverageCell,
   RosterDayViewResponse,
+  RosterImpactRequest,
+  RosterImpactResponse,
 } from '../types/roster';
 
 // ----------------------------------------------------------------------------
@@ -63,6 +65,16 @@ export async function updateRosterEntriesApi(
   request: RosterEntriesBatchUpdateRequest
 ): Promise<RosterEntriesUpdateResponse> {
   return apiClient<RosterEntriesUpdateResponse>(`/rosters/${periodId}/entries`, {
+    method: 'PUT',
+    body: JSON.stringify(request),
+  });
+}
+
+export async function simulateRosterImpactApi(
+  periodId: string,
+  request: RosterImpactRequest
+): Promise<RosterImpactResponse> {
+  return apiClient<RosterImpactResponse>(`/rosters/${periodId}/impact`, {
     method: 'POST',
     body: JSON.stringify(request),
   });
@@ -163,4 +175,17 @@ export function useLockRosterEntriesMutation() {
     },
   });
 }
+
+export function useRosterImpactMutation() {
+  return useMutation({
+    mutationFn: ({
+      periodId,
+      request,
+    }: {
+      periodId: string;
+      request: RosterImpactRequest;
+    }) => simulateRosterImpactApi(periodId, request),
+  });
+}
+
 
