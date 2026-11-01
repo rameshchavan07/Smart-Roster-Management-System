@@ -144,3 +144,4 @@ export const HolidayModal: React.FC<HolidayModalProps> = ({
     </Modal>
   );
 };
+

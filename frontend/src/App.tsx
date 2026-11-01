@@ -5,6 +5,7 @@ import { Layout, DashboardPlaceholder, RosterPlaceholder } from './routes';
 import { DesignSystemPage } from './features/design-system/DesignSystemPage';
 import { TeamPage } from './features/team/TeamPage';
 import { BrandsPage } from './features/brands/BrandsPage';
+import { LeavesPage } from './features/leaves/LeavesPage';
 import { RulesHolidaysPage } from './features/rules/RulesHolidaysPage';
 import { AuthProvider, useAuth } from './features/auth/AuthContext';
 import { MonthProvider } from './context/MonthContext';
@@ -60,7 +61,7 @@ export const App: React.FC = () => {
                   </ProtectedRoute>
                 }
               />
-              <Route path="leaves" element={<DashboardPlaceholder />} />
+              <Route path="leaves" element={<LeavesPage />} />
               <Route
                 path="team"
                 element={

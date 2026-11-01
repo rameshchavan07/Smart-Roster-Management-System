@@ -207,3 +207,4 @@ export const CoverageRuleModal: React.FC<CoverageRuleModalProps> = ({
     </Modal>
   );
 };
+

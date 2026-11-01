@@ -5,6 +5,14 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 ## [Unreleased]
 
 ### Added
+- Leaves and Comp-offs management workspace, approval panel, and balances (Task T-606 marked Completed in `TASK_TRACKER.md`):
+  - Defined TypeScript models and input schemas in `frontend/src/types/leaves.ts` for `Leave`, `LeaveCreateInput`, `LeaveUpdateInput`, `LeaveType`, `LeaveStatus`, `CompOffEntry`, `CompOffKind`, `CompOffRedeemInput`.
+  - Created API client methods and TanStack Query hooks in `frontend/src/api/leaves.ts` for leave submission, approval, rejection, cancellation, comp-off ledger querying, and comp-off redemption with cache invalidation.
+  - Implemented `LeaveDrawer` in `frontend/src/features/leaves/LeaveDrawer.tsx` displaying leave duration, staff metadata, operational impact warning, and approve/reject/cancel action handlers.
+  - Implemented `LeaveModal` in `frontend/src/features/leaves/LeaveModal.tsx` for submitting planned or unplanned leave requests with auto-approval options for managers.
+  - Implemented `RedeemCompOffModal` in `frontend/src/features/leaves/RedeemCompOffModal.tsx` for redeeming accumulated compensatory off credits.
+  - Implemented `LeavesPage` in `frontend/src/features/leaves/LeavesPage.tsx` with segmented tabs (`Leave Requests` and `Comp-off Ledger & Balances`), status pill filters (`All`, `Pending`, `Approved`, `Rejected`, `Cancelled`), type filter, search bar, inline approve/reject buttons, employee comp-off balance cards, and transaction history.
+  - Mounted `/leaves` route in `frontend/src/App.tsx`.
 - Rules and Holidays configuration screens and services (Task T-605 marked Completed in `TASK_TRACKER.md`):
   - Defined TypeScript models and input schemas in `frontend/src/types/rules.ts` for `CoverageRule`, `CoverageRuleCreateInput`, `CoverageRuleUpdateInput`, `Holiday`, `HolidayCreateInput`, `HolidayUpdateInput`.
   - Created API client methods and TanStack Query hooks in `frontend/src/api/rules.ts` for coverage rules and holidays with cache invalidation.

@@ -51,3 +51,4 @@ export interface HolidayUpdateInput {
   brand_id?: string | null;
   is_active?: boolean;
 }
+
