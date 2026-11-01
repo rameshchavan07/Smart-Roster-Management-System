@@ -11,3 +11,4 @@ export * from './Popover';
 export * from './Table';
 export * from './Toast';
 export * from './StatusCell';
+export * from './RequestIdBadge';

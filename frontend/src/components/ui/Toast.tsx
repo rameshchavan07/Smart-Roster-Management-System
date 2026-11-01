@@ -11,13 +11,14 @@ export interface ToastItem {
   description?: string;
   variant?: ToastVariant;
   duration?: number;
+  requestId?: string;
 }
 
 export interface ToastContextValue {
   toast: (item: Omit<ToastItem, 'id'>) => string;
   dismiss: (id: string) => void;
   success: (title: string, description?: string) => string;
-  error: (title: string, description?: string) => string;
+  error: (title: string, description?: string, requestId?: string) => string;
   warning: (title: string, description?: string) => string;
   info: (title: string, description?: string) => string;
 }
@@ -56,8 +57,8 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   );
 
   const error = useCallback(
-    (title: string, description?: string) =>
-      toast({ title, description, variant: 'error', duration: 6000 }),
+    (title: string, description?: string, requestId?: string) =>
+      toast({ title, description, variant: 'error', duration: 7000, requestId }),
     [toast]
   );
 
@@ -135,6 +136,24 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
               <p className="text-xs font-semibold leading-tight">{t.title}</p>
               {t.description && (
                 <p className="text-[11px] text-ink-2 mt-1 leading-normal">{t.description}</p>
+              )}
+              {t.requestId && (
+                <div className="mt-1.5 flex items-center gap-1.5 text-[10px] text-ink-3 font-mono bg-surface-muted px-1.5 py-0.5 rounded border border-border w-fit">
+                  <span>Req ID: {t.requestId.slice(0, 8)}...</span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (navigator.clipboard) {
+                        navigator.clipboard.writeText(t.requestId!);
+                      }
+                    }}
+                    className="hover:text-ink underline text-[10px]"
+                    title="Copy full Request ID for support / debugging"
+                  >
+                    Copy
+                  </button>
+                </div>
               )}
             </div>
             <button

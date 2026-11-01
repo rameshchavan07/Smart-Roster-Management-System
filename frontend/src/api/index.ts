@@ -3,6 +3,8 @@
  */
 
 export * from './client';
+export * from './errorMapping';
+export * from './queryClient';
 export * from './generated/schema';
 export * from './generated/client';
 

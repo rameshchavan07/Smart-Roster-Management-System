@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { createQueryClient, setGlobalErrorHandler, showApiErrorToast } from './api';
 import { Layout } from './routes';
 import { DashboardPage } from './features/dashboard/DashboardPage';
 import { DesignSystemPage } from './features/design-system/DesignSystemPage';
@@ -16,18 +17,22 @@ import { SettingsPage } from './features/settings/SettingsPage';
 import { ReportsPage } from './features/reports/ReportsPage';
 import { AuthProvider, useAuth } from './features/auth/AuthContext';
 import { MonthProvider } from './context/MonthContext';
-import { ToastProvider } from './components/ui';
+import { ToastProvider, useToast } from './components/ui';
 import { ProtectedRoute } from './features/auth/ProtectedRoute';
 import { LoginPage } from './features/auth/LoginPage';
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 1000 * 60 * 5, // 5 minutes
-      retry: 1,
-    },
-  },
-});
+const queryClient = createQueryClient();
+
+const QueryErrorNotifier: React.FC = () => {
+  const toast = useToast();
+  useEffect(() => {
+    setGlobalErrorHandler((error) => {
+      showApiErrorToast(error, toast);
+    });
+    return () => setGlobalErrorHandler(null);
+  }, [toast]);
+  return null;
+};
 
 const RootRedirect: React.FC = () => {
   const { isEmployee } = useAuth();
@@ -52,6 +57,7 @@ export const App: React.FC = () => {
       <AuthProvider>
         <MonthProvider>
           <ToastProvider>
+            <QueryErrorNotifier />
             <BrowserRouter>
             <Routes>
             {/* Public Authentication Route */}

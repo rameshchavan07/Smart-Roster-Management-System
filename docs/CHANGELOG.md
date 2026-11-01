@@ -5,6 +5,15 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 ## [Unreleased]
 
 ### Added
+- Query Hooks and Error Layer with Request-ID Display (Task T-702 marked Completed in `TASK_TRACKER.md`):
+  - Built Global Error Mapping Layer in `frontend/src/api/errorMapping.ts` conforming to `API_DOCUMENTATION.md` §3:
+    - Structured error parser mapping `ApiError` codes (`UNAUTHENTICATED`, `FORBIDDEN`, `NOT_FOUND`, `CONFLICT`, `ROSTER_BLOCKED`, `VALIDATION_ERROR`, `RATE_LIMITED`, `INTERNAL_ERROR`).
+    - Detail issue parser formatting field-level validation errors into readable human messages.
+    - `showApiErrorToast` helper linking error messages with traceable `request_id`.
+  - Configured global `QueryClient` in `frontend/src/api/queryClient.ts` with `QueryCache` and `MutationCache` error listeners, smart retry suppression on 4xx responses (400, 401, 403, 404, 409, 422), and wired `QueryErrorNotifier` in `frontend/src/App.tsx`.
+  - Added Request ID UI Component in `frontend/src/components/ui/RequestIdBadge.tsx` with one-click clipboard copy and feedback checkmark.
+  - Enhanced `Toast.tsx` with `requestId` rendering: displays monospace reference badge and inline "Copy" button on error toasts.
+  - Added authentication query hooks in `frontend/src/api/auth.ts`: `useCurrentUserQuery`, `useDemoAccountsQuery`, `useLoginMutation`, and `useLogoutMutation`.
 - Typed API Client from OpenAPI and Auth Interceptor (Task T-701 marked Completed in `TASK_TRACKER.md`):
   - Built OpenAPI exporter `backend/app/export_openapi.py` extracting official OpenAPI 3.1.0 schema (57 paths, 105 schemas) into `frontend/openapi.json`.
   - Built TypeScript client generator `backend/app/generate_client.py`:
