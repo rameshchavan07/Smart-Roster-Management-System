@@ -4,6 +4,15 @@ Layers: api -> services -> (repositories, scheduler, domain).
 This module has zero dependencies on api, db, models, fastapi, or sqlalchemy.
 """
 
+from app.scheduler.calendar import (
+    get_applicable_holidays,
+    get_operating_dates,
+    has_applicable_holiday,
+    is_holiday_applicable,
+    is_operating_day,
+    resolve_calendar_matrix,
+    resolve_operating_days,
+)
 from app.scheduler.domain import (
     Assignment,
     AssignmentType,
@@ -56,4 +65,12 @@ __all__ = [
     "SupplyCell",
     "ValidationResult",
     "WeeklyOffMode",
+    # Calendar resolver
+    "get_applicable_holidays",
+    "get_operating_dates",
+    "has_applicable_holiday",
+    "is_holiday_applicable",
+    "is_operating_day",
+    "resolve_calendar_matrix",
+    "resolve_operating_days",
 ]

@@ -5,6 +5,12 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 ## [Unreleased]
 
 ### Added
+- Operating calendar resolver module (Task T-502 marked Completed in `TASK_TRACKER.md`):
+  - Created `backend/app/scheduler/calendar.py` implementing pure-Python calendar evaluation per `SCHEDULING_ENGINE.md` Section 2:
+    - Supported calendar types: `ALL_365`, `ALL_EXCEPT_HOLIDAYS`, and `EXCLUDE_SUNDAY_AND_HOLIDAYS`.
+    - Handled global public holidays and brand-scoped holidays.
+    - Implemented range resolving functions (`is_operating_day`, `resolve_operating_days`, `get_operating_dates`, and `resolve_calendar_matrix`).
+  - Added unit test suite in `backend/tests/unit/scheduler/test_calendar.py` covering all calendar types, holiday scoping, Sunday exclusion, date range validation, and module isolation.
 - Pure-Python scheduling engine domain types and enums (Task T-501 marked Completed in `TASK_TRACKER.md`):
   - Defined all pure dataclasses and enums in `backend/app/scheduler/domain.py` with zero framework dependencies: `CalendarType`, `AssignmentType`, `RosterStatus`, `SupplyAvailability`, `WeeklyOffMode`, `LeaveType`, `ConflictSeverity`, `ConflictCode` (E001–E009, W001–W004), `SolverStatus`, `SuggestionType`, `DemandCell`, `SupplyCell`, `RosterCell`, `CoverageCell`, `CoverageRule`, `BrandProcess`, `Assignment`, `Employee`, `Holiday`, `Suggestion`, `Conflict`, `ValidationResult`, `GenerationInput`, and `GenerationOutput`.
   - Added unit test suite in `backend/tests/unit/scheduler/test_domain.py` verifying framework isolation, validation rules, and immutability.
