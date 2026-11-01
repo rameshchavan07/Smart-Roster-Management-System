@@ -5,6 +5,16 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 ## [Unreleased]
 
 ### Added
+- Master data REST CRUD endpoints (Task T-307 marked Completed in `TASK_TRACKER.md`):
+  - Created REST routers in `backend/app/api/v1/endpoints/`:
+    - `pods.py`: `GET /pods`, `POST /pods`, `GET /pods/{id}`, `PUT /pods/{id}`, `DELETE /pods/{id}`.
+    - `employees.py`: `GET /employees`, `POST /employees`, `GET /employees/{id}`, `PUT /employees/{id}`, `DELETE /employees/{id}` with pod/floater/active filters.
+    - `processes.py`: `GET /processes`, `POST /processes`, `GET /processes/{id}`, `PUT /processes/{id}`, `DELETE /processes/{id}`.
+    - `brands.py`: `GET /brands`, `POST /brands`, `GET /brands/{id}`, `PUT /brands/{id}`, `DELETE /brands/{id}` with pod/active filters.
+    - `brand_processes.py`: `GET /brand-processes`, `POST /brand-processes`, `GET /brand-processes/{id}`, `PUT /brand-processes/{id}`, `DELETE /brand-processes/{id}`.
+    - `assignments.py`: `GET /assignments`, `POST /assignments`, `GET /assignments/{id}`, `PUT /assignments/{id}`, `DELETE /assignments/{id}`.
+  - Mounted all master data routers on `backend/app/api/v1/router.py` conforming to standard prefix `/api/v1` and OpenAPI schema documentation.
+  - Added API integration test suite in `backend/tests/api/test_master_data_api.py` covering pagination, filtering, uniqueness checks (409), deletion constraints, and full resource lifecycles.
 - Master data repositories and domain services with audit hooks (Task T-306 marked Completed in `TASK_TRACKER.md`):
   - Created repository layer in `backend/app/repositories/`:
     - `BaseRepository[ModelType: Base]`: generic CRUD, active filtering, and paginated query helpers.

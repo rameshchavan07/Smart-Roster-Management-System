@@ -308,7 +308,9 @@ class EmployeeService:
         emp = self.get_employee(employee_id)
         has_assignments = (
             self.session.scalar(
-                select(func.count()).select_from(Assignment).where(Assignment.employee_id == employee_id)
+                select(func.count())
+                .select_from(Assignment)
+                .where(Assignment.employee_id == employee_id)
             )
             or 0
         )
@@ -431,7 +433,9 @@ class ProcessService:
         proc = self.get_process(process_id)
         has_brand_processes = (
             self.session.scalar(
-                select(func.count()).select_from(BrandProcess).where(BrandProcess.process_id == process_id)
+                select(func.count())
+                .select_from(BrandProcess)
+                .where(BrandProcess.process_id == process_id)
             )
             or 0
         )
@@ -570,7 +574,9 @@ class BrandService:
         brand = self.get_brand(brand_id)
         has_brand_processes = (
             self.session.scalar(
-                select(func.count()).select_from(BrandProcess).where(BrandProcess.brand_id == brand_id)
+                select(func.count())
+                .select_from(BrandProcess)
+                .where(BrandProcess.brand_id == brand_id)
             )
             or 0
         )
@@ -711,13 +717,17 @@ class BrandProcessService:
         bp = self.get_brand_process(bp_id)
         has_assignments = (
             self.session.scalar(
-                select(func.count()).select_from(Assignment).where(Assignment.brand_process_id == bp_id)
+                select(func.count())
+                .select_from(Assignment)
+                .where(Assignment.brand_process_id == bp_id)
             )
             or 0
         )
         has_coverage_rules = (
             self.session.scalar(
-                select(func.count()).select_from(CoverageRule).where(CoverageRule.brand_process_id == bp_id)
+                select(func.count())
+                .select_from(CoverageRule)
+                .where(CoverageRule.brand_process_id == bp_id)
             )
             or 0
         )
