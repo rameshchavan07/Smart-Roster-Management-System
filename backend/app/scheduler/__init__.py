@@ -45,6 +45,11 @@ from app.scheduler.domain import (
     ValidationResult,
     WeeklyOffMode,
 )
+from app.scheduler.explain import (
+    enrich_conflicts,
+    explain_conflict,
+    rank_backup_candidates,
+)
 from app.scheduler.supply import (
     build_supply_cell,
     build_supply_lookup,
@@ -102,4 +107,8 @@ __all__ = [
     "partition_into_weeks",
     "validate",
     "validate_roster",
+    # Explainer & suggestions
+    "enrich_conflicts",
+    "explain_conflict",
+    "rank_backup_candidates",
 ]

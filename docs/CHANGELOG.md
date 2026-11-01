@@ -5,6 +5,14 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 ## [Unreleased]
 
 ### Added
+- Root-cause explainer and suggestion ranking module (Task T-506 marked Completed in `TASK_TRACKER.md`):
+  - Created `backend/app/scheduler/explain.py` implementing plain-language explanation generation and actionable gap suggestions per `SCHEDULING_ENGINE.md` §§8–9:
+    - Template-based deterministic plain English messages matching Scenario S1 specification (e.g. `"Brand Aurora — Customer Support has no coverage on 14 Dec (Mon)..."`).
+    - Ranked backup candidate evaluation hierarchy: Assigned `BACKUP` (+100) > Same Pod (+50) > Floater (+30) > Other Pod (+10), with active working bonus and concurrent process overload disqualification.
+    - Weekly-off swap suggestions (`SWAP_WEEKLY_OFF`) identifying surplus/zero-demand alternative dates within the same Mon–Sun week.
+    - Leave rescheduling suggestions (`SHIFT_LEAVE`) for gaps caused by approved leaves.
+    - Enrichment routines `explain_conflict` and `enrich_conflicts`.
+  - Added unit test suite in `backend/tests/unit/scheduler/test_explain.py` verifying Scenario S1 parity, weekly off swap suggestions, candidate ranking hierarchy, and module isolation.
 - Independent roster validator core module (Task T-505 marked Completed in `TASK_TRACKER.md`):
   - Created `backend/app/scheduler/validator.py` implementing comprehensive rule validation independent of solver per `SCHEDULING_ENGINE.md` Section 7:
     - `E001` (No Coverage) & `E002` (Under-Staffed) with automatic root-cause tagging (`E003` / `WEEKLY_OFF`, `E004` / `LEAVE`, `HOLIDAY_OFF`).
