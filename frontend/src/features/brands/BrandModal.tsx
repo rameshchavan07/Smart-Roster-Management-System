@@ -140,3 +140,4 @@ export const BrandModal: React.FC<BrandModalProps> = ({
     </Modal>
   );
 };
+

@@ -9,6 +9,7 @@ import {
   Briefcase,
   FileText,
   Sliders,
+  CalendarDays,
   Palette,
   LogOut,
   X,
@@ -121,6 +122,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <NavLink to="/brands" className={navLinkClass} onClick={onCloseMobile}>
               <Briefcase className="h-4 w-4 shrink-0" />
               <span>Brands & Processes</span>
+            </NavLink>
+
+            <NavLink to="/rules" className={navLinkClass} onClick={onCloseMobile}>
+              <CalendarDays className="h-4 w-4 shrink-0" />
+              <span>Rules & Holidays</span>
             </NavLink>
 
             <NavLink to="/reports" className={navLinkClass} onClick={onCloseMobile}>

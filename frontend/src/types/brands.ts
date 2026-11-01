@@ -101,3 +101,4 @@ export interface AssignmentUpdateInput {
   valid_to?: string | null;
   is_active?: boolean;
 }
+

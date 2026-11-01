@@ -5,6 +5,7 @@ import { Layout, DashboardPlaceholder, RosterPlaceholder } from './routes';
 import { DesignSystemPage } from './features/design-system/DesignSystemPage';
 import { TeamPage } from './features/team/TeamPage';
 import { BrandsPage } from './features/brands/BrandsPage';
+import { RulesHolidaysPage } from './features/rules/RulesHolidaysPage';
 import { AuthProvider, useAuth } from './features/auth/AuthContext';
 import { MonthProvider } from './context/MonthContext';
 import { ToastProvider } from './components/ui';
@@ -73,6 +74,14 @@ export const App: React.FC = () => {
                 element={
                   <ProtectedRoute allowedRoles={['OPS_MANAGER', 'POD_LEAD']}>
                     <BrandsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="rules"
+                element={
+                  <ProtectedRoute allowedRoles={['OPS_MANAGER', 'POD_LEAD']}>
+                    <RulesHolidaysPage />
                   </ProtectedRoute>
                 }
               />

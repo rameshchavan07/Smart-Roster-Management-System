@@ -124,3 +124,4 @@ export const BrandProcessModal: React.FC<BrandProcessModalProps> = ({
     </Modal>
   );
 };
+

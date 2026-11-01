@@ -5,6 +5,13 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 ## [Unreleased]
 
 ### Added
+- Rules and Holidays configuration screens and services (Task T-605 marked Completed in `TASK_TRACKER.md`):
+  - Defined TypeScript models and input schemas in `frontend/src/types/rules.ts` for `CoverageRule`, `CoverageRuleCreateInput`, `CoverageRuleUpdateInput`, `Holiday`, `HolidayCreateInput`, `HolidayUpdateInput`.
+  - Created API client methods and TanStack Query hooks in `frontend/src/api/rules.ts` for coverage rules and holidays with cache invalidation.
+  - Implemented `CoverageRuleModal` in `frontend/src/features/rules/CoverageRuleModal.tsx` supporting weekday and specific date overrides, minimum staffing thresholds, and live explanatory preview per S9 (e.g. *"Min 2 staff required on Mondays across Aurora CS"*).
+  - Implemented `HolidayModal` in `frontend/src/features/rules/HolidayModal.tsx` for registering company-wide or brand-specific public holidays.
+  - Implemented `RulesHolidaysPage` in `frontend/src/features/rules/RulesHolidaysPage.tsx` with segmented tabs (`Coverage Rules` and `Holiday Calendar`), capability filter, interactive month calendar grid, and scope toggle (`All`, `Global Only`, `Brand-Specific`).
+  - Added navigation links in `Sidebar.tsx`, route mapping in `Breadcrumbs.tsx`, quick command in `CommandPalette.tsx`, and mounted `/rules` route in `frontend/src/App.tsx`.
 - Brands and Processes master-detail management screens and services (Task T-604 marked Completed in `TASK_TRACKER.md`):
   - Defined TypeScript models and input schemas in `frontend/src/types/brands.ts` (`CalendarType`, `Brand`, `Process`, `BrandProcess`, `AssignmentCreateInput`, `AssignmentUpdateInput`).
   - Created API client methods and TanStack Query hooks in `frontend/src/api/brands.ts` for brands, processes, brand-processes, and assignments with cache invalidation.

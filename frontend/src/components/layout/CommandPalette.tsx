@@ -131,6 +131,18 @@ export const CommandPalette: React.FC<{
         },
       },
       {
+        id: 'nav-rules',
+        title: 'Rules & Holidays',
+        subtitle: 'Staffing coverage rules and public holiday calendar',
+        category: 'Navigation',
+        icon: <CalendarDays className="h-4 w-4" />,
+        roles: ['OPS_MANAGER', 'POD_LEAD'],
+        action: () => {
+          navigate('/rules');
+          onClose();
+        },
+      },
+      {
         id: 'nav-reports',
         title: 'Reports & Export',
         subtitle: 'Download multi-view CSV and Excel spreadsheets',

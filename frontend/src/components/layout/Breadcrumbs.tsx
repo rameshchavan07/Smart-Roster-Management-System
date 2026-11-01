@@ -9,6 +9,7 @@ const ROUTE_LABELS: Record<string, string> = {
   leaves: 'Leaves & Comp-offs',
   team: 'Team & Pods',
   brands: 'Brands & Processes',
+  rules: 'Rules & Holidays',
   reports: 'Reports & Export',
   settings: 'Settings & Audit',
   'design-system': 'Design System',
