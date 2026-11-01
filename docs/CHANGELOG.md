@@ -5,6 +5,16 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 ## [Unreleased]
 
 ### Added
+- Roster, conflict, user, and audit ORM models (Task T-303 marked Completed in `TASK_TRACKER.md`):
+  - Created `backend/app/models/auth.py` defining:
+    - `User`: application user accounts with `UserRole` enum (`OPS_MANAGER`, `POD_LEAD`, `EMPLOYEE`), unique email index, optional `employee_id` link, and active state.
+    - `AuditLog`: immutable audit history recording `user_id`, `action`, `entity_type`, `entity_id`, and `before`/`after` JSON payloads.
+  - Created `backend/app/models/roster.py` defining:
+    - `RosterPeriod`: monthly roster version container with `(month, version)` unique constraint, lifecycle status (`GENERATING`, `DRAFT`, `PUBLISHED`, `ARCHIVED`), `solver_status`, `generation_params` JSON, and self-referential parent/child version tree.
+    - `RosterEntry`: employee daily assignment cells with `(roster_period_id, employee_id, date)` unique constraint, operational status (`WORK`, `WEEKLY_OFF`, `HOLIDAY_OFF`, `HOLIDAY_WORK`, `LEAVE`, `COMP_OFF`), `source` (`AUTO`, `MANUAL`, `LOCKED_FIXED`), and lock flag.
+    - `RosterConflict`: validation conflicts and warnings with `severity` (`BLOCKING`, `WARNING`, `INFO`), code, `root_causes` JSON list, `suggestions` JSON list, foreign keys to brand_process and employee, and acknowledgement workflow fields.
+  - Re-exported all auth, audit, and roster models and enums in `backend/app/models/__init__.py`.
+  - Added unit test suite in `backend/tests/unit/test_roster_models.py` verifying table registration, unique constraints, self-referential version hierarchies, cascade deletes, and acknowledgement workflows.
 - Rules, availability, leaves, and holidays ORM models (Task T-302 marked Completed in `TASK_TRACKER.md`):
   - Created `backend/app/models/rules.py` defining:
     - `CoverageRule`: with mutual exclusivity CheckConstraint for `weekday` (0..6) vs `specific_date` and non-negative `min_staff`.

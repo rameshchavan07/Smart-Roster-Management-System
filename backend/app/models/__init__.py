@@ -3,6 +3,11 @@
 All ORM models are registered here so that Alembic and repository layers can discover them.
 """
 
+from app.models.auth import (
+    AuditLog,
+    User,
+    UserRole,
+)
 from app.models.core import (
     Assignment,
     AssignmentType,
@@ -14,6 +19,15 @@ from app.models.core import (
     Process,
 )
 from app.models.mixins import TimestampMixin, UUIDPrimaryKeyMixin
+from app.models.roster import (
+    ConflictSeverity,
+    EntrySource,
+    RosterConflict,
+    RosterEntry,
+    RosterEntryStatus,
+    RosterPeriod,
+    RosterPeriodStatus,
+)
 from app.models.rules import (
     CompOffKind,
     CompOffLedger,
@@ -31,14 +45,17 @@ from app.models.rules import (
 __all__ = [
     "Assignment",
     "AssignmentType",
+    "AuditLog",
     "Brand",
     "BrandProcess",
     "CalendarType",
     "CompOffKind",
     "CompOffLedger",
+    "ConflictSeverity",
     "CoverageRule",
     "Employee",
     "EmployeePreference",
+    "EntrySource",
     "Holiday",
     "Leave",
     "LeaveStatus",
@@ -46,8 +63,15 @@ __all__ = [
     "Pod",
     "PreferenceKind",
     "Process",
+    "RosterConflict",
+    "RosterEntry",
+    "RosterEntryStatus",
+    "RosterPeriod",
+    "RosterPeriodStatus",
     "TimestampMixin",
     "UUIDPrimaryKeyMixin",
+    "User",
+    "UserRole",
     "WeeklyOffMode",
     "WeeklyOffRule",
 ]
