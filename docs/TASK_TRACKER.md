@@ -70,7 +70,7 @@
 | T-516 | Local repair | Re-solve affected window with other cells locked; diff output | Medium | T-508, T-511 | `POST /repair` | Completed | 3h | Stretch |
 | T-517 | Export CSV/XLSX | Per-view export using openpyxl/csv | Medium | T-510 | `GET /export` | Completed | 1.5h | Stretch |
 | T-518 | Roster compare | Compare two versions: conflicts, coverage %, fairness spread | Low | T-515 | `GET /compare` | Completed | 2h | Stretch |
-| T-519 | Audit log API | Query audit entries | Low | T-306 | Endpoint | Not Started | 0.5h | MVP |
+| T-519 | Audit log API | Query audit entries | Low | T-306 | Endpoint | Completed | 0.5h | MVP |
 | T-520 | LLM conflict explanations | Optional rephrasing of structured conflicts | Low | T-506 | Optional toggle | Not Started | 2h | Stretch |
 
 ## Phase 6 — Frontend and UI integration

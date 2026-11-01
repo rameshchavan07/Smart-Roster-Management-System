@@ -4,6 +4,7 @@ from fastapi import APIRouter
 
 from app.api.v1.endpoints import (
     assignments,
+    audit_logs,
     auth,
     brand_processes,
     brands,
@@ -46,3 +47,6 @@ api_router.include_router(comp_offs.router)
 
 # Roster routes
 api_router.include_router(rosters.router)
+
+# Audit log routes
+api_router.include_router(audit_logs.router)

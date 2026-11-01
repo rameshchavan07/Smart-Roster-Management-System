@@ -5,6 +5,12 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 ## [Unreleased]
 
 ### Added
+- Audit log query API endpoint and service (Task T-519 marked Completed in `TASK_TRACKER.md`):
+  - Added property `user_email` to `AuditLog` ORM model in `backend/app/models/auth.py` to seamlessly populate actor email on `AuditLogRead`.
+  - Added `AuditLogRepository.list_audit_logs` in `backend/app/repositories/core.py` supporting filtering by `action`, `entity_type`, `entity_id`, `user_id`, date range (`date_from`, `date_to`), with `selectinload(AuditLog.user)` and descending ordering by `created_at`.
+  - Created `AuditLogService` in `backend/app/services/audit.py` with `list_audit_logs` returning `PaginatedResponse[AuditLogRead]` and registered in `backend/app/services/__init__.py`.
+  - Exposed REST endpoint `GET /api/v1/audit-logs` in `backend/app/api/v1/endpoints/audit_logs.py` and mounted in `backend/app/api/v1/router.py`, guarded by `require_pod_lead_or_manager`.
+  - Added comprehensive integration test suite in `backend/tests/api/test_audit_logs_api.py` covering default pagination, filter combinations, and RBAC enforcement (Ops Manager and Pod Lead 200, Employee 403 Forbidden).
 - Roster version comparison service and endpoint (Task T-518 marked Completed in `TASK_TRACKER.md`):
   - Created comparison schemas in `backend/app/schemas/roster.py`:
     - `RosterVersionMetrics`: Side-by-side quality metrics for each version including conflict breakdown (blocking, warnings, info), coverage percentage, total headcount shortfall, shortfall slot counts, fairness spread (`max - min` weekend offs), and per-employee weekend-off distribution dictionary.
