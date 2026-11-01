@@ -50,6 +50,7 @@ from app.scheduler.explain import (
     explain_conflict,
     rank_backup_candidates,
 )
+from app.scheduler.generator_cpsat import generate_cpsat
 from app.scheduler.supply import (
     build_supply_cell,
     build_supply_lookup,
@@ -111,4 +112,6 @@ __all__ = [
     "enrich_conflicts",
     "explain_conflict",
     "rank_backup_candidates",
+    # Generator
+    "generate_cpsat",
 ]

@@ -5,6 +5,14 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 ## [Unreleased]
 
 ### Added
+- CP-SAT monthly roster generator module using Google OR-Tools (Task T-508 marked Completed in `TASK_TRACKER.md`):
+  - Created `backend/app/scheduler/generator_cpsat.py` implementing full constraint optimization per `SCHEDULING_ENGINE.md` §§5–6:
+    - Mandatory hard constraints: H1 (fixed cells & approved leaves), H2 (weekly offs with Mon–Sun pro-rating), H3 (consecutive work days limit with carry-in tail), H4 (leave days not double-counted as weekly off), H5 (fixed mandatory weekly off weekdays).
+    - Hard with slack coverage: coverage deficits penalized heavily ($BIG = 100,000$), ensuring the solver never raises "infeasible" and quantifies shortfalls explicitly.
+    - Soft preference penalties: P1 (preferred off days, weight 5), P4 (primary over backup staffing, weight 4), P6 (multi-brand overload avoidance, weight 8).
+    - Determinism: fixed random seed and single-worker configuration guarantees 100% reproducible rosters.
+    - Full post-solve integration: independently validated with `validate_roster` and enriched with plain-language explanations and suggestions via `enrich_conflicts`.
+  - Added unit test suite in `backend/tests/unit/scheduler/test_generator_cpsat.py` covering feasible solving, determinism, coverage with slack without crashing, approved leave fixing, fixed mandatory weekly offs, and module isolation.
 - Root-cause explainer and suggestion ranking module (Task T-506 marked Completed in `TASK_TRACKER.md`):
   - Created `backend/app/scheduler/explain.py` implementing plain-language explanation generation and actionable gap suggestions per `SCHEDULING_ENGINE.md` §§8–9:
     - Template-based deterministic plain English messages matching Scenario S1 specification (e.g. `"Brand Aurora — Customer Support has no coverage on 14 Dec (Mon)..."`).
