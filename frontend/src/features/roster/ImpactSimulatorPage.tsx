@@ -28,6 +28,7 @@ import {
 } from '../../components/ui';
 import { useMonth } from '../../context/MonthContext';
 import { useAuth } from '../auth/AuthContext';
+import { showApiErrorToast } from '../../api/errorMapping';
 import {
   useRosterPeriodsQuery,
   useRosterGridQuery,
@@ -48,7 +49,7 @@ export const ImpactSimulatorPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const { currentMonth, monthLabel } = useMonth();
   const { isOpsManager, isPodLead } = useAuth();
-  const { success, error, info } = useToast();
+  const toast = useToast();
 
   const canEdit = isOpsManager || isPodLead;
 
@@ -102,7 +103,7 @@ export const ImpactSimulatorPage: React.FC = () => {
   const handleRunSimulation = async (e?: React.FormEvent) => {
     e?.preventDefault();
     if (!activePeriod?.id) {
-      error('No Active Roster', 'Cannot simulate without an active roster period.');
+      toast.error('No Active Roster', 'Cannot simulate without an active roster period.');
       return;
     }
 
@@ -125,10 +126,9 @@ export const ImpactSimulatorPage: React.FC = () => {
 
       setSimulationResult(res);
       setRepairResult(null);
-      success('Simulation Complete', `Evaluated schedule impact for ${selectedEmployee?.full_name || 'employee'}.`);
+      toast.success('Simulation Complete', `Evaluated schedule impact for ${selectedEmployee?.full_name || 'employee'}.`);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Simulation failed';
-      error('Simulation Error', msg);
+      showApiErrorToast(err, toast, 'Simulation Failed');
     }
   };
 
@@ -170,12 +170,11 @@ export const ImpactSimulatorPage: React.FC = () => {
         },
       });
 
-      success('Changes Applied', `Updated ${entries.length} cell(s) for ${selectedEmployee?.full_name}.`);
+      toast.success('Changes Applied', `Updated ${entries.length} cell(s) for ${selectedEmployee?.full_name}.`);
       refetchGrid();
       navigate('/roster');
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to apply changes';
-      error('Apply Error', msg);
+      showApiErrorToast(err, toast, 'Failed to apply changes');
     }
   };
 
@@ -184,7 +183,7 @@ export const ImpactSimulatorPage: React.FC = () => {
     if (!activePeriod?.id || !canEdit) return;
 
     try {
-      info('Executing Repair', 'Applying changes and solving impacted window with solver...');
+      toast.info('Executing Repair', 'Applying changes and solving impacted window with solver...');
 
       // 1. Apply cell updates first
       const start = new Date(startDate);
@@ -227,14 +226,13 @@ export const ImpactSimulatorPage: React.FC = () => {
       });
 
       setRepairResult(repairRes);
-      success(
+      toast.success(
         'Repair Completed',
         `Repaired ${repairRes.repaired_cells_count} cell(s) in ${repairRes.solve_time_seconds.toFixed(2)}s.`
       );
       refetchGrid();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Local repair failed';
-      error('Repair Failed', msg);
+      showApiErrorToast(err, toast, 'Local repair failed');
     }
   };
 

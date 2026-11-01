@@ -896,8 +896,15 @@ export const RosterWorkspacePage: React.FC = () => {
           </div>
         </div>
 
-        <div className="p-3 bg-surface-1 border border-border rounded-md">
-          <span className="text-[11px] font-medium text-text-muted uppercase">Conflicts</span>
+        <div
+          onClick={() => navigate('/conflicts')}
+          className="p-3 bg-surface-1 border border-border rounded-md hover:border-accent-600 cursor-pointer transition-colors"
+          title="View all validation conflicts and actionable recommendations"
+        >
+          <span className="text-[11px] font-medium text-text-muted uppercase flex items-center justify-between">
+            <span>Conflicts</span>
+            <span className="text-[10px] text-accent-700 font-sans font-normal hover:underline">View all &rarr;</span>
+          </span>
           <div className="flex items-center gap-1.5 text-lg font-mono font-semibold mt-0.5">
             {stats.conflictsCount === 0 ? (
               <>

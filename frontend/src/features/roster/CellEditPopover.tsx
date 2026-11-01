@@ -379,6 +379,11 @@ export const CellEditPopover: React.FC<CellEditPopoverProps> = ({
                 <Loader2 className="w-3.5 h-3.5 animate-spin text-text-secondary" />
                 <span>Simulating schedule impact...</span>
               </div>
+            ) : impactMutation.isError ? (
+              <div className="flex items-center gap-1.5 text-xs text-[#B7791F]">
+                <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
+                <span>Impact evaluation unavailable ({impactMutation.error instanceof Error ? impactMutation.error.message : 'Simulation error'})</span>
+              </div>
             ) : newConflicts.length > 0 ? (
               <div className="space-y-1">
                 <div className="flex items-center gap-1.5 text-xs font-medium text-[#C2412D]">

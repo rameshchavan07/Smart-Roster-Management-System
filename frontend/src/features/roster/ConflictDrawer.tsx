@@ -19,6 +19,7 @@ import {
   useAcknowledgeConflictMutation,
   useUpdateRosterEntriesMutation,
 } from '../../api/rosters';
+import { showApiErrorToast } from '../../api/errorMapping';
 import type {
   RosterConflict,
   RosterSuggestionItem,
@@ -65,7 +66,7 @@ export const ConflictDrawer: React.FC<ConflictDrawerProps> = ({
   canAcknowledge = true,
   canApply = true,
 }) => {
-  const { success, error } = useToast();
+  const toast = useToast();
   const [ackReason, setAckReason] = useState<string>('');
   const [applyingSuggestionId, setApplyingSuggestionId] = useState<string | null>(null);
 
@@ -94,7 +95,7 @@ export const ConflictDrawer: React.FC<ConflictDrawerProps> = ({
   const handleAcknowledge = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!ackReason || ackReason.trim().length < 5) {
-      error('Reason Required', 'Please provide an acknowledgment justification of at least 5 characters.');
+      toast.error('Reason Required', 'Please provide an acknowledgment justification of at least 5 characters.');
       return;
     }
 
@@ -106,11 +107,11 @@ export const ConflictDrawer: React.FC<ConflictDrawerProps> = ({
           reason: ackReason.trim(),
         },
       });
-      success('Conflict Acknowledged', 'Gating requirement satisfied for draft publication.');
+      toast.success('Conflict Acknowledged', 'Gating requirement satisfied for draft publication.');
       setAckReason('');
+      onApplied?.();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to acknowledge conflict';
-      error('Acknowledgment Failed', msg);
+      showApiErrorToast(err, toast, 'Acknowledgment Failed');
     }
   };
 
@@ -124,7 +125,7 @@ export const ConflictDrawer: React.FC<ConflictDrawerProps> = ({
       const entriesToUpdate = payload.entries || payload.cell_edits || [];
 
       if (entriesToUpdate.length === 0) {
-        error('Cannot Apply', 'Suggestion does not contain automated cell updates.');
+        toast.error('Cannot Apply', 'Suggestion does not contain automated cell updates.');
         setApplyingSuggestionId(null);
         return;
       }
@@ -143,12 +144,11 @@ export const ConflictDrawer: React.FC<ConflictDrawerProps> = ({
         },
       });
 
-      success('Recommendation Applied', `Applied: ${suggestion.action}`);
+      toast.success('Recommendation Applied', `Applied: ${suggestion.action}`);
       onApplied?.();
       onClose();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to apply recommendation';
-      error('Apply Failed', msg);
+      showApiErrorToast(err, toast, 'Apply Failed');
     } finally {
       setApplyingSuggestionId(null);
     }

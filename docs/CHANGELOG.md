@@ -5,6 +5,12 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 ## [Unreleased]
 
 ### Added
+- Wire Conflicts, Impact Simulator, and Suggestions (Task T-705 marked Completed in `TASK_TRACKER.md`):
+  - Connected Conflict Resolution Drawer in `frontend/src/features/roster/ConflictDrawer.tsx` to live recommendations (`GET /api/v1/rosters/{period_id}/suggestions?conflict_id={id}`), conflict acknowledgment (`POST /api/v1/rosters/{period_id}/acknowledge`), and automated recommendation application (`PUT /api/v1/rosters/{period_id}/entries`) with structured error mapping and parent cache updates.
+  - Connected What-If Impact Simulator in `frontend/src/features/roster/ImpactSimulatorPage.tsx` to `POST /api/v1/rosters/{period_id}/impact` for real-time schedule diffing (`new_conflicts`, `resolved_conflicts`, `net_conflict_change`, `affected_dates`) and local CP-SAT solver window repair (`POST /api/v1/rosters/{period_id}/repair`).
+  - Enhanced Cell Edit Popover in `frontend/src/features/roster/CellEditPopover.tsx` with live debounce impact evaluation and error recovery handling.
+  - Linked Conflict KPI cards and attention lists directly between `RosterWorkspacePage.tsx`, `DashboardPage.tsx`, and `ConflictsPage.tsx`.
+
 - Wire Roster Generation and Views (Task T-704 marked Completed in `TASK_TRACKER.md`):
   - Connected live roster generation flow in `frontend/src/features/roster/GenerateRosterModal.tsx` to `POST /api/v1/rosters` with deterministic solver settings (`seed`, `time_limit_s`, `use_fallback`), elapsed progress ticker, and integrated `showApiErrorToast` with `request_id`.
   - Wired full grid view queries (`GET /api/v1/rosters/{period_id}/grid`) supporting all 5 view modes (`company`, `pod`, `brand`, `process`, `employee`) with live cell edit mutations (`PUT /api/v1/rosters/{period_id}/entries`) and cell locking (`POST /api/v1/rosters/{period_id}/entries/lock`) in `frontend/src/features/roster/RosterWorkspacePage.tsx`.
