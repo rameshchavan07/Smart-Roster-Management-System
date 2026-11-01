@@ -566,6 +566,58 @@ def validate_single_point_of_failure(
     return conflicts
 
 
+def validate_weekend_fairness(
+    roster_lookup: dict[tuple[str, date], RosterCell],
+    dates: Sequence[date],
+    employees: Sequence[Employee],
+    threshold: int = 2,
+) -> list[Conflict]:
+    """Check if weekend-off spread across employees in the same pod exceeds threshold (W002)."""
+    conflicts: list[Conflict] = []
+    pod_emps: dict[str, list[Employee]] = defaultdict(list)
+    for emp in employees:
+        if emp.pod_id:
+            pod_emps[emp.pod_id].append(emp)
+
+    weekend_dates = [d for d in dates if d.weekday() in (5, 6)]  # Saturday=5, Sunday=6
+    if not weekend_dates:
+        return conflicts
+
+    off_statuses = {RosterStatus.WEEKLY_OFF, RosterStatus.COMP_OFF, RosterStatus.HOLIDAY_OFF}
+
+    for pod_id, emps in sorted(pod_emps.items(), key=lambda x: x[0]):
+        if len(emps) < 2:
+            continue
+        weekend_off_counts: dict[str, int] = {}
+        for emp in emps:
+            count = 0
+            for d in weekend_dates:
+                cell = roster_lookup.get((emp.id, d))
+                if cell and cell.status in off_statuses:
+                    count += 1
+            weekend_off_counts[emp.id] = count
+
+        counts = list(weekend_off_counts.values())
+        spread = max(counts) - min(counts)
+        if spread > threshold:
+            min_emp_id = min(weekend_off_counts, key=lambda k: weekend_off_counts[k])
+            message = (
+                f"Weekend-off distribution imbalance in pod {pod_id}: spread of {spread} weekend offs "
+                f"(max {max(counts)} vs min {min(counts)}) exceeds fairness threshold of {threshold}."
+            )
+            conflicts.append(
+                Conflict(
+                    code=ConflictCode.W002,
+                    severity=ConflictSeverity.INFO,
+                    employee_id=min_emp_id,
+                    root_causes=("WEEKEND_FAIRNESS_IMBALANCE",),
+                    message=message,
+                )
+            )
+
+    return conflicts
+
+
 def validate_roster(
     roster_cells: Sequence[RosterCell],
     demand_cells: Sequence[DemandCell],
@@ -577,6 +629,7 @@ def validate_roster(
     leaves: Sequence[EmployeeLeave] = (),
     initial_compoff_balances: dict[str, int] | None = None,
     previous_tail_work_days: dict[str, int] | None = None,
+    is_stale: bool = False,
 ) -> tuple[ValidationResult, list[CoverageCell]]:
     """Comprehensive independent validator function returning ValidationResult and CoverageCells."""
     # Build lookups
@@ -658,6 +711,20 @@ def validate_roster(
         )
     )
 
+    # 4. Pod-level weekend fairness checks (W002)
+    all_conflicts.extend(validate_weekend_fairness(roster_lookup, all_dates, employees))
+
+    # 5. Stale roster check (W004)
+    if is_stale:
+        all_conflicts.append(
+            Conflict(
+                code=ConflictCode.W004,
+                severity=ConflictSeverity.WARNING,
+                root_causes=("INPUTS_CHANGED_AFTER_GENERATION",),
+                message="Roster inputs have changed since this roster was generated. Re-generate or review conflicts.",
+            )
+        )
+
     validation_result = ValidationResult.from_conflicts(tuple(all_conflicts))
     return validation_result, coverage_cells
 
@@ -673,6 +740,7 @@ def validate(
     leaves: Sequence[EmployeeLeave] = (),
     initial_compoff_balances: dict[str, int] | None = None,
     previous_tail_work_days: dict[str, int] | None = None,
+    is_stale: bool = False,
 ) -> ValidationResult:
     """Convenience wrapper returning ValidationResult per SCHEDULING_ENGINE.md §7."""
     res, _ = validate_roster(
@@ -686,5 +754,6 @@ def validate(
         leaves=leaves,
         initial_compoff_balances=initial_compoff_balances,
         previous_tail_work_days=previous_tail_work_days,
+        is_stale=is_stale,
     )
     return res

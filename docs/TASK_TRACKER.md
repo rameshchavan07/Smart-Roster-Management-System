@@ -108,7 +108,7 @@
 | ID | Task | Description | Priority | Depends on | Expected output | Status | Est. | Scope |
 |---|---|---|---|---|---|---|---|---|
 | T-801 | Unit tests: calendar, demand, supply | Table-driven tests for all calendar types, overrides, holidays | High | T-504 | Passing tests | Completed | 2h | MVP |
-| T-802 | Unit tests: validator | One test per conflict code plus injected-fault suite | High | T-505 | Passing tests | Not Started | 2.5h | MVP |
+| T-802 | Unit tests: validator | One test per conflict code plus injected-fault suite | High | T-505 | Passing tests | Completed | 2.5h | MVP |
 | T-803 | Generator property tests | Hypothesis: output satisfies hard constraints; shortfalls match validator | High | T-508 | Passing tests | Not Started | 2h | MVP |
 | T-804 | API and permission tests | Endpoints, error format, RBAC matrix | High | T-403, T-510 | Passing tests | Not Started | 2.5h | MVP |
 | T-805 | Demo-scenario tests | The five scenarios in `SAMPLE_DATA.md` as golden tests | High | T-513, T-309 | Passing tests | Not Started | 2h | MVP |

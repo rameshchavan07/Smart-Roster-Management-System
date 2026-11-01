@@ -5,6 +5,10 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 ## [Unreleased]
 
 ### Added
+- Independent Validator Unit Tests and Injected-Fault Suite (Task T-802 marked Completed in `TASK_TRACKER.md`):
+  - Added pod-level weekend-off fairness validation (`validate_weekend_fairness` emitting `W002`, severity `INFO`) and stale roster detection (`is_stale` parameter emitting `W004`, severity `WARNING`) in `backend/app/scheduler/validator.py`.
+  - Added dedicated tests for all 13 conflict codes in `backend/tests/unit/scheduler/test_validator.py` (`E001` NO_COVERAGE, `E002` UNDER_STAFFED, `E003` WEEKLY_OFF_BREAKS_COVERAGE, `E004` LEAVE_BREAKS_COVERAGE, `E005` MAX_CONSECUTIVE_EXCEEDED, `E006` WEEKLY_OFF_MISSING, `E007` INVALID_CELL, `E008` OVERLOAD, `E009` COMPOFF_BALANCE, `W001` PREFERENCE_VIOLATED, `W002` UNFAIR_DISTRIBUTION, `W003` SINGLE_POINT_OF_FAILURE, `W004` STALE_ROSTER).
+  - Added table-driven injected-fault suite (`test_injected_fault_suite`) per `TESTING_DOCUMENTATION.md` §3 verifying that injecting any single operational fault into a clean baseline schedule deterministically produces the exact matching conflict code and severity.
 - Table-Driven Unit Tests for Calendar, Demand, and Supply (Task T-801 marked Completed in `TASK_TRACKER.md`):
   - Added comprehensive table-driven test suites in `backend/tests/unit/scheduler/test_calendar.py` covering all calendar types (`ALL_365`, `ALL_EXCEPT_HOLIDAYS`, `EXCLUDE_SUNDAY_AND_HOLIDAYS`) across weekdays, weekends, global holidays, and brand-scoped holidays (`TC-CAL-01` to `TC-CAL-04`).
   - Added comprehensive table-driven test suites in `backend/tests/unit/scheduler/test_demand.py` testing the full precedence hierarchy (Specific Date Overrides > Weekday Overrides > Default Minimums) and strictly asserting that closed/non-operating days evaluate to 0 headcount demand regardless of configured overrides (`TC-DEM-01` and `TC-DEM-02`).
