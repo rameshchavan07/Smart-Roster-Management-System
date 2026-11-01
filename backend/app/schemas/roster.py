@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import datetime as dt
 import uuid
+from enum import StrEnum
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -263,10 +264,32 @@ class RosterDayViewResponse(BaseModel):
 # -----------------------------------------------------------------------------
 # Impact (What-If) Simulator Schemas
 # -----------------------------------------------------------------------------
-class RosterImpactRequest(BaseModel):
-    """Simulate cell changes without committing to database."""
+class ImpactChangeType(StrEnum):
+    """Change kinds accepted by what-if impact analysis."""
 
-    edits: list[RosterEntryUpdateItem] = Field(min_length=1)
+    ADD_LEAVE = "ADD_LEAVE"
+    REMOVE_LEAVE = "REMOVE_LEAVE"
+    CELL_EDIT = "CELL_EDIT"
+    MARK_UNAVAILABLE = "MARK_UNAVAILABLE"
+
+
+class RosterImpactChangeItem(BaseModel):
+    """Single proposed modification to simulate."""
+
+    type: ImpactChangeType | str
+    employee_id: uuid.UUID | None = None
+    start_date: dt.date | None = None
+    end_date: dt.date | None = None
+    date: dt.date | None = None
+    status: RosterEntryStatus | None = None
+    brand_process_id: uuid.UUID | None = None
+
+
+class RosterImpactRequest(BaseModel):
+    """Simulate cell changes or leave additions without committing to database."""
+
+    changes: list[RosterImpactChangeItem] = Field(default_factory=list)
+    edits: list[RosterEntryUpdateItem] = Field(default_factory=list)
 
 
 class RosterImpactResponse(BaseModel):
@@ -276,5 +299,6 @@ class RosterImpactResponse(BaseModel):
     new_conflicts: list[dict[str, Any]] = Field(default_factory=list)
     resolved_conflicts: list[dict[str, Any]] = Field(default_factory=list)
     unchanged_conflicts: list[dict[str, Any]] = Field(default_factory=list)
-    net_conflict_change: int
+    unchanged: int = 0
+    net_conflict_change: int = 0
     affected_dates: list[dt.date] = Field(default_factory=list)

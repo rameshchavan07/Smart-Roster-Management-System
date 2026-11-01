@@ -22,6 +22,8 @@ from app.schemas.roster import (
     RosterGenerateRequest,
     RosterGenerateResponse,
     RosterGridViewResponse,
+    RosterImpactRequest,
+    RosterImpactResponse,
     RosterPeriodRead,
 )
 from app.services.roster import RosterService
@@ -174,3 +176,20 @@ def get_roster_conflicts(
         target_date=date,
         employee_id=employee_id,
     )
+
+
+@router.post(
+    "/{period_id}/impact",
+    response_model=RosterImpactResponse,
+    summary="Simulate proposed roster changes",
+    description="Dry-run cell edits or leave additions without persisting to DB, returning diff of new, resolved, and unchanged conflicts.",
+)
+def simulate_roster_impact(
+    period_id: uuid.UUID,
+    data: RosterImpactRequest,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> RosterImpactResponse:
+    """Evaluate what-if impact for proposed schedule changes."""
+    service = RosterService(db)
+    return service.simulate_impact(period_id=period_id, request=data)

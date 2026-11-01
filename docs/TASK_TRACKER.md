@@ -62,7 +62,7 @@
 | T-508 | CP-SAT model | Variables, H1–H5, coverage slack, objective for preferences/fairness/stability | High | T-505 | `generate_cpsat()` | Completed | 4h | MVP |
 | T-509 | Generation service and API | Load inputs, run engine, persist roster + conflicts, `POST /rosters` | High | T-507, T-508, T-306 | Endpoint | Completed | 2h | MVP |
 | T-510 | Roster read APIs | `grid` for 5 views, `coverage`, `day`, `conflicts` endpoints | High | T-509 | Endpoints | Completed | 2.5h | MVP |
-| T-511 | Impact (what-if) service | Dry-run changes; conflict diff (new / resolved / unchanged) on affected dates only | High | T-505, T-510 | `POST /impact` | Not Started | 2.5h | MVP |
+| T-511 | Impact (what-if) service | Dry-run changes; conflict diff (new / resolved / unchanged) on affected dates only | High | T-505, T-510 | `POST /impact` | Completed | 2.5h | MVP |
 | T-512 | Cell edit and lock | Apply validated edits, locks, audit entries, stale flag handling | High | T-511 | `PUT /entries` | Not Started | 2h | MVP |
 | T-513 | Suggestion engine | Candidate fixes (backup, floater, weekly-off swap), ranked, simulated for net effect | High | T-511 | `GET /suggestions` | Not Started | 3h | MVP |
 | T-514 | Comp-off logic | Credit for holiday work, balance validation, redemption | Medium | T-505 | Ledger service | Not Started | 1.5h | MVP |

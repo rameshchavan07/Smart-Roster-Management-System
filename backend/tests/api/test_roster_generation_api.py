@@ -11,6 +11,7 @@ Tests:
 
 from __future__ import annotations
 
+import datetime as dt
 import time
 import uuid
 from collections.abc import Generator
@@ -569,6 +570,176 @@ def test_seeded_december_2026_full_lifecycle_and_timings() -> None:
         conflicts_res = client.get(f"/api/v1/rosters/{period_id}/conflicts")
         assert conflicts_res.status_code == 200
         assert isinstance(conflicts_res.json(), list)
+
+    db.close()
+    Base.metadata.drop_all(engine)
+
+
+def test_roster_impact_simulation(test_setup: dict) -> None:
+    """Test POST /api/v1/rosters/{id}/impact dry-run simulation without DB mutation."""
+    client_ops, db = create_client(test_setup, current_user=test_setup["users"]["ops"])
+
+    gen_res = client_ops.post("/api/v1/rosters", json={"month": "2026-12"})
+    period_id = gen_res.json()["id"]
+
+    # 1. Non-existent period -> 404
+    fake_id = uuid.uuid4()
+    assert (
+        client_ops.post(f"/api/v1/rosters/{fake_id}/impact", json={"changes": []}).status_code
+        == 404
+    )
+
+    # 2. Empty changes request returns unchanged count
+    empty_impact = client_ops.post(f"/api/v1/rosters/{period_id}/impact", json={"changes": []})
+    assert empty_impact.status_code == 200
+    assert len(empty_impact.json()["new_conflicts"]) == 0
+    assert len(empty_impact.json()["resolved_conflicts"]) == 0
+
+    # 3. Simulate cell edit
+    emp = test_setup["employees"][0]
+    cell_before = db.scalars(
+        select(RosterEntry).where(
+            RosterEntry.roster_period_id == uuid.UUID(period_id),
+            RosterEntry.employee_id == emp.id,
+            RosterEntry.date == dt.date(2026, 12, 1),
+        )
+    ).first()
+    assert cell_before is not None
+    orig_status = cell_before.status.value
+
+    impact_res = client_ops.post(
+        f"/api/v1/rosters/{period_id}/impact",
+        json={
+            "edits": [
+                {
+                    "employee_id": str(emp.id),
+                    "date": "2026-12-01",
+                    "status": "WEEKLY_OFF",
+                }
+            ]
+        },
+    )
+    assert impact_res.status_code == 200
+    res_data = impact_res.json()
+    assert "is_feasible" in res_data
+    assert "new_conflicts" in res_data
+    assert "affected_dates" in res_data
+    assert "2026-12-01" in res_data["affected_dates"]
+
+    # Verify dry-run: cell in DB was NOT modified
+    cell_after = db.scalars(
+        select(RosterEntry).where(
+            RosterEntry.roster_period_id == uuid.UUID(period_id),
+            RosterEntry.employee_id == emp.id,
+            RosterEntry.date == dt.date(2026, 12, 1),
+        )
+    ).first()
+    assert cell_after is not None
+    assert cell_after.status.value == orig_status
+
+    db.close()
+
+
+def test_roster_impact_scenario_s1() -> None:
+    """Golden test for Scenario S1: Add leave for single-resource brand (Aurora) sole employee (Riya Shah)."""
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(engine)
+    session_factory = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    db = session_factory()
+
+    # Seed scale 1 dataset
+    seed_database(db, scale=1, clean=False)
+
+    ops_user = db.scalars(select(User).where(User.role == UserRole.OPS_MANAGER)).first()
+    assert ops_user is not None
+
+    emp_riya = db.scalars(select(Employee).where(Employee.code == "EMP-007")).first()
+    assert emp_riya is not None
+    assert emp_riya.full_name == "Riya Shah"
+
+    app = create_app()
+
+    def override_get_db() -> Generator[Session, None, None]:
+        try:
+            yield db
+        finally:
+            pass
+
+    app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_current_user] = lambda: ops_user
+
+    with TestClient(app, raise_server_exceptions=False) as client:
+        # Generate initial clean December 2026 roster
+        gen_res = client.post("/api/v1/rosters", json={"month": "2026-12", "options": {"seed": 42}})
+        assert gen_res.status_code == 201
+        period_id = gen_res.json()["id"]
+
+        # Run impact simulation: add leave for Riya Shah from 2026-12-13 to 2026-12-15
+        impact_payload = {
+            "changes": [
+                {
+                    "type": "ADD_LEAVE",
+                    "employee_id": str(emp_riya.id),
+                    "start_date": "2026-12-13",
+                    "end_date": "2026-12-15",
+                }
+            ]
+        }
+        res = client.post(f"/api/v1/rosters/{period_id}/impact", json=impact_payload)
+        assert res.status_code == 200
+        data = res.json()
+
+        assert data["is_feasible"] is False
+        assert len(data["new_conflicts"]) > 0
+
+        # Check affected dates: 13, 14, 15 Dec
+        expected_dates = ["2026-12-13", "2026-12-14", "2026-12-15"]
+        assert all(d in data["affected_dates"] for d in expected_dates)
+
+        # Inspect conflicts on affected dates:
+        # 13 Dec (Sun): 2 gaps (CS + ACC) were already in baseline (unchanged_conflicts)
+        # 14 Dec (Mon) & 15 Dec (Tue): 3 new gaps each (CS, ACC, NDR) -> 6 new_conflicts
+        # Total Aurora gaps across 13-15 Dec = 8
+        aurora_new_gaps = [c for c in data["new_conflicts"] if c.get("brand") == "Aurora"]
+        assert len(aurora_new_gaps) == 6
+
+        aurora_total_gaps = [
+            c
+            for c in data["new_conflicts"] + data["unchanged_conflicts"]
+            if c.get("brand") == "Aurora" and c.get("date") in expected_dates
+        ]
+        assert len(aurora_total_gaps) == 8  # CS (Sun-Tue = 3), ACC (Sun-Tue = 3), NDR (Mon-Tue = 2)
+
+        # On 2026-12-13 (Sunday): NDR is closed (EXCLUDE_SUNDAY_AND_HOLIDAYS), so only CS and ACC fail
+        dec13_processes = {c["process"] for c in aurora_total_gaps if c.get("date") == "2026-12-13"}
+        assert any("Customer Support" in p for p in dec13_processes)
+        assert any("Abandoned Cart" in p for p in dec13_processes)
+        assert not any("Non-Delivery" in p for p in dec13_processes)
+
+        # On 2026-12-14 (Monday): all 3 processes operate and fail
+        dec14_processes = {c["process"] for c in aurora_total_gaps if c.get("date") == "2026-12-14"}
+        assert any("Customer Support" in p for p in dec14_processes)
+        assert any("Abandoned Cart" in p for p in dec14_processes)
+        assert any("Non-Delivery" in p for p in dec14_processes)
+
+        # Suggestions should include floater Kabir Nair (EMP-033)
+        sample_gap = aurora_new_gaps[0]
+        assert "LEAVE" in sample_gap["root_causes"]
+        assert len(sample_gap["suggestions"]) > 0
+
+        suggestion_names = [
+            s.get("employee") for s in sample_gap["suggestions"] if s.get("employee")
+        ]
+        assert any("Kabir" in name for name in suggestion_names)
+
+        # Verify net_effect on floater suggestion
+        kabir_sugg = next(s for s in sample_gap["suggestions"] if "Kabir" in s.get("employee", ""))
+        assert kabir_sugg["net_effect"]["fixes"] >= 1
+        assert kabir_sugg["net_effect"]["opens"] == 0
 
     db.close()
     Base.metadata.drop_all(engine)

@@ -5,6 +5,16 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 ## [Unreleased]
 
 ### Added
+- Roster impact (what-if) simulation service and REST API (Task T-511 marked Completed in `TASK_TRACKER.md`):
+  - Created impact simulation schemas in `backend/app/schemas/roster.py`: `ImpactChangeType` (`ADD_LEAVE`, `REMOVE_LEAVE`, `CELL_EDIT`, `MARK_UNAVAILABLE`), `RosterImpactChangeItem`, `RosterImpactRequest` (supporting batch `changes` and `edits`), and `RosterImpactResponse` (`is_feasible`, `new_conflicts`, `resolved_conflicts`, `unchanged_conflicts`, `unchanged`, `net_conflict_change`, `affected_dates`).
+  - Implemented `simulate_impact` in `backend/app/services/roster.py`:
+    - Pure in-memory simulation with zero database mutations.
+    - Overlays proposed changes/edits onto current roster cells and active employee leaves.
+    - Re-evaluates demand and supply matrices, invoking pure validator `validate_roster` and explanation engine `enrich_conflicts`.
+    - Diffs simulated conflicts against baseline persisted conflicts into `new_conflicts`, `resolved_conflicts`, `unchanged_conflicts`, and calculates net change and affected dates.
+  - Exposed REST endpoint `POST /api/v1/rosters/{period_id}/impact` in `backend/app/api/v1/endpoints/rosters.py`.
+  - Added unit and golden scenario tests in `backend/tests/api/test_roster_generation_api.py`, verifying mutation-free behavior and passing Scenario S1 (single-resource brand Aurora sole employee Riya Shah approved leave from Dec 13-15 produces 8 total coverage gaps across the 3 dates, and surfaces floater Kabir Nair suggestions with "fixes N, opens 0").
+
 - Roster read APIs for matrix views, coverage, daily breakdown, and conflicts (Task T-510 marked Completed in `TASK_TRACKER.md`):
   - Created interactive matrix views and daily breakdown schemas in `backend/app/schemas/roster.py`: `RosterGridCell`, `RosterGridRow`, `RosterGridViewResponse`, `RosterCoverageCell`, `RosterDayEmployeeItem`, `RosterDayBrandProcessGroup`, and `RosterDayViewResponse`. Enriched `RosterConflictRead` with brand, process, and employee names.
   - Implemented service read logic in `backend/app/services/roster.py`:

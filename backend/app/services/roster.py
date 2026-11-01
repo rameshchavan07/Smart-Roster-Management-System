@@ -11,6 +11,7 @@ import contextlib
 import datetime as dt
 import uuid
 from collections import defaultdict
+from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
@@ -84,6 +85,9 @@ from app.scheduler.domain import (
     CalendarType as DomainCalendarType,
 )
 from app.scheduler.domain import (
+    ConflictSeverity as DomainConflictSeverity,
+)
+from app.scheduler.domain import (
     CoverageRule as DomainCoverageRule,
 )
 from app.scheduler.domain import (
@@ -95,6 +99,8 @@ from app.scheduler.domain import (
 from app.scheduler.domain import (
     GenerationInput,
     GenerationOutput,
+    RosterCell,
+    RosterStatus,
     SolverStatus,
 )
 from app.scheduler.domain import (
@@ -106,9 +112,11 @@ from app.scheduler.domain import (
 from app.scheduler.domain import (
     WeeklyOffMode as DomainWeeklyOffMode,
 )
+from app.scheduler.explain import enrich_conflicts
 from app.scheduler.generator_cpsat import generate_cpsat
 from app.scheduler.generator_greedy import generate_greedy
 from app.scheduler.supply import build_supply_matrix
+from app.scheduler.validator import validate_roster
 from app.schemas.roster import (
     RosterConflictRead,
     RosterCoverageCell,
@@ -120,6 +128,8 @@ from app.schemas.roster import (
     RosterGridCell,
     RosterGridRow,
     RosterGridViewResponse,
+    RosterImpactRequest,
+    RosterImpactResponse,
     RosterPeriodRead,
     RosterSummary,
 )
@@ -999,3 +1009,436 @@ class RosterService:
             results.append(read)
 
         return results
+
+    def simulate_impact(
+        self, period_id: uuid.UUID, request: RosterImpactRequest
+    ) -> RosterImpactResponse:
+        """Dry-run proposed changes/edits without DB mutation, diffing conflicts into new, resolved, and unchanged."""
+        period_read = self.get_roster_period(period_id)
+        month_start, month_end = parse_month_bounds(period_read.month)
+
+        # 1. Identify affected dates
+        affected_dates: set[dt.date] = set()
+        for ed in request.edits:
+            affected_dates.add(ed.date)
+        for ch in request.changes:
+            st = ch.start_date or ch.date
+            en = ch.end_date or ch.date or st
+            if st and en:
+                cur = st
+                while cur <= en:
+                    affected_dates.add(cur)
+                    cur += dt.timedelta(days=1)
+            elif ch.date:
+                affected_dates.add(ch.date)
+
+        # 2. Fetch baseline DB models
+        emp_stmt = select(DbEmployee).where(DbEmployee.is_active.is_(True))
+        db_employees = self.session.scalars(emp_stmt.order_by(DbEmployee.code)).all()
+        emp_ids = [e.id for e in db_employees]
+        emp_name_map = {str(e.id): e.full_name for e in db_employees}
+
+        bp_stmt = (
+            select(DbBrandProcess)
+            .join(DbBrandProcess.brand)
+            .where(DbBrandProcess.is_active.is_(True), DbBrand.is_active.is_(True))
+        )
+        db_bps = self.session.scalars(bp_stmt.order_by(DbBrandProcess.id)).all()
+        bp_ids = [bp.id for bp in db_bps]
+        bp_name_map = {str(bp.id): bp.brand.name if bp.brand else "" for bp in db_bps}
+        bp_proc_map = {str(bp.id): bp.process.name if bp.process else "" for bp in db_bps}
+
+        asgn_stmt = select(DbAssignment).where(
+            DbAssignment.employee_id.in_(emp_ids),
+            DbAssignment.brand_process_id.in_(bp_ids),
+            (DbAssignment.valid_from.is_(None) | (DbAssignment.valid_from <= month_end)),
+            (DbAssignment.valid_to.is_(None) | (DbAssignment.valid_to >= month_start)),
+        )
+        db_assignments = self.session.scalars(asgn_stmt).all()
+
+        cr_stmt = select(DbCoverageRule).where(
+            DbCoverageRule.is_active.is_(True),
+            DbCoverageRule.brand_process_id.in_(bp_ids),
+        )
+        db_coverage_rules = self.session.scalars(cr_stmt).all()
+
+        hol_stmt = select(DbHoliday).where(
+            DbHoliday.is_active.is_(True),
+            DbHoliday.date >= month_start,
+            DbHoliday.date <= month_end,
+        )
+        db_holidays = self.session.scalars(hol_stmt).all()
+
+        leave_stmt = select(DbLeave).where(
+            DbLeave.status == DbLeaveStatus.APPROVED,
+            DbLeave.employee_id.in_(emp_ids),
+            DbLeave.start_date <= month_end,
+            DbLeave.end_date >= month_start,
+        )
+        db_leaves = self.session.scalars(leave_stmt).all()
+
+        wor_stmt = select(DbWeeklyOffRule).where(
+            DbWeeklyOffRule.employee_id.in_(emp_ids),
+        )
+        db_wo_rules = self.session.scalars(wor_stmt).all()
+        wo_rules_by_emp = {r.employee_id: r for r in db_wo_rules}
+
+        pref_stmt = select(DbEmployeePreference).where(
+            DbEmployeePreference.employee_id.in_(emp_ids),
+        )
+        db_prefs = self.session.scalars(pref_stmt).all()
+        prefs_by_emp: dict[uuid.UUID, list[DbEmployeePreference]] = {eid: [] for eid in emp_ids}
+        for p in db_prefs:
+            prefs_by_emp[p.employee_id].append(p)
+
+        # 3. Build domain objects
+        domain_employees: list[DomainEmployee] = []
+        for e in db_employees:
+            wo_rule = wo_rules_by_emp.get(e.id)
+            wo_mode = (
+                DomainWeeklyOffMode(wo_rule.mode.value) if wo_rule else DomainWeeklyOffMode.ANY
+            )
+            fixed_weekdays = tuple(wo_rule.weekdays) if wo_rule and wo_rule.weekdays else ()
+
+            emp_p_list = prefs_by_emp.get(e.id, [])
+            pref_weekdays: list[int] = []
+            pref_dates: list[dt.date] = []
+            for p in emp_p_list:
+                if p.kind.value == "PREFERRED_OFF_WEEKDAY" and "weekday" in p.value:
+                    pref_weekdays.append(int(p.value["weekday"]))
+                elif p.kind.value == "PREFERRED_OFF_DATE" and "date" in p.value:
+                    with contextlib.suppress(Exception):
+                        pref_dates.append(dt.date.fromisoformat(str(p.value["date"])))
+
+            domain_employees.append(
+                DomainEmployee(
+                    id=str(e.id),
+                    code=e.code,
+                    full_name=e.full_name,
+                    pod_id=str(e.pod_id),
+                    is_floater=e.is_floater,
+                    weekly_off_count=e.weekly_off_count,
+                    max_consecutive_days=e.max_consecutive_days,
+                    max_concurrent_processes=e.max_concurrent_processes,
+                    weekly_off_mode=wo_mode,
+                    fixed_weekly_off_weekdays=fixed_weekdays,
+                    preferred_weekly_off_weekdays=tuple(pref_weekdays),
+                    preferred_off_dates=tuple(pref_dates),
+                )
+            )
+
+        domain_bps = [
+            DomainBrandProcess(
+                id=str(bp.id),
+                brand_id=str(bp.brand_id),
+                brand_name=bp.brand.name if bp.brand else "",
+                process_id=str(bp.process_id),
+                process_name=bp.process.name if bp.process else "",
+                calendar_type=DomainCalendarType(bp.calendar_type.value),
+                min_coverage_default=bp.min_coverage_default,
+            )
+            for bp in db_bps
+        ]
+
+        domain_assignments = [
+            DomainAssignment(
+                employee_id=str(a.employee_id),
+                brand_process_id=str(a.brand_process_id),
+                type=DomainAssignmentType(a.type.value),
+            )
+            for a in db_assignments
+        ]
+
+        domain_holidays = [
+            DomainHoliday(
+                date=h.date,
+                name=h.name,
+                brand_id=str(h.brand_id) if h.brand_id else None,
+            )
+            for h in db_holidays
+        ]
+
+        domain_rules = [
+            DomainCoverageRule(
+                brand_process_id=str(cr.brand_process_id),
+                weekday=cr.weekday,
+                specific_date=cr.specific_date,
+                min_staff=cr.min_staff,
+                reason=cr.reason or "",
+            )
+            for cr in db_coverage_rules
+        ]
+
+        domain_leaves = [
+            DomainEmployeeLeave(
+                employee_id=str(lv.employee_id),
+                start_date=lv.start_date,
+                end_date=lv.end_date,
+                type=DomainLeaveType(lv.type.value)
+                if hasattr(lv.type, "value")
+                else DomainLeaveType.PLANNED,
+            )
+            for lv in db_leaves
+        ]
+
+        # 4. Check previous month tail carry-in work streaks (H3)
+        prev_month_tail: dict[str, int] = {}
+        prev_month_start = (month_start - dt.timedelta(days=1)).replace(day=1)
+        prev_period = (
+            self.period_repo.get_published_period(prev_month_start)
+            or self.session.scalars(
+                select(RosterPeriod)
+                .where(RosterPeriod.month == prev_month_start)
+                .order_by(RosterPeriod.version.desc())
+            ).first()
+        )
+        if prev_period:
+            prev_entries = self.entry_repo.get_by_period(
+                period_id=prev_period.id,
+                date_from=month_start - dt.timedelta(days=6),
+                date_to=month_start - dt.timedelta(days=1),
+            )
+            entries_by_emp_date = {(e.employee_id, e.date): e for e in prev_entries}
+            for eid in emp_ids:
+                streak = 0
+                for back in range(1, 7):
+                    check_d = month_start - dt.timedelta(days=back)
+                    entry = entries_by_emp_date.get((eid, check_d))
+                    if entry and entry.status in (
+                        DbRosterEntryStatus.WORK,
+                        DbRosterEntryStatus.HOLIDAY_WORK,
+                    ):
+                        streak += 1
+                    else:
+                        break
+                prev_month_tail[str(eid)] = streak
+
+        # 5. Load existing persisted roster entries into cell map
+        db_entries = self.entry_repo.get_by_period(period_id)
+        roster_cells_map: dict[tuple[str, dt.date], RosterCell] = {}
+        for e in db_entries:
+            roster_cells_map[(str(e.employee_id), e.date)] = RosterCell(
+                employee_id=str(e.employee_id),
+                date=e.date,
+                status=RosterStatus(e.status.value),
+                is_locked=e.is_locked,
+                note=e.note or "",
+            )
+
+        # 6. Apply proposed edits & changes in-memory
+        for ed in request.edits:
+            emp_k = str(ed.employee_id)
+            existing = roster_cells_map.get((emp_k, ed.date))
+            note = ed.note if ed.note is not None else (existing.note if existing else "")
+            is_locked = (
+                ed.is_locked
+                if ed.is_locked is not None
+                else (existing.is_locked if existing else True)
+            )
+            roster_cells_map[(emp_k, ed.date)] = RosterCell(
+                employee_id=emp_k,
+                date=ed.date,
+                status=RosterStatus(ed.status.value),
+                is_locked=is_locked,
+                note=note,
+            )
+
+        for ch in request.changes:
+            ch_type = ch.type.value if hasattr(ch.type, "value") else str(ch.type)
+            if ch_type in ("ADD_LEAVE", "MARK_UNAVAILABLE"):
+                if ch.employee_id:
+                    emp_k = str(ch.employee_id)
+                    st_d = ch.start_date or ch.date
+                    en_d = ch.end_date or ch.date or st_d
+                    if st_d and en_d:
+                        domain_leaves.append(
+                            DomainEmployeeLeave(
+                                employee_id=emp_k,
+                                start_date=st_d,
+                                end_date=en_d,
+                                type=DomainLeaveType.PLANNED,
+                            )
+                        )
+                        cur = st_d
+                        new_status = (
+                            RosterStatus.LEAVE
+                            if ch_type == "ADD_LEAVE"
+                            else (
+                                RosterStatus(ch.status.value)
+                                if ch.status
+                                else RosterStatus.WEEKLY_OFF
+                            )
+                        )
+                        while cur <= en_d:
+                            roster_cells_map[(emp_k, cur)] = RosterCell(
+                                employee_id=emp_k,
+                                date=cur,
+                                status=new_status,
+                                is_locked=True,
+                                note=f"Simulated {ch_type}",
+                            )
+                            cur += dt.timedelta(days=1)
+            elif ch_type == "CELL_EDIT" and ch.employee_id and ch.date and ch.status:
+                emp_k = str(ch.employee_id)
+                roster_cells_map[(emp_k, ch.date)] = RosterCell(
+                    employee_id=emp_k,
+                    date=ch.date,
+                    status=RosterStatus(ch.status.value),
+                    is_locked=True,
+                    note="Simulated CELL_EDIT",
+                )
+
+        # 7. Rebuild demand and supply matrices
+        demand_matrix = build_demand_matrix(
+            brand_processes=domain_bps,
+            start_date=month_start,
+            end_date=month_end,
+            rules=domain_rules,
+            holidays=domain_holidays,
+        )
+
+        supply_matrix = build_supply_matrix(
+            employees=domain_employees,
+            start_date=month_start,
+            end_date=month_end,
+            assignments=domain_assignments,
+            brand_processes=domain_bps,
+            holidays=domain_holidays,
+            leaves=domain_leaves,
+            locked_cells=(),
+        )
+
+        # 8. Re-validate and enrich
+        val_result, _ = validate_roster(
+            roster_cells=list(roster_cells_map.values()),
+            demand_cells=demand_matrix,
+            supply_cells=supply_matrix,
+            employees=domain_employees,
+            brand_processes=domain_bps,
+            assignments=domain_assignments,
+            holidays=domain_holidays,
+            leaves=domain_leaves,
+            previous_tail_work_days=prev_month_tail,
+        )
+
+        enriched_conflicts = enrich_conflicts(
+            conflicts=val_result.conflicts,
+            employees=domain_employees,
+            brand_processes=domain_bps,
+            assignments=domain_assignments,
+            roster_cells=list(roster_cells_map.values()),
+            demand_cells=demand_matrix,
+            holidays=domain_holidays,
+            leaves=domain_leaves,
+        )
+
+        # 9. Compute conflict diff
+        existing_conflicts = self.conflict_repo.get_by_period(period_id)
+
+        def make_sig(
+            code: str,
+            bp_id: str | None,
+            emp_id: str | None,
+            d_from: dt.date | None,
+            d_to: dt.date | None,
+        ) -> tuple:
+            return (code, bp_id, emp_id, d_from, d_to)
+
+        orig_map = {
+            make_sig(
+                c.code,
+                str(c.brand_process_id) if c.brand_process_id else None,
+                str(c.employee_id) if c.employee_id else None,
+                c.date_from,
+                c.date_to,
+            ): c
+            for c in existing_conflicts
+        }
+        sim_map = {
+            make_sig(
+                c.code.value,
+                c.brand_process_id,
+                c.employee_id,
+                c.date_from,
+                c.date_to,
+            ): c
+            for c in enriched_conflicts
+        }
+
+        new_sigs = set(sim_map.keys()) - set(orig_map.keys())
+        resolved_sigs = set(orig_map.keys()) - set(sim_map.keys())
+        unchanged_sigs = set(sim_map.keys()) & set(orig_map.keys())
+
+        def serialize_domain_conflict(c: Any) -> dict[str, Any]:
+            bp_id = c.brand_process_id
+            emp_id = c.employee_id
+            suggestions = [
+                {
+                    "kind": s.type.value,
+                    "type": s.type.value,
+                    "action": s.action,
+                    "description": s.description,
+                    "employee_id": s.employee_id,
+                    "employee": emp_name_map.get(s.employee_id) if s.employee_id else None,
+                    "brand_process_id": s.brand_process_id,
+                    "net_effect": {"fixes": 1, "opens": 0},
+                    "net_impact": s.net_impact,
+                    "score": s.score,
+                }
+                for s in c.suggestions
+            ]
+            return {
+                "code": c.code.value,
+                "severity": c.severity.value,
+                "brand_process_id": bp_id,
+                "brand": bp_name_map.get(bp_id),
+                "process": bp_proc_map.get(bp_id),
+                "employee_id": emp_id,
+                "employee": emp_name_map.get(emp_id),
+                "date": c.date_from.isoformat() if c.date_from else None,
+                "date_from": c.date_from.isoformat() if c.date_from else None,
+                "date_to": c.date_to.isoformat() if c.date_to else None,
+                "message": c.message,
+                "root_causes": list(c.root_causes),
+                "suggestions": suggestions,
+            }
+
+        def serialize_db_conflict(c: DbRosterConflict) -> dict[str, Any]:
+            bp_id = str(c.brand_process_id) if c.brand_process_id else None
+            emp_id = str(c.employee_id) if c.employee_id else None
+            return {
+                "code": c.code,
+                "severity": c.severity.value if hasattr(c.severity, "value") else str(c.severity),
+                "brand_process_id": bp_id,
+                "brand": bp_name_map.get(bp_id),
+                "process": bp_proc_map.get(bp_id),
+                "employee_id": emp_id,
+                "employee": emp_name_map.get(emp_id),
+                "date": c.date_from.isoformat() if c.date_from else None,
+                "date_from": c.date_from.isoformat() if c.date_from else None,
+                "date_to": c.date_to.isoformat() if c.date_to else None,
+                "message": c.message,
+                "root_causes": list(c.root_causes),
+                "suggestions": c.suggestions,
+            }
+
+        new_conflicts = [serialize_domain_conflict(sim_map[s]) for s in sorted(new_sigs)]
+        resolved_conflicts = [serialize_db_conflict(orig_map[s]) for s in sorted(resolved_sigs)]
+        unchanged_conflicts = [
+            serialize_domain_conflict(sim_map[s]) for s in sorted(unchanged_sigs)
+        ]
+
+        is_feasible = (
+            len([c for c in enriched_conflicts if c.severity == DomainConflictSeverity.BLOCKING])
+            == 0
+        )
+
+        return RosterImpactResponse(
+            is_feasible=is_feasible,
+            new_conflicts=new_conflicts,
+            resolved_conflicts=resolved_conflicts,
+            unchanged_conflicts=unchanged_conflicts,
+            unchanged=len(unchanged_conflicts),
+            net_conflict_change=len(new_conflicts) - len(resolved_conflicts),
+            affected_dates=sorted(affected_dates),
+        )
