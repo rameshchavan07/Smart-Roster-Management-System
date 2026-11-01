@@ -2,6 +2,7 @@ import React from 'react';
 import { useMonth } from './context/MonthContext';
 
 export { AppShell as Layout } from './components/layout';
+export { DashboardPage } from './features/dashboard/DashboardPage';
 
 export const DashboardPlaceholder: React.FC = () => {
   const { monthLabel } = useMonth();

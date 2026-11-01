@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Layout, DashboardPlaceholder } from './routes';
+import { DashboardPage } from './features/dashboard/DashboardPage';
 import { DesignSystemPage } from './features/design-system/DesignSystemPage';
 import { TeamPage } from './features/team/TeamPage';
 import { BrandsPage } from './features/brands/BrandsPage';
@@ -31,7 +32,7 @@ const RootRedirect: React.FC = () => {
   if (isEmployee) {
     return <Navigate to="/roster" replace />;
   }
-  return <DashboardPlaceholder />;
+  return <DashboardPage />;
 };
 
 export const App: React.FC = () => {

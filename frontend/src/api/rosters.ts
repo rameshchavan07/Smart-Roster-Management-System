@@ -2,6 +2,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from './client';
 import type {
   RosterPeriod,
+  RosterGenerateRequest,
+  RosterGenerateResponse,
   RosterGridViewResponse,
   RosterEntriesBatchUpdateRequest,
   RosterEntriesUpdateResponse,
@@ -21,6 +23,15 @@ import type {
 // ----------------------------------------------------------------------------
 // API Fetchers
 // ----------------------------------------------------------------------------
+
+export async function generateRosterApi(
+  request: RosterGenerateRequest
+): Promise<RosterGenerateResponse> {
+  return apiClient<RosterGenerateResponse>('/rosters', {
+    method: 'POST',
+    body: JSON.stringify(request),
+  });
+}
 
 export async function getRosterPeriodsApi(month?: string): Promise<RosterPeriod[]> {
   const query = new URLSearchParams();
@@ -315,6 +326,16 @@ export function useRepairRosterMutation() {
       queryClient.invalidateQueries({ queryKey: ['roster-grid', variables.periodId] });
       queryClient.invalidateQueries({ queryKey: ['roster-conflicts', variables.periodId] });
       queryClient.invalidateQueries({ queryKey: ['roster-coverage', variables.periodId] });
+      queryClient.invalidateQueries({ queryKey: ['rosters'] });
+    },
+  });
+}
+
+export function useGenerateRosterMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (request: RosterGenerateRequest) => generateRosterApi(request),
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['rosters'] });
     },
   });

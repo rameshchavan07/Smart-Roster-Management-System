@@ -5,6 +5,18 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 ## [Unreleased]
 
 ### Added
+- Dashboard screen conforming to S2 specifications (Task T-613 marked Completed in `TASK_TRACKER.md`):
+  - Defined roster generation request/response types in `frontend/src/types/roster.ts` (`RosterGenerateRequest`, `RosterSummaryMetrics`, `RosterGenerateResponse`).
+  - Added `generateRosterApi` and `useGenerateRosterMutation()` in `frontend/src/api/rosters.ts`.
+  - Implemented `DashboardPage` in `frontend/src/features/dashboard/DashboardPage.tsx`:
+    - S2 Topbar: Month dropdown, active roster version badge (`v2 · DRAFT`), quick Generate Roster modal trigger, and Open Roster button.
+    - S2 KPI Strip: Blocking conflicts count (deep-linked to `/conflicts?severity=BLOCKING`), Warnings count (deep-linked to `/conflicts?severity=WARNING`), Coverage % with target baseline (linked to `/roster`), Single-point brands count (linked to `/brands`), Pending leaves (linked to `/leaves?status=REQUESTED`).
+    - S2 Prerequisites Checklist: Live status and counts for Holidays loaded, Leaves entered, Coverage rules configured, and Team assignments mapped with progress bar.
+    - S2 Left Column: "Needs Attention" prioritized conflicts list with blocking-first sorting, pulse indicators, and direct flyout opening into `ConflictDrawer`.
+    - S2 Right Column (Top): Compact Coverage Heatmap previewing brand-process coverage by date with colored status chips and hover tooltips.
+    - S2 Right Column (Bottom): Workload distribution per employee (days worked vs 22-day target baseline, average team metric, pod filter, and employee search).
+    - Quick Roster Generation Modal with time limit and solver seed parameters.
+  - Wired `DashboardPage` into `frontend/src/App.tsx` and `frontend/src/routes.tsx` as default index route for operations managers.
 - What-If Impact simulator screen and local solver repair (Task T-612 marked Completed in `TASK_TRACKER.md`):
   - Defined TypeScript models in `frontend/src/types/roster.ts` (`RosterRepairRequest`, `RosterRepairResponse`).
   - Added API endpoints and React Query hooks in `frontend/src/api/rosters.ts` (`repairRosterApi`, `useRepairRosterMutation`).

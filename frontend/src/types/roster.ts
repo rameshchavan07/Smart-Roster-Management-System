@@ -18,6 +18,31 @@ export type RosterPeriodStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
 
 export type ConflictSeverity = 'BLOCKING' | 'WARNING' | 'INFO';
 
+export interface RosterGenerateRequest {
+  month: string;
+  pod_id?: string | null;
+  seed?: number;
+  time_limit_s?: number;
+  use_fallback?: boolean;
+}
+
+export interface RosterSummaryMetrics {
+  blocking: number;
+  warnings: number;
+  info: number;
+  coverage_pct: number;
+}
+
+export interface RosterGenerateResponse {
+  id: string;
+  month: string;
+  version: number;
+  status: RosterPeriodStatus;
+  solver_status?: string | null;
+  summary: RosterSummaryMetrics;
+  created_at: string;
+}
+
 export interface RosterPeriod {
   id: string;
   month: string; // YYYY-MM-DD
