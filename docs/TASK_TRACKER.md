@@ -38,7 +38,7 @@
 | T-307 | Master-data API | CRUD routers for pods, employees, processes, brands, brand-processes, assignments | High | T-306 | Endpoints + OpenAPI | Completed | 2h | MVP |
 | T-308 | Rules/availability API | CRUD for coverage rules, holidays, weekly-off rules, preferences, leaves, comp-off | High | T-306 | Endpoints | Completed | 2h | MVP |
 | T-309 | Seed data script | 36 employees, 25 brands, 6 pods, rules, holidays, leaves per `SAMPLE_DATA.md` | High | T-304 | `python -m app.seed` | Completed | 2.5h | MVP |
-| T-310 | Soft-delete and integrity rules | Deactivation, 409 on delete with history, leave-overlap check | Medium | T-307, T-308 | Rules + tests | Not Started | 1h | MVP |
+| T-310 | Soft-delete and integrity rules | Deactivation, 409 on delete with history, leave-overlap check | Medium | T-307, T-308 | Rules + tests | Completed | 1h | MVP |
 
 ## Phase 4 — Authentication and authorisation
 | ID | Task | Description | Priority | Depends on | Expected output | Status | Est. | Scope |

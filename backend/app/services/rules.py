@@ -88,8 +88,11 @@ class CoverageRuleService:
     def create_coverage_rule(
         self, data: CoverageRuleCreate, actor_id: uuid.UUID | None = None
     ) -> CoverageRule:
-        if not self.bp_repo.get_by_id(data.brand_process_id):
+        bp = self.bp_repo.get_by_id(data.brand_process_id)
+        if not bp:
             raise NotFoundError(f"BrandProcess '{data.brand_process_id}' not found")
+        if not bp.is_active:
+            raise ConflictError("Cannot create coverage rule for inactive brand process")
 
         rule = CoverageRule(
             brand_process_id=data.brand_process_id,
@@ -209,8 +212,12 @@ class HolidayService:
         )
 
     def create_holiday(self, data: HolidayCreate, actor_id: uuid.UUID | None = None) -> Holiday:
-        if data.brand_id and not self.brand_repo.get_by_id(data.brand_id):
-            raise NotFoundError(f"Brand '{data.brand_id}' not found")
+        if data.brand_id:
+            brand = self.brand_repo.get_by_id(data.brand_id)
+            if not brand:
+                raise NotFoundError(f"Brand '{data.brand_id}' not found")
+            if not brand.is_active:
+                raise ConflictError(f"Cannot create holiday for inactive brand '{brand.name}'")
 
         if self.repo.get_by_date_and_brand(data.date, data.brand_id):
             raise ConflictError(f"Holiday already configured for date {data.date} and target brand")
@@ -326,8 +333,11 @@ class WeeklyOffRuleService:
     def create_weekly_off_rule(
         self, data: WeeklyOffRuleCreate, actor_id: uuid.UUID | None = None
     ) -> WeeklyOffRule:
-        if not self.emp_repo.get_by_id(data.employee_id):
+        emp = self.emp_repo.get_by_id(data.employee_id)
+        if not emp:
             raise NotFoundError(f"Employee '{data.employee_id}' not found")
+        if not emp.is_active:
+            raise ConflictError(f"Cannot create weekly off rule for inactive employee '{emp.code}'")
 
         rule = WeeklyOffRule(
             employee_id=data.employee_id,
@@ -440,8 +450,11 @@ class EmployeePreferenceService:
     def create_preference(
         self, data: EmployeePreferenceCreate, actor_id: uuid.UUID | None = None
     ) -> EmployeePreference:
-        if not self.emp_repo.get_by_id(data.employee_id):
+        emp = self.emp_repo.get_by_id(data.employee_id)
+        if not emp:
             raise NotFoundError(f"Employee '{data.employee_id}' not found")
+        if not emp.is_active:
+            raise ConflictError(f"Cannot create preference for inactive employee '{emp.code}'")
 
         pref = EmployeePreference(
             employee_id=data.employee_id,
@@ -556,8 +569,11 @@ class LeaveService:
         return self.repo.list(offset=offset, limit=limit, query_modifier=query_filter)
 
     def create_leave(self, data: LeaveCreate, actor_id: uuid.UUID | None = None) -> Leave:
-        if not self.emp_repo.get_by_id(data.employee_id):
+        emp = self.emp_repo.get_by_id(data.employee_id)
+        if not emp:
             raise NotFoundError(f"Employee '{data.employee_id}' not found")
+        if not emp.is_active:
+            raise ConflictError(f"Cannot request leave for inactive employee '{emp.code}'")
 
         # Overlap check conforming to DATABASE_DESIGN.md §5
         overlaps = self.repo.find_overlapping_leaves(
@@ -655,6 +671,19 @@ class LeaveService:
         leave = self.get_leave(leave_id)
         before_status = leave.status.value
 
+        if new_status == LeaveStatus.APPROVED and before_status != LeaveStatus.APPROVED.value:
+            overlaps = self.repo.find_overlapping_leaves(
+                leave.employee_id,
+                leave.start_date,
+                leave.end_date,
+                exclude_leave_id=leave.id,
+                statuses=(LeaveStatus.APPROVED,),
+            )
+            if overlaps:
+                raise ConflictError(
+                    f"Cannot approve leave: overlaps with approved leave from {overlaps[0].start_date} to {overlaps[0].end_date}"
+                )
+
         leave.status = new_status
         self.repo.update(leave)
 
@@ -670,6 +699,9 @@ class LeaveService:
 
     def delete_leave(self, leave_id: uuid.UUID, actor_id: uuid.UUID | None = None) -> None:
         leave = self.get_leave(leave_id)
+        if leave.status == LeaveStatus.APPROVED:
+            raise ConflictError("Cannot delete an approved leave. Cancel the leave instead.")
+
         before_state = {
             "employee_id": str(leave.employee_id),
             "start_date": str(leave.start_date),
@@ -725,8 +757,11 @@ class CompOffService:
     def create_entry(
         self, data: CompOffLedgerCreate, actor_id: uuid.UUID | None = None
     ) -> CompOffLedger:
-        if not self.emp_repo.get_by_id(data.employee_id):
+        emp = self.emp_repo.get_by_id(data.employee_id)
+        if not emp:
             raise NotFoundError(f"Employee '{data.employee_id}' not found")
+        if not emp.is_active:
+            raise ConflictError(f"Cannot add comp-off entry for inactive employee '{emp.code}'")
 
         entry = CompOffLedger(
             employee_id=data.employee_id,

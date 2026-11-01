@@ -5,6 +5,25 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 ## [Unreleased]
 
 ### Added
+- Soft-delete, deactivation, and database integrity rules (Task T-310 marked Completed in `TASK_TRACKER.md`):
+  - Enforced deactivation guards across master data and rule domain services:
+    - Attempting to associate employees or brands with an inactive `Pod` raises HTTP 409 `CONFLICT`.
+    - Attempting to configure brand processes for an inactive `Brand` or inactive `Process` raises HTTP 409 `CONFLICT`.
+    - Attempting to create assignments, leaves, weekly off rules, preferences, or comp-off entries for an inactive `Employee` raises HTTP 409 `CONFLICT`.
+    - Attempting to create assignments or coverage rules for an inactive `BrandProcess` raises HTTP 409 `CONFLICT`.
+    - Attempting to create holidays for an inactive `Brand` raises HTTP 409 `CONFLICT`.
+  - Enforced 409 Conflict deletion guards with actionable deactivation messages:
+    - `Pod`: blocked if referenced by employees or brands.
+    - `Employee`: blocked if referenced by assignments, leaves, comp-off entries, weekly-off rules, preferences, or pod lead status.
+    - `Brand`: blocked if referenced by brand-processes or brand holidays.
+    - `Process`: blocked if referenced by brand-processes.
+    - `BrandProcess`: blocked if referenced by staff assignments or coverage rules.
+    - `Leave`: hard-delete blocked if status is `APPROVED` (directs user to cancel via `POST /leaves/{id}/cancel`).
+  - Strengthened leave overlap integrity:
+    - Rejects overlapping date ranges across subset, superset, start-touch, end-touch, and exact-match boundaries.
+    - Rejects `APPROVED` status transitions if an overlapping approved leave exists for the employee.
+    - Permits leave applications over dates with `CANCELLED` or `REJECTED` leaves.
+  - Added test suite in `backend/tests/unit/test_integrity_and_deactivation.py` validating all deactivation guards, 409 on delete, and boundary/workflow leave overlap rules.
 - Database seed script and topology generator (Task T-309 marked Completed in `TASK_TRACKER.md`):
   - Created executable seed module in `backend/app/seed.py` executable via `python -m app.seed`:
     - Seeds 6 Pods (A to F) with their designated Pod Leads (`EMP-001` through `EMP-006`).

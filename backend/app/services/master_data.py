@@ -13,7 +13,14 @@ from sqlalchemy.orm import Session
 
 from app.core.errors import ConflictError, NotFoundError
 from app.models.core import Assignment, Brand, BrandProcess, Employee, Pod, Process
-from app.models.rules import CoverageRule, Leave
+from app.models.rules import (
+    CompOffLedger,
+    CoverageRule,
+    EmployeePreference,
+    Holiday,
+    Leave,
+    WeeklyOffRule,
+)
 from app.repositories.core import (
     AssignmentRepository,
     AuditLogRepository,
@@ -207,8 +214,11 @@ class EmployeeService:
         if data.email and self.repo.get_by_email(data.email):
             raise ConflictError(f"Employee with email '{data.email}' already exists")
 
-        if not self.pod_repo.get_by_id(data.pod_id):
+        pod = self.pod_repo.get_by_id(data.pod_id)
+        if not pod:
             raise NotFoundError(f"Pod with id '{data.pod_id}' not found")
+        if not pod.is_active:
+            raise ConflictError(f"Cannot assign employee to inactive pod '{pod.name}'")
 
         emp = Employee(
             code=data.code,
@@ -263,8 +273,11 @@ class EmployeeService:
             emp.email = data.email
 
         if data.pod_id is not None and data.pod_id != emp.pod_id:
-            if not self.pod_repo.get_by_id(data.pod_id):
+            pod = self.pod_repo.get_by_id(data.pod_id)
+            if not pod:
                 raise NotFoundError(f"Pod with id '{data.pod_id}' not found")
+            if not pod.is_active:
+                raise ConflictError(f"Cannot assign employee to inactive pod '{pod.name}'")
             emp.pod_id = data.pod_id
 
         if data.full_name is not None:
@@ -320,9 +333,46 @@ class EmployeeService:
             )
             or 0
         )
-        if has_assignments > 0 or has_leaves > 0:
+        has_compoff = (
+            self.session.scalar(
+                select(func.count())
+                .select_from(CompOffLedger)
+                .where(CompOffLedger.employee_id == employee_id)
+            )
+            or 0
+        )
+        has_wo_rules = (
+            self.session.scalar(
+                select(func.count())
+                .select_from(WeeklyOffRule)
+                .where(WeeklyOffRule.employee_id == employee_id)
+            )
+            or 0
+        )
+        has_preferences = (
+            self.session.scalar(
+                select(func.count())
+                .select_from(EmployeePreference)
+                .where(EmployeePreference.employee_id == employee_id)
+            )
+            or 0
+        )
+        is_pod_lead = (
+            self.session.scalar(
+                select(func.count()).select_from(Pod).where(Pod.lead_employee_id == employee_id)
+            )
+            or 0
+        )
+        if (
+            has_assignments > 0
+            or has_leaves > 0
+            or has_compoff > 0
+            or has_wo_rules > 0
+            or has_preferences > 0
+            or is_pod_lead > 0
+        ):
             raise ConflictError(
-                "Cannot delete employee with associated assignments or records. Set is_active=false to deactivate."
+                "Cannot delete employee with associated historical records or assignments. Set is_active=false to deactivate."
             )
 
         before_state = {"code": emp.code, "full_name": emp.full_name, "id": str(emp.id)}
@@ -498,8 +548,12 @@ class BrandService:
         if self.repo.get_by_name(data.name):
             raise ConflictError(f"Brand name '{data.name}' already exists")
 
-        if data.pod_id and not self.pod_repo.get_by_id(data.pod_id):
-            raise NotFoundError(f"Pod with id '{data.pod_id}' not found")
+        if data.pod_id:
+            pod = self.pod_repo.get_by_id(data.pod_id)
+            if not pod:
+                raise NotFoundError(f"Pod with id '{data.pod_id}' not found")
+            if not pod.is_active:
+                raise ConflictError(f"Cannot assign brand to inactive pod '{pod.name}'")
 
         brand = Brand(name=data.name, code=data.code, pod_id=data.pod_id)
         self.repo.create(brand)
@@ -545,8 +599,11 @@ class BrandService:
             brand.name = data.name
 
         if data.pod_id is not None and data.pod_id != brand.pod_id:
-            if not self.pod_repo.get_by_id(data.pod_id):
+            pod = self.pod_repo.get_by_id(data.pod_id)
+            if not pod:
                 raise NotFoundError(f"Pod with id '{data.pod_id}' not found")
+            if not pod.is_active:
+                raise ConflictError(f"Cannot assign brand to inactive pod '{pod.name}'")
             brand.pod_id = data.pod_id
 
         if data.is_active is not None:
@@ -580,9 +637,15 @@ class BrandService:
             )
             or 0
         )
-        if has_brand_processes > 0:
+        has_holidays = (
+            self.session.scalar(
+                select(func.count()).select_from(Holiday).where(Holiday.brand_id == brand_id)
+            )
+            or 0
+        )
+        if has_brand_processes > 0 or has_holidays > 0:
             raise ConflictError(
-                "Cannot delete brand with configured processes. Set is_active=false to deactivate."
+                "Cannot delete brand with associated processes or holidays. Set is_active=false to deactivate."
             )
 
         before_state = {"code": brand.code, "name": brand.name, "id": str(brand.id)}
@@ -640,10 +703,17 @@ class BrandProcessService:
     def create_brand_process(
         self, data: BrandProcessCreate, actor_id: uuid.UUID | None = None
     ) -> BrandProcess:
-        if not self.brand_repo.get_by_id(data.brand_id):
+        brand = self.brand_repo.get_by_id(data.brand_id)
+        if not brand:
             raise NotFoundError(f"Brand with id '{data.brand_id}' not found")
-        if not self.process_repo.get_by_id(data.process_id):
+        if not brand.is_active:
+            raise ConflictError(f"Cannot configure process for inactive brand '{brand.name}'")
+
+        process = self.process_repo.get_by_id(data.process_id)
+        if not process:
             raise NotFoundError(f"Process with id '{data.process_id}' not found")
+        if not process.is_active:
+            raise ConflictError(f"Cannot configure inactive process '{process.name}'")
 
         if self.repo.get_by_brand_and_process(data.brand_id, data.process_id):
             raise ConflictError("Process is already configured for this Brand")
@@ -793,10 +863,17 @@ class AssignmentService:
     def create_assignment(
         self, data: AssignmentCreate, actor_id: uuid.UUID | None = None
     ) -> Assignment:
-        if not self.emp_repo.get_by_id(data.employee_id):
+        emp = self.emp_repo.get_by_id(data.employee_id)
+        if not emp:
             raise NotFoundError(f"Employee with id '{data.employee_id}' not found")
-        if not self.bp_repo.get_by_id(data.brand_process_id):
+        if not emp.is_active:
+            raise ConflictError(f"Cannot create assignment for inactive employee '{emp.code}'")
+
+        bp = self.bp_repo.get_by_id(data.brand_process_id)
+        if not bp:
             raise NotFoundError(f"BrandProcess with id '{data.brand_process_id}' not found")
+        if not bp.is_active:
+            raise ConflictError("Cannot create assignment for inactive brand process")
 
         existing = self.repo.get_exact(data.employee_id, data.brand_process_id, data.valid_from)
         if existing:
