@@ -142,7 +142,7 @@ class BusinessValidationError(AppError):
         super().__init__(
             code="VALIDATION_ERROR",
             message=message,
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             details=details,
         )
 
@@ -158,7 +158,7 @@ class RosterBlockedError(AppError):
         super().__init__(
             code="ROSTER_BLOCKED",
             message=message,
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             details=details,
         )
 
@@ -248,7 +248,7 @@ async def validation_exception_handler(
         details.append({"field": loc, "issue": err.get("msg", "invalid")})
 
     return create_error_response(
-        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
         code="VALIDATION_ERROR",
         message="Request validation failed",
         details=details,

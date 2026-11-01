@@ -4,6 +4,13 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 
 ## [Unreleased]
 
+### Fixed
+- Bug-Fix Buffer & Clean Build Hardening (Task T-807 marked Completed in `TASK_TRACKER.md`):
+  - **Backend Lint & Static Quality**: Cleaned up all remaining Ruff linter warnings across `backend/app/export_openapi.py` and `backend/app/generate_client.py` (unused imports, trailing whitespace, top-level import ordering with `# noqa: E402`). `ruff check backend/` now passes 100% clean with zero warnings or errors.
+  - **Deprecation Warning Elimination**: Migrated Starlette HTTP status codes in `backend/app/core/errors.py` from `status.HTTP_422_UNPROCESSABLE_ENTITY` to `status.HTTP_422_UNPROCESSABLE_CONTENT` (for `BusinessValidationError` and `RosterBlockedError`), eliminating all runtime Starlette deprecation warnings across the test suite.
+  - **Frontend Build Optimization**: Configured Rollup vendor chunking in `frontend/vite.config.ts` (`vendor-react`, `vendor-tanstack`, and `vendor-icons`), eliminating Vite's 500 kB chunk warning, accelerating build times to 3.4s, and ensuring strict TypeScript typechecking passes with zero errors (`tsc --noEmit`).
+  - **Full Regression Verification**: All 223 unit, scheduler, api, and golden scenario tests pass cleanly in 25.99s.
+
 ### Added
 - Demo Scenario Golden Tests S1–S5 (Task T-805 marked Completed in `TASK_TRACKER.md`):
   - Created `backend/tests/api/test_scenarios_golden.py` implementing end-to-end golden tests for the five operational demo scenarios against the seeded December 2026 dataset (`scale=1`: 36 employees, 25 brands, 6 pods) per `SAMPLE_DATA.md` §6:

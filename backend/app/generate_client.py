@@ -5,7 +5,6 @@ Reads frontend/openapi.json and generates:
 - frontend/src/api/generated/client.ts (Typed HTTP API client)
 """
 
-import json
 import sys
 from pathlib import Path
 
@@ -14,7 +13,7 @@ backend_dir = Path(__file__).resolve().parent.parent
 if str(backend_dir) not in sys.path:
     sys.path.insert(0, str(backend_dir))
 
-from app.export_openapi import export_openapi
+from app.export_openapi import export_openapi  # noqa: E402
 
 
 def map_schema_type(prop: dict, required: bool = True) -> str:
@@ -54,7 +53,7 @@ def map_schema_type(prop: dict, required: bool = True) -> str:
                 return f"Record<string, {val_type}>"
             return "Record<string, unknown>"
         return "Record<string, unknown>"
-    
+
     return "unknown"
 
 
