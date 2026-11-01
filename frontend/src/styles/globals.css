@@ -1,0 +1,22 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --bg: #F7F6F3;
+    --surface: #FFFFFF;
+    --surface-2: #F1EFEA;
+    --border: #E2DFD8;
+    --border-strong: #CFCBC1;
+    --ink: #1C1B19;
+    --ink-2: #5B5850;
+    --ink-3: #8A867C;
+  }
+
+  body {
+    background-color: var(--bg);
+    color: var(--ink);
+    font-feature-settings: "tnum" on, "cv05" on;
+  }
+}
