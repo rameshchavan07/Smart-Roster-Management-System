@@ -5,6 +5,14 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 ## [Unreleased]
 
 ### Added
+- Team and Pods management screens and services (Task T-603 marked Completed in `TASK_TRACKER.md`):
+  - Defined TypeScript schemas and types in `frontend/src/types/team.ts` (`Employee`, `Pod`, `CompOffBalance`, `Assignment`, `WeeklyOffRule`, `PaginatedResult`).
+  - Created API client methods and TanStack Query hooks in `frontend/src/api/team.ts` for employees, pods, comp-off balances, assignments, and weekly-off rules with automatic cache invalidation.
+  - Implemented `EmployeeDrawer` component in `frontend/src/features/team/EmployeeDrawer.tsx` with profile editing, live comp-off balance ledger stats, brand-process assignments breakdown, and weekly-off rules.
+  - Implemented `EmployeeModal` component in `frontend/src/features/team/EmployeeModal.tsx` for adding new staff members with pod assignment, floater flags, and scheduling constraints.
+  - Implemented `PodModal` component in `frontend/src/features/team/PodModal.tsx` for creating and editing operational pods.
+  - Implemented `TeamPage` in `frontend/src/features/team/TeamPage.tsx` with segmented tabs (Employees and Pods), search input, multi-attribute filtering (Pod, Status, Floater), dense data table with roving hover/selection, pagination controls, pod cards grid, and empty/loading states.
+  - Mounted `/team` route in `frontend/src/App.tsx` protected by `ProtectedRoute` for Ops Managers and Pod Leads.
 - Complete shared component library conforming to Design System tokens (Task T-602 marked Completed in `TASK_TRACKER.md`):
   - Created `Select` component in `frontend/src/components/ui/Select.tsx` with single selection, label, error display, placeholder, custom trigger, and accessible keyboard navigation (`Enter`, `ArrowUp`/`ArrowDown`, `Escape`).
   - Created searchable `Combobox` component in `frontend/src/components/ui/Combobox.tsx` with instant query filtering, subtitle support, clearable selection, keyboard navigation, and empty match state.

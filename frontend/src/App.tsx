@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Layout, DashboardPlaceholder, RosterPlaceholder } from './routes';
 import { DesignSystemPage } from './features/design-system/DesignSystemPage';
+import { TeamPage } from './features/team/TeamPage';
 import { AuthProvider, useAuth } from './features/auth/AuthContext';
 import { MonthProvider } from './context/MonthContext';
 import { ToastProvider } from './components/ui';
@@ -62,7 +63,7 @@ export const App: React.FC = () => {
                 path="team"
                 element={
                   <ProtectedRoute allowedRoles={['OPS_MANAGER', 'POD_LEAD']}>
-                    <DashboardPlaceholder />
+                    <TeamPage />
                   </ProtectedRoute>
                 }
               />
