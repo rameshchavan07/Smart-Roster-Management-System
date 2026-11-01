@@ -9,10 +9,29 @@ import {
   Clock,
   LayoutDashboard,
   Palette,
+  LogOut,
 } from 'lucide-react';
 import { NavLink, Outlet } from 'react-router-dom';
+import { useAuth } from './features/auth/AuthContext';
 
 export const Layout: React.FC = () => {
+  const { user, logout, isOpsManager, isEmployee } = useAuth();
+
+  const getRoleBadge = () => {
+    switch (user?.role) {
+      case 'OPS_MANAGER':
+        return { label: 'Ops Manager', initials: 'OM', color: 'bg-accent-100 text-accent-700' };
+      case 'POD_LEAD':
+        return { label: 'Pod Lead', initials: 'PL', color: 'bg-ok/10 text-ok' };
+      case 'EMPLOYEE':
+        return { label: 'Employee', initials: 'EM', color: 'bg-surface-2 text-ink-2' };
+      default:
+        return { label: 'User', initials: 'U', color: 'bg-surface-2 text-ink-2' };
+    }
+  };
+
+  const roleInfo = getRoleBadge();
+
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-bg text-ink">
       {/* Left Sidebar */}
@@ -29,22 +48,26 @@ export const Layout: React.FC = () => {
         </div>
 
         {/* Navigation items */}
-        <nav className="flex-1 space-y-1 p-2 text-xs font-medium">
-          <NavLink
-            to="/"
-            end
-            className={({ isActive }) =>
-              `flex items-center gap-2.5 rounded-ctl px-2.5 py-2 transition-colors ${
-                isActive
-                  ? 'bg-accent-50 font-semibold text-accent-700 border-l-2 border-accent-600'
-                  : 'text-ink-2 hover:bg-surface-2 hover:text-ink'
-              }`
-            }
-          >
-            <LayoutDashboard className="h-4 w-4" />
-            Dashboard
-          </NavLink>
+        <nav className="flex-1 space-y-1 p-2 text-xs font-medium overflow-y-auto">
+          {/* Dashboard: Ops Manager & Pod Lead only */}
+          {!isEmployee && (
+            <NavLink
+              to="/"
+              end
+              className={({ isActive }) =>
+                `flex items-center gap-2.5 rounded-ctl px-2.5 py-2 transition-colors ${
+                  isActive
+                    ? 'bg-accent-50 font-semibold text-accent-700 border-l-2 border-accent-600'
+                    : 'text-ink-2 hover:bg-surface-2 hover:text-ink'
+                }`
+              }
+            >
+              <LayoutDashboard className="h-4 w-4" />
+              Dashboard
+            </NavLink>
+          )}
 
+          {/* Roster Workspace: All roles */}
           <NavLink
             to="/roster"
             className={({ isActive }) =>
@@ -56,23 +79,27 @@ export const Layout: React.FC = () => {
             }
           >
             <Calendar className="h-4 w-4" />
-            Roster Workspace
+            {isEmployee ? 'My Roster' : 'Roster Workspace'}
           </NavLink>
 
-          <NavLink
-            to="/conflicts"
-            className={({ isActive }) =>
-              `flex items-center gap-2.5 rounded-ctl px-2.5 py-2 transition-colors ${
-                isActive
-                  ? 'bg-accent-50 font-semibold text-accent-700 border-l-2 border-accent-600'
-                  : 'text-ink-2 hover:bg-surface-2 hover:text-ink'
-              }`
-            }
-          >
-            <AlertTriangle className="h-4 w-4 text-warn" />
-            Conflicts
-          </NavLink>
+          {/* Conflicts: Ops Manager & Pod Lead */}
+          {!isEmployee && (
+            <NavLink
+              to="/conflicts"
+              className={({ isActive }) =>
+                `flex items-center gap-2.5 rounded-ctl px-2.5 py-2 transition-colors ${
+                  isActive
+                    ? 'bg-accent-50 font-semibold text-accent-700 border-l-2 border-accent-600'
+                    : 'text-ink-2 hover:bg-surface-2 hover:text-ink'
+                }`
+              }
+            >
+              <AlertTriangle className="h-4 w-4 text-warn" />
+              Conflicts
+            </NavLink>
+          )}
 
+          {/* Leaves: All roles */}
           <NavLink
             to="/leaves"
             className={({ isActive }) =>
@@ -87,65 +114,77 @@ export const Layout: React.FC = () => {
             Leaves & Comp-offs
           </NavLink>
 
+          {/* Management section: Ops Manager & Pod Lead */}
+          {!isEmployee && (
+            <>
+              <div className="pt-3 pb-1 px-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-3">
+                Management
+              </div>
+
+              <NavLink
+                to="/team"
+                className={({ isActive }) =>
+                  `flex items-center gap-2.5 rounded-ctl px-2.5 py-2 transition-colors ${
+                    isActive
+                      ? 'bg-accent-50 font-semibold text-accent-700 border-l-2 border-accent-600'
+                      : 'text-ink-2 hover:bg-surface-2 hover:text-ink'
+                  }`
+                }
+              >
+                <Users className="h-4 w-4" />
+                Team & Pods
+              </NavLink>
+
+              <NavLink
+                to="/brands"
+                className={({ isActive }) =>
+                  `flex items-center gap-2.5 rounded-ctl px-2.5 py-2 transition-colors ${
+                    isActive
+                      ? 'bg-accent-50 font-semibold text-accent-700 border-l-2 border-accent-600'
+                      : 'text-ink-2 hover:bg-surface-2 hover:text-ink'
+                  }`
+                }
+              >
+                <Briefcase className="h-4 w-4" />
+                Brands & Processes
+              </NavLink>
+
+              <NavLink
+                to="/reports"
+                className={({ isActive }) =>
+                  `flex items-center gap-2.5 rounded-ctl px-2.5 py-2 transition-colors ${
+                    isActive
+                      ? 'bg-accent-50 font-semibold text-accent-700 border-l-2 border-accent-600'
+                      : 'text-ink-2 hover:bg-surface-2 hover:text-ink'
+                  }`
+                }
+              >
+                <FileText className="h-4 w-4" />
+                Reports & Export
+              </NavLink>
+            </>
+          )}
+
+          {/* Settings: Ops Manager only */}
+          {isOpsManager && (
+            <NavLink
+              to="/settings"
+              className={({ isActive }) =>
+                `flex items-center gap-2.5 rounded-ctl px-2.5 py-2 transition-colors ${
+                  isActive
+                    ? 'bg-accent-50 font-semibold text-accent-700 border-l-2 border-accent-600'
+                    : 'text-ink-2 hover:bg-surface-2 hover:text-ink'
+                }`
+              }
+            >
+              <Sliders className="h-4 w-4" />
+              Settings
+            </NavLink>
+          )}
+
           <div className="pt-3 pb-1 px-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-3">
-            Management
+            Reference
           </div>
-
-          <NavLink
-            to="/team"
-            className={({ isActive }) =>
-              `flex items-center gap-2.5 rounded-ctl px-2.5 py-2 transition-colors ${
-                isActive
-                  ? 'bg-accent-50 font-semibold text-accent-700 border-l-2 border-accent-600'
-                  : 'text-ink-2 hover:bg-surface-2 hover:text-ink'
-              }`
-            }
-          >
-            <Users className="h-4 w-4" />
-            Team & Pods
-          </NavLink>
-
-          <NavLink
-            to="/brands"
-            className={({ isActive }) =>
-              `flex items-center gap-2.5 rounded-ctl px-2.5 py-2 transition-colors ${
-                isActive
-                  ? 'bg-accent-50 font-semibold text-accent-700 border-l-2 border-accent-600'
-                  : 'text-ink-2 hover:bg-surface-2 hover:text-ink'
-              }`
-            }
-          >
-            <Briefcase className="h-4 w-4" />
-            Brands & Processes
-          </NavLink>
-
-          <NavLink
-            to="/reports"
-            className={({ isActive }) =>
-              `flex items-center gap-2.5 rounded-ctl px-2.5 py-2 transition-colors ${
-                isActive
-                  ? 'bg-accent-50 font-semibold text-accent-700 border-l-2 border-accent-600'
-                  : 'text-ink-2 hover:bg-surface-2 hover:text-ink'
-              }`
-            }
-          >
-            <FileText className="h-4 w-4" />
-            Reports & Export
-          </NavLink>
-
-          <NavLink
-            to="/settings"
-            className={({ isActive }) =>
-              `flex items-center gap-2.5 rounded-ctl px-2.5 py-2 transition-colors ${
-                isActive
-                  ? 'bg-accent-50 font-semibold text-accent-700 border-l-2 border-accent-600'
-                  : 'text-ink-2 hover:bg-surface-2 hover:text-ink'
-              }`
-            }
-          >
-            <Sliders className="h-4 w-4" />
-            Settings
-          </NavLink>
 
           <NavLink
             to="/design-system"
@@ -162,17 +201,28 @@ export const Layout: React.FC = () => {
           </NavLink>
         </nav>
 
-        {/* User profile footer */}
-        <div className="flex items-center justify-between border-t border-border p-3 text-xs">
+        {/* User profile footer with Logout */}
+        <div className="flex items-center justify-between border-t border-border p-3 text-xs bg-surface">
           <div className="flex items-center gap-2 overflow-hidden">
-            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent-100 font-semibold text-accent-700 text-xs">
-              OM
+            <div
+              className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full font-semibold text-xs ${roleInfo.color}`}
+            >
+              {roleInfo.initials}
             </div>
             <div className="truncate">
-              <p className="font-medium text-ink truncate leading-tight">Ops Manager</p>
-              <p className="text-[11px] text-ink-3 truncate leading-tight">ops@example.test</p>
+              <p className="font-medium text-ink truncate leading-tight">{roleInfo.label}</p>
+              <p className="text-[11px] text-ink-3 truncate leading-tight font-mono">{user?.email}</p>
             </div>
           </div>
+
+          <button
+            type="button"
+            onClick={logout}
+            title="Sign out"
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-ctl text-ink-3 hover:text-bad hover:bg-bad/10 transition-colors"
+          >
+            <LogOut className="h-4 w-4" />
+          </button>
         </div>
       </aside>
 
@@ -190,7 +240,9 @@ export const Layout: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-3">
-            <span className="text-xs text-ink-3 font-mono">Backend: :8000</span>
+            <span className="text-[11px] font-mono text-ink-3">
+              Role: <span className="font-semibold text-ink">{user?.role}</span>
+            </span>
           </div>
         </header>
 

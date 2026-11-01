@@ -5,6 +5,23 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 ## [Unreleased]
 
 ### Added
+- Frontend authentication flow and role-based navigation (Task T-405 marked Completed in `TASK_TRACKER.md`):
+  - Created authentication API layer and HTTP interceptor:
+    - `frontend/src/api/client.ts`: Intercepts API calls to inject `Authorization: Bearer <token>`, manages token in memory/localStorage, automatically triggers silent refresh on HTTP 401 via `/auth/refresh`, and transparently retries requests.
+    - `frontend/src/api/auth.ts`: Implemented typed API functions (`loginApi`, `refreshApi`, `logoutApi`, `getMeApi`, `getDemoAccountsApi`).
+  - Implemented `AuthProvider` and `useAuth` hook in `frontend/src/features/auth/AuthContext.tsx`:
+    - Handles initial session restoration (stored access token check, fallback to cookie refresh).
+    - Exposes user state, login/logout callbacks, and role helpers (`isOpsManager`, `isPodLead`, `isEmployee`, `hasRole`).
+  - Created `LoginPage` in `frontend/src/features/auth/LoginPage.tsx` conforming to `UI_UX_REQUIREMENTS.md` §3.1 and `DESIGN_SYSTEM.md`:
+    - Centered 400px card with wordmark, work email and password inputs, inline error banners, and loading state.
+    - Added collapsible "Demo Access (for Evaluators)" disclosure featuring one-click auto-fill buttons for `Ops Manager`, `Pod Lead`, and `Employee` roles.
+  - Implemented route protection with `ProtectedRoute` in `frontend/src/features/auth/ProtectedRoute.tsx`:
+    - Redirects unauthenticated visitors to `/login` preserving intended destination (`state.from`).
+    - Enforces role guards (`allowedRoles`) with informative access restricted views.
+  - Upgraded application shell and sidebar navigation in `frontend/src/routes.tsx`:
+    - Made navigation menus dynamically role-aware: `OPS_MANAGER` sees full administration; `POD_LEAD` sees operational pod management and reports while hiding global settings; `EMPLOYEE` sees "My Roster" and "Leaves & Comp-offs" while hiding administrative suites.
+    - Added real user avatar, role badge, email, and one-click Sign Out in the sidebar footer.
+    - Added topbar role indicator.
 - Seed demo accounts and documented credentials (Task T-404 marked Completed in `TASK_TRACKER.md`):
   - Created public endpoint `GET /api/v1/auth/demo-accounts` returning evaluator credentials per `SAMPLE_DATA.md` §8:
     - `OPS_MANAGER`: `ops@example.test` (Full company-wide management, generation, and publishing).
