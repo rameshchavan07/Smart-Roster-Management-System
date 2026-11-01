@@ -9,8 +9,10 @@ import { BrandsPage } from './features/brands/BrandsPage';
 import { LeavesPage } from './features/leaves/LeavesPage';
 import { RulesHolidaysPage } from './features/rules/RulesHolidaysPage';
 import { RosterWorkspacePage } from './features/roster/RosterWorkspacePage';
+import { MyRosterPage } from './features/roster/MyRosterPage';
 import { ConflictsPage } from './features/roster/ConflictsPage';
 import { ImpactSimulatorPage } from './features/roster/ImpactSimulatorPage';
+import { SettingsPage } from './features/settings/SettingsPage';
 import { AuthProvider, useAuth } from './features/auth/AuthContext';
 import { MonthProvider } from './context/MonthContext';
 import { ToastProvider } from './components/ui';
@@ -35,6 +37,14 @@ const RootRedirect: React.FC = () => {
   return <DashboardPage />;
 };
 
+const RosterRoute: React.FC = () => {
+  const { isEmployee } = useAuth();
+  if (isEmployee) {
+    return <MyRosterPage />;
+  }
+  return <RosterWorkspacePage />;
+};
+
 export const App: React.FC = () => {
   return (
     <QueryClientProvider client={queryClient}>
@@ -56,7 +66,8 @@ export const App: React.FC = () => {
               }
             >
               <Route index element={<RootRedirect />} />
-              <Route path="roster" element={<RosterWorkspacePage />} />
+              <Route path="roster" element={<RosterRoute />} />
+              <Route path="my-roster" element={<MyRosterPage />} />
               <Route
                 path="conflicts"
                 element={
@@ -110,7 +121,7 @@ export const App: React.FC = () => {
                 path="settings"
                 element={
                   <ProtectedRoute allowedRoles={['OPS_MANAGER']}>
-                    <DashboardPlaceholder />
+                    <SettingsPage />
                   </ProtectedRoute>
                 }
               />

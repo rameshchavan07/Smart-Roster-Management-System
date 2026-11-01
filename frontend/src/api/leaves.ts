@@ -132,6 +132,14 @@ export function useCompOffLedgerQuery(params?: {
   });
 }
 
+export function useCompOffBalanceQuery(employeeId?: string) {
+  return useQuery({
+    queryKey: ['employee-comp-off', employeeId],
+    queryFn: () => (employeeId ? getCompOffBalanceApi(employeeId) : null),
+    enabled: Boolean(employeeId),
+  });
+}
+
 export function useCreateLeaveMutation() {
   const queryClient = useQueryClient();
   return useMutation({

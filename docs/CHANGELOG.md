@@ -5,6 +5,23 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 ## [Unreleased]
 
 ### Added
+- My Roster & Settings with Objective Weights and Audit Trail (Task T-616 marked Completed in `TASK_TRACKER.md`):
+  - Defined audit log models in `frontend/src/types/audit.ts` (`AuditLog`, `AuditLogFilters`).
+  - Added API client and TanStack Query hooks in `frontend/src/api/audit.ts` (`getAuditLogsApi`, `useAuditLogsQuery`) and `useCompOffBalanceQuery` in `frontend/src/api/leaves.ts`.
+  - Built `MyRosterPage` in `frontend/src/features/roster/MyRosterPage.tsx`:
+    - Conforms to S12 specification: Single-month calendar of employee's own statuses with design token letter codes (`W`, `WO`, `PH`, `HW`, `L`, `CO`).
+    - Comp-off balance widget showing available balance, earned, and redeemed history (+1 credit for holiday work shifts).
+    - Summary metrics: shifts scheduled vs 22-day monthly target, scheduled rest days, and approved leave days.
+    - Status code legend conforming to `DESIGN_SYSTEM.md`.
+    - Upcoming gazetted public holidays section for the active month.
+    - Quick "Request Leave" modal trigger.
+  - Built `SettingsPage` in `frontend/src/features/settings/SettingsPage.tsx`:
+    - Conforms to S11 specification with four comprehensive tabs:
+      - **Engine Defaults**: Weekly-off spacing mode (`CONSECUTIVE`, `SPLIT`, `ROLLING_6_2`), maximum consecutive work days (6), minimum rest hours (11h), default solver time limit (20s), and deterministic seed (42).
+      - **Objective Weights**: Interactive sliders with plain-language explanations for Coverage Shortfall (10,000), Backup Assignment penalty (100), Floater pool penalty (50), Weekend Fairness penalty (20), and Employee Preference penalty (10), plus a "Reset to Defaults" action.
+      - **User Management**: System user directory showing roles (`OPS_MANAGER`, `POD_LEAD`, `EMPLOYEE`), access privileges, and linked employee context.
+      - **Audit Trail**: Real-time audit events queried from `GET /api/v1/audit-logs` with action filters (`ROSTER_PUBLISH`, `ROSTER_CONFLICT_ACKNOWLEDGE`, `ROSTER_CELL_EDIT`, `LEAVE_APPROVE`) and a slide-over drawer to inspect Before $\to$ After JSON mutation diffs.
+  - Connected `/settings` and `/my-roster` protected routes in `frontend/src/App.tsx`, with automatic role redirection for employees accessing `/roster`.
 - Responsive Layout and Mobile Agenda Roster (Task T-615 marked Completed in `TASK_TRACKER.md`):
   - Collapsible Navigation Sidebar (`frontend/src/components/layout/Sidebar.tsx`):
     - Conforms to `DESIGN_SYSTEM.md` §6: 232px desktop sidebar collapsible to 56px icon rail with route tooltips, centered icons, and toggle control.
