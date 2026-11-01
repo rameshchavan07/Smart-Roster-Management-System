@@ -97,7 +97,7 @@
 ## Phase 7 — API integration
 | ID | Task | Description | Priority | Depends on | Expected output | Status | Est. | Scope |
 |---|---|---|---|---|---|---|---|---|
-| T-701 | Typed API client | Generate TypeScript client from OpenAPI; auth interceptor | High | T-307 | `api/` client | Not Started | 1h | MVP |
+| T-701 | Typed API client | Generate TypeScript client from OpenAPI; auth interceptor | High | T-307 | `api/` client | Completed | 1h | MVP |
 | T-702 | Query hooks and error layer | TanStack Query hooks, global error/toast mapping, request-id display | High | T-701 | Hooks | Not Started | 1.5h | MVP |
 | T-703 | Wire master-data and rules screens | Connect T-603–T-606 to API | High | T-702 | Working CRUD | Not Started | 2h | MVP |
 | T-704 | Wire roster generation and views | Generate, grid, coverage, day endpoints | High | T-510, T-607 | Live roster | Not Started | 2.5h | MVP |

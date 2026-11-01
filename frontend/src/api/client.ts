@@ -65,6 +65,13 @@ export async function apiClientBlob(
     headers.set('Authorization', `Bearer ${currentAccessToken}`);
   }
 
+  if (!headers.has('X-Request-ID')) {
+    const genId = typeof crypto !== 'undefined' && crypto.randomUUID
+      ? crypto.randomUUID()
+      : `req-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+    headers.set('X-Request-ID', genId);
+  }
+
   const fetchOptions: RequestInit = {
     ...options,
     headers,
@@ -110,6 +117,13 @@ export async function apiClient<T>(
 
   if (currentAccessToken && !headers.has('Authorization')) {
     headers.set('Authorization', `Bearer ${currentAccessToken}`);
+  }
+
+  if (!headers.has('X-Request-ID')) {
+    const genId = typeof crypto !== 'undefined' && crypto.randomUUID
+      ? crypto.randomUUID()
+      : `req-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+    headers.set('X-Request-ID', genId);
   }
 
   const fetchOptions: RequestInit = {
@@ -172,7 +186,7 @@ export async function apiClient<T>(
     const errorEnvelope = data?.error;
     const message = errorEnvelope?.message || data?.detail || response.statusText || 'An error occurred';
     const code = errorEnvelope?.code || 'HTTP_ERROR';
-    const requestId = errorEnvelope?.request_id;
+    const requestId = errorEnvelope?.request_id || response.headers.get('X-Request-ID') || response.headers.get('x-request-id') || undefined;
     const details = errorEnvelope?.details;
 
     throw new ApiError(message, response.status, code, details, requestId);

@@ -5,6 +5,18 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 ## [Unreleased]
 
 ### Added
+- Typed API Client from OpenAPI and Auth Interceptor (Task T-701 marked Completed in `TASK_TRACKER.md`):
+  - Built OpenAPI exporter `backend/app/export_openapi.py` extracting official OpenAPI 3.1.0 schema (57 paths, 105 schemas) into `frontend/openapi.json`.
+  - Built TypeScript client generator `backend/app/generate_client.py`:
+    - Generated complete TypeScript interfaces and types in `frontend/src/api/generated/schema.ts` from `components.schemas` with exact field optionality, enums, and domain type aliases (`LoginRequest`, `PodListResponse`, `RosterSuggestionRead`, etc.).
+    - Generated fully typed `ApiClient` in `frontend/src/api/generated/client.ts` organizing all endpoints by domain service (`auth`, `pods`, `employees`, `processes`, `brands`, `brandProcesses`, `assignments`, `coverageRules`, `holidays`, `weeklyOffRules`, `preferences`, `leaves`, `compOffs`, `rosters`, `auditLogs`, `health`).
+  - Strengthened Auth Interceptor in `frontend/src/api/client.ts`:
+    - Injects `Authorization: Bearer <token>` on all authenticated API requests.
+    - Automatic `X-Request-ID` generation and header injection with error-fallback mapping from response headers for complete distributed tracing conforming to `API_DOCUMENTATION.md` §3.
+    - Concurrency-safe silent 401 token refresh queue with automatic request replay upon successful rotation.
+    - Session expiration handling with `onAuthFailure` callback and `ApiError` envelope parsing.
+  - Added unified exports in `frontend/src/api/index.ts` re-exporting `api` singleton, schema types, and legacy modules for seamless interoperability.
+  - Added npm runner script in `frontend/package.json` (`npm run generate-api` via `frontend/scripts/generate-api.js`).
 - Compare and Export UI (Task T-617 marked Completed in `TASK_TRACKER.md`):
   - Defined comparison domain models in `frontend/src/types/roster.ts` (`RosterVersionMetrics`, `RosterCellDiffItem`, `RosterCompareDelta`, `RosterCompareResponse`).
   - Added binary/blob HTTP client helper `apiClientBlob` in `frontend/src/api/client.ts` with automatic auth bearer injection and filename extraction from `Content-Disposition`.
