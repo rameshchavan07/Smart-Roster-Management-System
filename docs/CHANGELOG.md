@@ -5,6 +5,12 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 ## [Unreleased]
 
 ### Added
+- Demand matrix builder module (Task T-503 marked Completed in `TASK_TRACKER.md`):
+  - Created `backend/app/scheduler/demand.py` enforcing rule precedence per `SCHEDULING_ENGINE.md` Section 3:
+    - Precedence hierarchy: 0 demand on non-operating days -> Specific date override (`CoverageRule.specific_date`) -> Weekday override (`CoverageRule.weekday`) -> Default minimum (`BrandProcess.min_coverage_default`).
+    - Deterministic matrix generator `build_demand_matrix` sorting by date then `brand_process_id`.
+    - Index helper `build_demand_lookup` for $O(1)$ cell lookups.
+  - Added unit test suite in `backend/tests/unit/scheduler/test_demand.py` verifying each precedence tier, holiday/Sunday zeroing, matrix ordering, and module isolation.
 - Operating calendar resolver module (Task T-502 marked Completed in `TASK_TRACKER.md`):
   - Created `backend/app/scheduler/calendar.py` implementing pure-Python calendar evaluation per `SCHEDULING_ENGINE.md` Section 2:
     - Supported calendar types: `ALL_365`, `ALL_EXCEPT_HOLIDAYS`, and `EXCLUDE_SUNDAY_AND_HOLIDAYS`.

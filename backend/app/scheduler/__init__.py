@@ -13,6 +13,11 @@ from app.scheduler.calendar import (
     resolve_calendar_matrix,
     resolve_operating_days,
 )
+from app.scheduler.demand import (
+    build_demand_cell,
+    build_demand_lookup,
+    build_demand_matrix,
+)
 from app.scheduler.domain import (
     Assignment,
     AssignmentType,
@@ -73,4 +78,8 @@ __all__ = [
     "is_operating_day",
     "resolve_calendar_matrix",
     "resolve_operating_days",
+    # Demand builder
+    "build_demand_cell",
+    "build_demand_lookup",
+    "build_demand_matrix",
 ]
