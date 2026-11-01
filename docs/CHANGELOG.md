@@ -5,6 +5,28 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 ## [Unreleased]
 
 ### Added
+- Compare and Export UI (Task T-617 marked Completed in `TASK_TRACKER.md`):
+  - Defined comparison domain models in `frontend/src/types/roster.ts` (`RosterVersionMetrics`, `RosterCellDiffItem`, `RosterCompareDelta`, `RosterCompareResponse`).
+  - Added binary/blob HTTP client helper `apiClientBlob` in `frontend/src/api/client.ts` with automatic auth bearer injection and filename extraction from `Content-Disposition`.
+  - Added API endpoints and TanStack Query hooks in `frontend/src/api/rosters.ts`:
+    - `compareRostersApi(periodIdA, periodIdB)` and `useCompareRostersQuery(periodIdA, periodIdB)` for side-by-side metric comparison (`GET /api/v1/rosters/compare?a={a}&b={b}`).
+    - `downloadRosterExport(periodId, format, view, date)` for direct file delivery of CSV or Excel spreadsheets (`GET /api/v1/rosters/{period_id}/export?format={format}&view={view}&date={date}`).
+  - Built `ReportsPage` in `frontend/src/features/reports/ReportsPage.tsx` adhering to S10 specification with two primary tabs:
+    - **Version Compare View**:
+      - Side-by-side version picker (Baseline Version A vs Comparison Version B) with swap button, refresh control, and month context indicator.
+      - 5 KPI comparison cards with delta ($\Delta$) badges: Blocking Violations, Warning Conflicts, Coverage Rate %, Weekend Fairness Spread, and Total Shift Changes.
+      - Conflict differences breakdown with tabbed filtering: New in B (red), Resolved in B (green), and Common/Present in Both (neutral).
+      - Granular cell-by-cell modifications table with search filtering across employees and dates, displaying Before $\to$ After status badges with design tokens (`W`, `WO`, `PH`, `HW`, `L`, `CO`).
+    - **Export Center**:
+      - Roster version picker and format selector (`CSV` standard text or `Excel XLSX` spreadsheet).
+      - 4 dedicated export view mode cards with instant download triggers:
+        1. Full Monthly Matrix Grid (`view=grid`): All employees across all 31 dates with status codes and summary totals.
+        2. Daily Operational Schedule (`view=day`): Single-day floor view grouped by brand-process with operating date picker.
+        3. Brand-Process Coverage Matrix (`view=coverage`): Headcount demand vs scheduled staffing with shortfall flags.
+        4. Integrity Violations & Conflicts Report (`view=conflicts`): Audit listing of blocking/warning constraints and acknowledgment records.
+  - Built `ExportModal` in `frontend/src/features/roster/ExportModal.tsx` and integrated direct "Export" action in the `RosterWorkspacePage` toolbar.
+  - Connected Version History dropdown in `RosterWorkspacePage` to deep-link directly into Version Compare via `/reports?tab=compare&a={idA}&b={idB}`.
+  - Wired `/reports` route in `frontend/src/App.tsx` protected for Ops Manager and Pod Lead roles.
 - My Roster & Settings with Objective Weights and Audit Trail (Task T-616 marked Completed in `TASK_TRACKER.md`):
   - Defined audit log models in `frontend/src/types/audit.ts` (`AuditLog`, `AuditLogFilters`).
   - Added API client and TanStack Query hooks in `frontend/src/api/audit.ts` (`getAuditLogsApi`, `useAuditLogsQuery`) and `useCompOffBalanceQuery` in `frontend/src/api/leaves.ts`.

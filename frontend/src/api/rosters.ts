@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiClient } from './client';
+import { apiClient, apiClientBlob } from './client';
 import type {
   RosterPeriod,
   RosterGenerateRequest,
@@ -19,6 +19,7 @@ import type {
   RosterAcknowledgeRequest,
   RosterRepairRequest,
   RosterRepairResponse,
+  RosterCompareResponse,
 } from '../types/roster';
 
 // ----------------------------------------------------------------------------
@@ -383,5 +384,56 @@ export function useCloneRosterMutation() {
     },
   });
 }
+
+// ----------------------------------------------------------------------------
+// Version Comparison & Export APIs (S10 Specification)
+// ----------------------------------------------------------------------------
+
+export async function compareRostersApi(
+  periodIdA: string,
+  periodIdB: string
+): Promise<RosterCompareResponse> {
+  const query = new URLSearchParams();
+  query.set('a', periodIdA);
+  query.set('b', periodIdB);
+  return apiClient<RosterCompareResponse>(`/rosters/compare?${query.toString()}`);
+}
+
+export function useCompareRostersQuery(periodIdA?: string, periodIdB?: string) {
+  return useQuery({
+    queryKey: ['rosters-compare', periodIdA, periodIdB],
+    queryFn: () => {
+      if (!periodIdA || !periodIdB) throw new Error('Both period IDs are required for comparison');
+      return compareRostersApi(periodIdA, periodIdB);
+    },
+    enabled: Boolean(periodIdA && periodIdB && periodIdA !== periodIdB),
+  });
+}
+
+export async function downloadRosterExport(
+  periodId: string,
+  format: 'csv' | 'xlsx' = 'csv',
+  view: string = 'grid',
+  date?: string
+): Promise<string> {
+  const query = new URLSearchParams();
+  query.set('format', format);
+  query.set('view', view);
+  if (date) query.set('date', date);
+
+  const { blob, filename } = await apiClientBlob(`/rosters/${periodId}/export?${query.toString()}`);
+
+  const downloadUrl = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = downloadUrl;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.URL.revokeObjectURL(downloadUrl);
+
+  return filename;
+}
+
 
 

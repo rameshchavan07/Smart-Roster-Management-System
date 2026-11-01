@@ -92,7 +92,7 @@
 | T-614 | Generation and publish UX | Generate dialog with progress, publish confirmation, versions | High | T-602 | Flows | Completed | 1.5h | MVP |
 | T-615 | Responsive and mobile agenda | Collapsible nav, tablet drawers, mobile agenda roster | Medium | T-609 | Responsive layouts | Completed | 2.5h | Stretch |
 | T-616 | My Roster and Settings | Employee calendar; weights/defaults/audit log screens | Low | T-602 | Screens | Completed | 2h | Stretch |
-| T-617 | Compare and export UI | Versions compare view, export buttons | Low | T-517, T-518 | Screens | Not Started | 1.5h | Stretch |
+| T-617 | Compare and export UI | Versions compare view, export buttons | Low | T-517, T-518 | Screens | Completed | 1.5h | Stretch |
 
 ## Phase 7 — API integration
 | ID | Task | Description | Priority | Depends on | Expected output | Status | Est. | Scope |

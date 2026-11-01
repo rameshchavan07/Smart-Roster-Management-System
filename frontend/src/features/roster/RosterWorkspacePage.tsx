@@ -11,6 +11,7 @@ import {
   CalendarDays,
   Sparkles,
   ShieldCheck,
+  Download,
 } from 'lucide-react';
 import {
   Button,
@@ -39,6 +40,7 @@ import { EmployeeRosterCard } from './EmployeeRosterCard';
 import { CellEditPopover } from './CellEditPopover';
 import { GenerateRosterModal } from './GenerateRosterModal';
 import { PublishConfirmModal } from './PublishConfirmModal';
+import { ExportModal } from './ExportModal';
 import { VersionHistoryDropdown } from './VersionHistoryDropdown';
 import { MobileAgendaRoster } from './MobileAgendaRoster';
 import type {
@@ -138,6 +140,7 @@ export const RosterWorkspacePage: React.FC = () => {
   // Modal dialog states
   const [isGenerateModalOpen, setIsGenerateModalOpen] = useState<boolean>(false);
   const [isPublishModalOpen, setIsPublishModalOpen] = useState<boolean>(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState<boolean>(false);
   const [selectedPeriodId, setSelectedPeriodId] = useState<string | null>(null);
 
   // Fetch roster periods for the active month
@@ -631,6 +634,9 @@ export const RosterWorkspacePage: React.FC = () => {
                   setSelectedPeriodId(p.id);
                   refetchPeriods();
                 }}
+                onCompareVersions={(idA, idB) => {
+                  navigate(`/reports?tab=compare&a=${idA}&b=${idB}`);
+                }}
               />
             ) : (
               <Badge variant="WARNING" className="font-mono text-xs">
@@ -798,6 +804,17 @@ export const RosterWorkspacePage: React.FC = () => {
               Publish
             </Button>
           )}
+
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => setIsExportModalOpen(true)}
+            disabled={!activePeriod}
+            title="Export schedule (CSV / Excel XLSX)"
+          >
+            <Download className="w-3.5 h-3.5 mr-1" />
+            Export
+          </Button>
 
           <Button
             variant="secondary"
@@ -1065,6 +1082,13 @@ export const RosterWorkspacePage: React.FC = () => {
           refetchPeriods();
           refetchGrid();
         }}
+      />
+
+      {/* Export Modal */}
+      <ExportModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        period={activePeriod}
       />
     </div>
   );

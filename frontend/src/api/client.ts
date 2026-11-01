@@ -54,6 +54,49 @@ export class ApiError extends Error {
   }
 }
 
+export async function apiClientBlob(
+  endpoint: string,
+  options: RequestInit = {}
+): Promise<{ blob: Blob; filename: string }> {
+  const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
+
+  const headers = new Headers(options.headers || {});
+  if (currentAccessToken && !headers.has('Authorization')) {
+    headers.set('Authorization', `Bearer ${currentAccessToken}`);
+  }
+
+  const fetchOptions: RequestInit = {
+    ...options,
+    headers,
+    credentials: 'include',
+  };
+
+  const response = await fetch(url, fetchOptions);
+
+  if (!response.ok) {
+    let errMsg = `Export request failed with status ${response.status}`;
+    try {
+      const errJson = await response.json();
+      errMsg = errJson?.error?.message || errJson?.detail || errMsg;
+    } catch {
+      // not JSON
+    }
+    throw new ApiError(errMsg, response.status);
+  }
+
+  const disposition = response.headers.get('Content-Disposition') || response.headers.get('content-disposition');
+  let filename = 'roster-export';
+  if (disposition && disposition.includes('filename=')) {
+    const match = disposition.match(/filename="?([^"]+)"?/);
+    if (match && match[1]) {
+      filename = match[1];
+    }
+  }
+
+  const blob = await response.blob();
+  return { blob, filename };
+}
+
 export async function apiClient<T>(
   endpoint: string,
   options: RequestInit = {}

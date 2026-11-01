@@ -420,3 +420,54 @@ export function mapCodeToStatus(code: RosterStatusCode): RosterEntryStatus {
   }
 }
 
+// -----------------------------------------------------------------------------
+// Version Comparison Schemas (S10 Specification)
+// -----------------------------------------------------------------------------
+
+export interface RosterVersionMetrics {
+  period_id: string;
+  version: number;
+  status: string;
+  blocking_count: number;
+  warnings_count: number;
+  info_count: number;
+  coverage_pct: number;
+  total_shortfall: number;
+  fairness_spread: number;
+  min_weekend_offs: number;
+  max_weekend_offs: number;
+  weekend_offs_by_employee?: Record<string, number>;
+}
+
+export interface RosterCellDiffItem {
+  employee_id: string;
+  employee_code: string;
+  employee_name: string;
+  date: string;
+  status_a?: RosterEntryStatus | null;
+  status_b?: RosterEntryStatus | null;
+}
+
+export interface RosterCompareDelta {
+  blocking_delta: number;
+  warnings_delta: number;
+  coverage_pct_delta: number;
+  fairness_spread_delta: number;
+  total_cells_changed: number;
+}
+
+export interface RosterCompareResponse {
+  period_a: RosterPeriod;
+  period_b: RosterPeriod;
+  metrics_a: RosterVersionMetrics;
+  metrics_b: RosterVersionMetrics;
+  delta: RosterCompareDelta;
+  conflict_diff: {
+    new_in_b?: RosterConflict[];
+    resolved_in_b?: RosterConflict[];
+    common?: RosterConflict[];
+  };
+  cell_diffs: RosterCellDiffItem[];
+}
+
+

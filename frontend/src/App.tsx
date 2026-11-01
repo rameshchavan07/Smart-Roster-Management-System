@@ -1,7 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Layout, DashboardPlaceholder } from './routes';
+import { Layout } from './routes';
 import { DashboardPage } from './features/dashboard/DashboardPage';
 import { DesignSystemPage } from './features/design-system/DesignSystemPage';
 import { TeamPage } from './features/team/TeamPage';
@@ -13,6 +13,7 @@ import { MyRosterPage } from './features/roster/MyRosterPage';
 import { ConflictsPage } from './features/roster/ConflictsPage';
 import { ImpactSimulatorPage } from './features/roster/ImpactSimulatorPage';
 import { SettingsPage } from './features/settings/SettingsPage';
+import { ReportsPage } from './features/reports/ReportsPage';
 import { AuthProvider, useAuth } from './features/auth/AuthContext';
 import { MonthProvider } from './context/MonthContext';
 import { ToastProvider } from './components/ui';
@@ -113,7 +114,7 @@ export const App: React.FC = () => {
                 path="reports"
                 element={
                   <ProtectedRoute allowedRoles={['OPS_MANAGER', 'POD_LEAD']}>
-                    <DashboardPlaceholder />
+                    <ReportsPage />
                   </ProtectedRoute>
                 }
               />
