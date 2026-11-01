@@ -5,6 +5,17 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 ## [Unreleased]
 
 ### Added
+- Core SQLAlchemy 2.0 ORM models and relationships (Task T-301 marked Completed in `TASK_TRACKER.md`):
+  - Created `backend/app/models/mixins.py` providing `UUIDPrimaryKeyMixin` and `TimestampMixin` (`created_at`, `updated_at`).
+  - Created `backend/app/models/core.py` defining core tables per `DATABASE_DESIGN.md` §3:
+    - `Pod`: with deferred `lead_employee_id` and relationship to member employees and brands.
+    - `Employee`: with `code`, `pod_id`, floater flag, weekly-off counts, consecutive days and overload limits.
+    - `Process`: with unique capability names and codes.
+    - `Brand`: with unique names, codes, and pod association.
+    - `BrandProcess`: with `(brand_id, process_id)` unique constraint and calendar types (`ALL_365`, `ALL_EXCEPT_HOLIDAYS`, `EXCLUDE_SUNDAY_AND_HOLIDAYS`).
+    - `Assignment`: with dated staffing assignments (`PRIMARY`, `BACKUP`) and uniqueness on `(employee_id, brand_process_id, valid_from)`.
+  - Registered all models on `backend/alembic/env.py` and `backend/app/models/__init__.py`.
+  - Added unit test suite in `backend/tests/unit/test_core_models.py` verifying SQLite in-memory DDL, bidirectional relationship cascades, and unique constraints.
 - CP-SAT monthly roster generator module using Google OR-Tools (Task T-508 marked Completed in `TASK_TRACKER.md`):
   - Created `backend/app/scheduler/generator_cpsat.py` implementing full constraint optimization per `SCHEDULING_ENGINE.md` §§5–6:
     - Mandatory hard constraints: H1 (fixed cells & approved leaves), H2 (weekly offs with Mon–Sun pro-rating), H3 (consecutive work days limit with carry-in tail), H4 (leave days not double-counted as weekly off), H5 (fixed mandatory weekly off weekdays).
