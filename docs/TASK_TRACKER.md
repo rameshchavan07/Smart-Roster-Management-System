@@ -44,7 +44,7 @@
 | ID | Task | Description | Priority | Depends on | Expected output | Status | Est. | Scope |
 |---|---|---|---|---|---|---|---|---|
 | T-401 | Password hashing and JWT | Argon2 hashing, access/refresh token creation and verification | High | T-303 | `security` module | Completed | 1h | MVP |
-| T-402 | Auth endpoints | `/auth/login`, `/refresh`, `/logout`, `/me` | High | T-401 | Endpoints + tests | Not Started | 1h | MVP |
+| T-402 | Auth endpoints | `/auth/login`, `/refresh`, `/logout`, `/me` | High | T-401 | Endpoints + tests | Completed | 1h | MVP |
 | T-403 | Role-based access | FastAPI dependencies enforcing OPS_MANAGER / POD_LEAD / EMPLOYEE rules incl. own-pod scoping | High | T-402 | Permission matrix tests | Not Started | 1.5h | MVP |
 | T-404 | Seed demo accounts | One account per role, documented on login screen | Medium | T-402, T-309 | Demo credentials | Not Started | 0.5h | MVP |
 | T-405 | Frontend auth flow | Login screen, token storage, silent refresh, route guards, role-aware nav | High | T-205, T-402 | Working login | Not Started | 1.5h | MVP |

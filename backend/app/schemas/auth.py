@@ -67,7 +67,7 @@ class TokenResponse(BaseModel):
 class RefreshTokenRequest(BaseModel):
     """Refresh token submitted to /auth/refresh."""
 
-    refresh_token: str = Field(min_length=1)
+    refresh_token: str | None = Field(default=None)
 
 
 # -----------------------------------------------------------------------------

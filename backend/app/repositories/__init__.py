@@ -1,5 +1,6 @@
 """Repositories package re-exporting all data access repositories."""
 
+from app.repositories.auth import UserRepository
 from app.repositories.base import BaseRepository
 from app.repositories.core import (
     AssignmentRepository,
@@ -33,5 +34,6 @@ __all__ = [
     "LeaveRepository",
     "PodRepository",
     "ProcessRepository",
+    "UserRepository",
     "WeeklyOffRuleRepository",
 ]

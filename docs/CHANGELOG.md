@@ -5,6 +5,17 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 ## [Unreleased]
 
 ### Added
+- Authentication REST API endpoints and session management (Task T-402 marked Completed in `TASK_TRACKER.md`):
+  - Created authentication endpoints in `backend/app/api/v1/endpoints/auth.py` mounted at `/api/v1/auth`:
+    - `POST /auth/login`: Authenticates email and password, updates `last_login_at`, records audit mutation, and returns `TokenResponse` while setting a secure HttpOnly `refresh_token` cookie.
+    - `POST /auth/refresh`: Rotates access and refresh tokens from JSON payload or HttpOnly cookie, rejecting mismatched token types with HTTP 401 `UNAUTHENTICATED`.
+    - `POST /auth/logout`: Clears the refresh token cookie and terminates session with audit log.
+    - `GET /auth/me`: Returns the authenticated user's profile and RBAC role.
+  - Implemented request authentication dependencies in `backend/app/api/deps.py`:
+    - `get_current_user`: Extracts Bearer token from `Authorization` header, verifies claims, checks active state, and injects authenticated `User`.
+    - `get_current_user_optional`: Extracts optional user without throwing on public/logout routes.
+  - Created `UserRepository` in `backend/app/repositories/auth.py` and `AuthService` in `backend/app/services/auth.py`.
+  - Added API integration test suite in `backend/tests/api/test_auth_api.py` covering login success/failure, cookie management, token rotation, and authenticated profile lookups.
 - Password hashing and JWT security module (Task T-401 marked Completed in `TASK_TRACKER.md`):
   - Created security utilities in `backend/app/core/security.py`:
     - `get_password_hash(password: str) -> str`: Argon2id password hashing conforming to `SECURITY.md` §1.

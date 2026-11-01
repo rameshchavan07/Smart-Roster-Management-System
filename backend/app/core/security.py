@@ -76,6 +76,7 @@ def create_access_token(
         "type": "access",
         "iat": int(now.timestamp()),
         "exp": int(expire.timestamp()),
+        "jti": str(uuid.uuid4()),
     }
     return jwt.encode(payload, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
 

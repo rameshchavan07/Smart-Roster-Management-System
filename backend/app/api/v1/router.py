@@ -4,6 +4,7 @@ from fastapi import APIRouter
 
 from app.api.v1.endpoints import (
     assignments,
+    auth,
     brand_processes,
     brands,
     comp_offs,
@@ -22,6 +23,9 @@ api_router = APIRouter()
 
 # Health routes
 api_router.include_router(health.router)
+
+# Auth routes
+api_router.include_router(auth.router)
 
 # Master data routes
 api_router.include_router(pods.router)
