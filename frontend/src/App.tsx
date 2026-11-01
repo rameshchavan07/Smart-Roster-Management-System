@@ -8,6 +8,7 @@ import { BrandsPage } from './features/brands/BrandsPage';
 import { LeavesPage } from './features/leaves/LeavesPage';
 import { RulesHolidaysPage } from './features/rules/RulesHolidaysPage';
 import { RosterWorkspacePage } from './features/roster/RosterWorkspacePage';
+import { ConflictsPage } from './features/roster/ConflictsPage';
 import { AuthProvider, useAuth } from './features/auth/AuthContext';
 import { MonthProvider } from './context/MonthContext';
 import { ToastProvider } from './components/ui';
@@ -58,7 +59,7 @@ export const App: React.FC = () => {
                 path="conflicts"
                 element={
                   <ProtectedRoute allowedRoles={['OPS_MANAGER', 'POD_LEAD']}>
-                    <DashboardPlaceholder />
+                    <ConflictsPage />
                   </ProtectedRoute>
                 }
               />

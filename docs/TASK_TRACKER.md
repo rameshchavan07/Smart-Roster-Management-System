@@ -86,7 +86,7 @@
 | T-608 | Coverage strip and heatmap | Per brand-process strips and dashboard heatmap with tooltips | High | T-607 | Components | Completed | 2h | MVP |
 | T-609 | Five view modes and day view | Company / Pod / Brand / Process / Employee layouts + day panel | High | T-607 | Views | Completed | 3h | MVP |
 | T-610 | Cell edit popover with live impact | Status picker, lock, inline impact line | High | T-607 | Interaction | Completed | 2h | MVP |
-| T-611 | Conflict drawer and list | Filters, explanations, suggestions, apply, acknowledge | High | T-602 | Screens | Not Started | 2.5h | MVP |
+| T-611 | Conflict drawer and list | Filters, explanations, suggestions, apply, acknowledge | High | T-602 | Screens | Completed | 2.5h | MVP |
 | T-612 | Impact simulator screen | Before/after, remaining-employees matrix, apply/repair | High | T-611 | Screen | Not Started | 2.5h | MVP |
 | T-613 | Dashboard | KPI strip, needs-attention list, heatmap, workload bars | High | T-608 | Screen | Not Started | 2.5h | MVP |
 | T-614 | Generation and publish UX | Generate dialog with progress, publish confirmation, versions | High | T-602 | Flows | Not Started | 1.5h | MVP |

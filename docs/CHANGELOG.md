@@ -5,6 +5,19 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 ## [Unreleased]
 
 ### Added
+- Conflict drawer and full-width list view (Task T-611 marked Completed in `TASK_TRACKER.md`):
+  - Defined TypeScript models in `frontend/src/types/roster.ts` (`RosterConflict`, `SuggestionNetEffect`, `RosterSuggestionItem`, `RosterAcknowledgeRequest`, and `CONFLICT_CODE_INFO` catalogue).
+  - Added API endpoints and React Query hooks in `frontend/src/api/rosters.ts` (`useRosterConflictsQuery`, `useRosterSuggestionsQuery`, `useAcknowledgeConflictMutation`).
+  - Implemented `ConflictDrawer` in `frontend/src/features/roster/ConflictDrawer.tsx`:
+    - Detailed explanation card with plain-language messaging from explainer engine, impacted dates, entity context, and root causes tags.
+    - Publish gating and override section: Ops Manager can acknowledge BLOCKING conflicts with mandatory logged reason (min 5 chars), unlocking publish gating.
+    - Ranked automated suggestions: queries second-order simulated recommendations (`ASSIGN_BACKUP`, `SWAP_WEEKLY_OFF`, `SHIFT_LEAVE`) displaying net impact ("Fixes 1 gap, opens 0") and one-click apply execution.
+  - Implemented `ConflictsPage` in `frontend/src/features/roster/ConflictsPage.tsx`:
+    - Full-width table conforming to S4 specification: severity badge, conflict code, brand/process, dates, employee, root causes, acknowledged status, and inspect action.
+    - KPI summary strip: Total findings, Blocking count, Warnings, Acknowledged count, and Publish Gate status banner.
+    - Multi-dimensional filtering by severity tabs (`ALL`, `BLOCKING`, `WARNING`, `INFO`), brand selector, status toggle, and full-text search.
+    - Demonstrable fallback seed conflicts covering Scenarios S1–S4.
+  - Connected `/conflicts` protected route in `frontend/src/App.tsx`.
 - Cell edit popover with live impact line simulation (Task T-610 marked Completed in `TASK_TRACKER.md`):
   - Added simulation types in `frontend/src/types/roster.ts` (`ImpactChangeType`, `RosterImpactChangeItem`, `RosterImpactConflictItem`, `RosterImpactRequest`, `RosterImpactResponse`).
   - Added `simulateRosterImpactApi` and React Query mutation hook `useRosterImpactMutation` in `frontend/src/api/rosters.ts`.

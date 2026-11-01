@@ -11,6 +11,9 @@ import type {
   RosterDayViewResponse,
   RosterImpactRequest,
   RosterImpactResponse,
+  RosterConflict,
+  RosterSuggestionItem,
+  RosterAcknowledgeRequest,
 } from '../types/roster';
 
 // ----------------------------------------------------------------------------
@@ -85,6 +88,50 @@ export async function lockRosterEntriesApi(
   request: RosterEntriesLockRequest
 ): Promise<RosterEntriesLockResponse> {
   return apiClient<RosterEntriesLockResponse>(`/rosters/${periodId}/entries/lock`, {
+    method: 'POST',
+    body: JSON.stringify(request),
+  });
+}
+
+export async function getRosterConflictsApi(
+  periodId: string,
+  params?: {
+    severity?: string;
+    brand_id?: string;
+    date?: string;
+    employee_id?: string;
+  }
+): Promise<RosterConflict[]> {
+  const query = new URLSearchParams();
+  if (params?.severity) query.set('severity', params.severity);
+  if (params?.brand_id) query.set('brand_id', params.brand_id);
+  if (params?.date) query.set('date', params.date);
+  if (params?.employee_id) query.set('employee_id', params.employee_id);
+  const qs = query.toString();
+  return apiClient<RosterConflict[]>(`/rosters/${periodId}/conflicts${qs ? `?${qs}` : ''}`);
+}
+
+export async function getRosterSuggestionsApi(
+  periodId: string,
+  params?: {
+    conflict_id?: string;
+    brand_process_id?: string;
+    date?: string;
+  }
+): Promise<RosterSuggestionItem[]> {
+  const query = new URLSearchParams();
+  if (params?.conflict_id) query.set('conflict_id', params.conflict_id);
+  if (params?.brand_process_id) query.set('brand_process_id', params.brand_process_id);
+  if (params?.date) query.set('date', params.date);
+  const qs = query.toString();
+  return apiClient<RosterSuggestionItem[]>(`/rosters/${periodId}/suggestions${qs ? `?${qs}` : ''}`);
+}
+
+export async function acknowledgeRosterConflictApi(
+  periodId: string,
+  request: RosterAcknowledgeRequest
+): Promise<RosterConflict> {
+  return apiClient<RosterConflict>(`/rosters/${periodId}/acknowledge`, {
     method: 'POST',
     body: JSON.stringify(request),
   });
@@ -185,6 +232,60 @@ export function useRosterImpactMutation() {
       periodId: string;
       request: RosterImpactRequest;
     }) => simulateRosterImpactApi(periodId, request),
+  });
+}
+
+export function useRosterConflictsQuery(
+  periodId?: string,
+  params?: {
+    severity?: string;
+    brand_id?: string;
+    date?: string;
+    employee_id?: string;
+  }
+) {
+  return useQuery({
+    queryKey: ['roster-conflicts', periodId, params],
+    queryFn: () => {
+      if (!periodId) throw new Error('periodId is required to fetch conflicts');
+      return getRosterConflictsApi(periodId, params);
+    },
+    enabled: Boolean(periodId),
+  });
+}
+
+export function useRosterSuggestionsQuery(
+  periodId?: string,
+  params?: {
+    conflict_id?: string;
+    brand_process_id?: string;
+    date?: string;
+  }
+) {
+  return useQuery({
+    queryKey: ['roster-suggestions', periodId, params],
+    queryFn: () => {
+      if (!periodId) throw new Error('periodId is required to fetch suggestions');
+      return getRosterSuggestionsApi(periodId, params);
+    },
+    enabled: Boolean(periodId && (params?.conflict_id || params?.brand_process_id)),
+  });
+}
+
+export function useAcknowledgeConflictMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      periodId,
+      request,
+    }: {
+      periodId: string;
+      request: RosterAcknowledgeRequest;
+    }) => acknowledgeRosterConflictApi(periodId, request),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['roster-conflicts', variables.periodId] });
+      queryClient.invalidateQueries({ queryKey: ['rosters'] });
+    },
   });
 }
 

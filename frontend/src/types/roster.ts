@@ -187,6 +187,82 @@ export interface RosterImpactConflictItem {
   suggestions?: Array<Record<string, unknown>>;
 }
 
+export interface RosterConflict {
+  id: string;
+  roster_period_id: string;
+  code: string;
+  severity: ConflictSeverity;
+  brand_process_id?: string | null;
+  employee_id?: string | null;
+  date_from?: string | null;
+  date_to?: string | null;
+  root_causes: string[];
+  message: string;
+  suggestions: Array<Record<string, unknown>>;
+  is_acknowledged: boolean;
+  acknowledged_by_id?: string | null;
+  acknowledged_reason?: string | null;
+  resolved_at?: string | null;
+  brand_name?: string | null;
+  brand_code?: string | null;
+  process_name?: string | null;
+  process_code?: string | null;
+  employee_name?: string | null;
+  employee_code?: string | null;
+}
+
+export interface SuggestionNetEffect {
+  fixes: number;
+  opens: number;
+}
+
+export interface RosterSuggestionItem {
+  type: string;
+  kind: string;
+  action: string;
+  description: string;
+  employee_id?: string | null;
+  employee_name?: string | null;
+  employee_code?: string | null;
+  brand_process_id?: string | null;
+  brand_name?: string | null;
+  process_name?: string | null;
+  target_date?: string | null;
+  source_date?: string | null;
+  score: number;
+  net_effect: SuggestionNetEffect;
+  net_impact: string;
+  apply_payload: {
+    action?: string;
+    employee_id?: string;
+    brand_process_id?: string | null;
+    date?: string;
+    entries?: RosterEntryUpdateItem[];
+    cell_edits?: RosterEntryUpdateItem[];
+    [key: string]: unknown;
+  };
+}
+
+export interface RosterAcknowledgeRequest {
+  conflict_id: string;
+  reason: string;
+}
+
+export const CONFLICT_CODE_INFO: Record<string, { label: string; meaning: string }> = {
+  E001: { label: 'No Coverage', meaning: 'Required operating day with zero available employees assigned' },
+  E002: { label: 'Under-Staffed', meaning: 'Coverage is below minimum required demand' },
+  E003: { label: 'Weekly Off Conflict', meaning: 'Scheduled weekly off breaks minimum coverage requirement' },
+  E004: { label: 'Leave Conflict', meaning: 'Scheduled leave or comp-off breaks minimum coverage requirement' },
+  E005: { label: 'Max Work Streak', meaning: 'Run of consecutive work days exceeds maximum limit' },
+  E006: { label: 'Missing Weekly Off', meaning: 'Fewer weekly offs than entitled in the calendar week' },
+  E007: { label: 'Invalid Cell Status', meaning: 'Work on leave/comp-off day, or weekly off on non-eligible day' },
+  E008: { label: 'Employee Overload', meaning: 'Employee assigned to more than max concurrent processes' },
+  E009: { label: 'Comp-Off Balance', meaning: 'Redeemed comp-off days exceed accrued balance' },
+  W001: { label: 'Preference Violated', meaning: 'Preferred off-day not honoured' },
+  W002: { label: 'Unfair Distribution', meaning: 'Weekend-off distribution imbalance beyond threshold' },
+  W003: { label: 'Single Point of Failure', meaning: 'Brand-process on operating days with single employee and no backup' },
+};
+
 export interface RosterImpactRequest {
   changes?: RosterImpactChangeItem[];
   edits?: RosterEntryUpdateItem[];
