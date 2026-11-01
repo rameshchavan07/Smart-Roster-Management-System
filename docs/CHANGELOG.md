@@ -5,6 +5,30 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 ## [Unreleased]
 
 ### Added
+- Rules and availability REST CRUD endpoints and services (Task T-308 marked Completed in `TASK_TRACKER.md`):
+  - Created repository layer in `backend/app/repositories/rules.py`:
+    - `CoverageRuleRepository`: `list_by_brand_process`.
+    - `HolidayRepository`: `get_by_date_and_brand`, `list_holidays`.
+    - `LeaveRepository`: `list_by_employee`, `find_overlapping_leaves`.
+    - `CompOffLedgerRepository`: `list_by_employee`, `get_balance`.
+    - `WeeklyOffRuleRepository`: `list_by_employee`.
+    - `EmployeePreferenceRepository`: `list_by_employee`.
+  - Created domain use-case service layer in `backend/app/services/rules.py`:
+    - `CoverageRuleService`: CRUD operations, brand-process verification, and audit logging.
+    - `HolidayService`: CRUD operations, (date, brand) uniqueness check (409), and audit logging.
+    - `WeeklyOffRuleService`: CRUD operations, employee verification, and audit logging.
+    - `EmployeePreferenceService`: CRUD operations, employee verification, and audit logging.
+    - `LeaveService`: CRUD operations, leave overlap rejection (409 `CONFLICT`), workflow state transitions (`approve`, `reject`, `cancel`), and audit logging.
+    - `CompOffService`: Ledger entries, balance query, and comp-off redemption requiring available balance >= 1 to generate approved `Leave` of type `COMP_OFF`.
+  - Created REST routers in `backend/app/api/v1/endpoints/`:
+    - `coverage_rules.py`: `/coverage-rules` with brand_process_id filtering and CRUD.
+    - `holidays.py`: `/holidays` with date range and brand filtering and CRUD.
+    - `weekly_off_rules.py`: `/weekly-off-rules` with employee filtering and CRUD.
+    - `preferences.py`: `/preferences` with employee filtering and CRUD.
+    - `leaves.py`: `/leaves` with employee and date filtering, approval/rejection/cancellation endpoints.
+    - `comp_offs.py`: `/comp-offs`, `/comp-offs/balance`, and `/comp-offs/redeem`.
+  - Mounted all rules/availability routers on `backend/app/api/v1/router.py`.
+  - Added API integration test suite in `backend/tests/api/test_rules_api.py` covering all rule endpoints, leave overlapping checks, comp-off ledger balances, and redemption flows.
 - Master data REST CRUD endpoints (Task T-307 marked Completed in `TASK_TRACKER.md`):
   - Created REST routers in `backend/app/api/v1/endpoints/`:
     - `pods.py`: `GET /pods`, `POST /pods`, `GET /pods/{id}`, `PUT /pods/{id}`, `DELETE /pods/{id}`.

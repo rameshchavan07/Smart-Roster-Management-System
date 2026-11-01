@@ -10,6 +10,14 @@ from app.repositories.core import (
     PodRepository,
     ProcessRepository,
 )
+from app.repositories.rules import (
+    CompOffLedgerRepository,
+    CoverageRuleRepository,
+    EmployeePreferenceRepository,
+    HolidayRepository,
+    LeaveRepository,
+    WeeklyOffRuleRepository,
+)
 
 __all__ = [
     "AssignmentRepository",
@@ -17,7 +25,13 @@ __all__ = [
     "BaseRepository",
     "BrandProcessRepository",
     "BrandRepository",
+    "CompOffLedgerRepository",
+    "CoverageRuleRepository",
+    "EmployeePreferenceRepository",
     "EmployeeRepository",
+    "HolidayRepository",
+    "LeaveRepository",
     "PodRepository",
     "ProcessRepository",
+    "WeeklyOffRuleRepository",
 ]
