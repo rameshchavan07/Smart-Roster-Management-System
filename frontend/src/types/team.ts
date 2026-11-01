@@ -102,3 +102,4 @@ export interface PaginatedResult<T> {
   limit: number;
   offset: number;
 }
+

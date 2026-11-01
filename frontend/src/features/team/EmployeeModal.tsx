@@ -176,3 +176,4 @@ export const EmployeeModal: React.FC<EmployeeModalProps> = ({
     </Modal>
   );
 };
+

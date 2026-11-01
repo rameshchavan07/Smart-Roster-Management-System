@@ -5,6 +5,14 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 ## [Unreleased]
 
 ### Added
+- Brands and Processes master-detail management screens and services (Task T-604 marked Completed in `TASK_TRACKER.md`):
+  - Defined TypeScript models and input schemas in `frontend/src/types/brands.ts` (`CalendarType`, `Brand`, `Process`, `BrandProcess`, `AssignmentCreateInput`, `AssignmentUpdateInput`).
+  - Created API client methods and TanStack Query hooks in `frontend/src/api/brands.ts` for brands, processes, brand-processes, and assignments with cache invalidation.
+  - Implemented `BrandModal` in `frontend/src/features/brands/BrandModal.tsx` for creating and editing client brand portfolios.
+  - Implemented `BrandProcessModal` in `frontend/src/features/brands/BrandProcessModal.tsx` for instantiating operational capabilities with calendar types (`ALL_365`, `SIX_DAYS_MON_SAT`, `FIVE_DAYS_MON_FRI`, etc.) and default minimum coverage.
+  - Implemented `AssignmentModal` in `frontend/src/features/brands/AssignmentModal.tsx` for assigning employees to processes with `PRIMARY` or `BACKUP` roles.
+  - Implemented master-detail `BrandsPage` in `frontend/src/features/brands/BrandsPage.tsx` featuring brand search, pod filtering, operating calendar indicators, single-point-of-resource warnings, and workforce assignment management with delete actions.
+  - Mounted `/brands` route in `frontend/src/App.tsx` protected by `ProtectedRoute` for Ops Managers and Pod Leads.
 - Team and Pods management screens and services (Task T-603 marked Completed in `TASK_TRACKER.md`):
   - Defined TypeScript schemas and types in `frontend/src/types/team.ts` (`Employee`, `Pod`, `CompOffBalance`, `Assignment`, `WeeklyOffRule`, `PaginatedResult`).
   - Created API client methods and TanStack Query hooks in `frontend/src/api/team.ts` for employees, pods, comp-off balances, assignments, and weekly-off rules with automatic cache invalidation.
