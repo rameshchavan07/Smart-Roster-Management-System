@@ -280,6 +280,29 @@ def generate_greedy(gen_input: GenerationInput) -> GenerationOutput:
                                 )
 
                                 if alt_working_count > alt_req:
+                                    # Ensure setting d to WORK does not violate H3 (max consecutive working days)
+                                    streak = 1
+                                    idx = all_dates.index(d)
+                                    for p_idx in range(idx - 1, -1, -1):
+                                        prev_d = all_dates[p_idx]
+                                        st_p = RosterStatus.WEEKLY_OFF if prev_d == alt_d else cell_status.get((eid, prev_d))
+                                        if st_p in (RosterStatus.WORK, RosterStatus.HOLIDAY_WORK):
+                                            streak += 1
+                                        else:
+                                            break
+                                    if idx == 0:
+                                        streak += tail_days.get(eid, 0)
+                                    for n_idx in range(idx + 1, len(all_dates)):
+                                        next_d = all_dates[n_idx]
+                                        st_n = RosterStatus.WEEKLY_OFF if next_d == alt_d else cell_status.get((eid, next_d))
+                                        if st_n in (RosterStatus.WORK, RosterStatus.HOLIDAY_WORK):
+                                            streak += 1
+                                        else:
+                                            break
+
+                                    if streak > emp_obj.max_consecutive_days:
+                                        continue  # Swapping would violate H3 (max consecutive days)
+
                                     # Safe swap! Perform swap
                                     cell_status[(eid, d)] = RosterStatus.WORK
                                     cell_status[(eid, alt_d)] = RosterStatus.WEEKLY_OFF

@@ -5,6 +5,16 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 ## [Unreleased]
 
 ### Added
+- Generator Hypothesis Property-Based Tests (Task T-803 marked Completed in `TASK_TRACKER.md`):
+  - Created `backend/tests/unit/scheduler/test_generator_properties.py` implementing comprehensive property-based tests using Hypothesis for the scheduling engine invariants (`TESTING_DOCUMENTATION.md` §3):
+    - Invariant 1: Demand evaluates to strictly 0 on every non-operating day across random calendar types, dates, holidays, and high headcount overrides.
+    - Invariant 2: Fixed supply cells (leaves, comp-offs, and locked cells) are strictly preserved (H1) by the solver and never overwritten.
+    - Invariant 3: Generated rosters strictly satisfy H2 (weekly off quotas with partial-week pro-rating) and H3 (maximum consecutive working days with carry-in tail), producing zero E005 or E006 conflicts.
+    - Invariant 4: Mandatory fixed weekly offs (H5) for employees in `FIXED_MANDATORY` mode are strictly respected.
+    - Invariant 5: Total solver slack shortfalls strictly equal the independent validator's shortfall and E001/E002 conflict set.
+    - Invariant 6: CP-SAT engine outputs are 100% deterministic across multiple runs with identical inputs and seeds.
+    - Invariant 7: Fallback greedy generator maintains hard constraint satisfaction and avoids streak violations during coverage repair.
+  - Enhanced greedy heuristic coverage repair in `backend/app/scheduler/generator_greedy.py` with look-ahead/look-behind consecutive work day checks before swapping weekly offs to prevent H3 regressions.
 - Independent Validator Unit Tests and Injected-Fault Suite (Task T-802 marked Completed in `TASK_TRACKER.md`):
   - Added pod-level weekend-off fairness validation (`validate_weekend_fairness` emitting `W002`, severity `INFO`) and stale roster detection (`is_stale` parameter emitting `W004`, severity `WARNING`) in `backend/app/scheduler/validator.py`.
   - Added dedicated tests for all 13 conflict codes in `backend/tests/unit/scheduler/test_validator.py` (`E001` NO_COVERAGE, `E002` UNDER_STAFFED, `E003` WEEKLY_OFF_BREAKS_COVERAGE, `E004` LEAVE_BREAKS_COVERAGE, `E005` MAX_CONSECUTIVE_EXCEEDED, `E006` WEEKLY_OFF_MISSING, `E007` INVALID_CELL, `E008` OVERLOAD, `E009` COMPOFF_BALANCE, `W001` PREFERENCE_VIOLATED, `W002` UNFAIR_DISTRIBUTION, `W003` SINGLE_POINT_OF_FAILURE, `W004` STALE_ROSTER).
