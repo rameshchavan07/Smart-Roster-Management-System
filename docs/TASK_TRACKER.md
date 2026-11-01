@@ -23,7 +23,7 @@
 | T-203 | Local database | docker-compose with Postgres 16, `.env.example`, connection pooling config | High | T-201 | `docker compose up` works | Completed | 1h | MVP |
 | T-204 | ORM base and migrations | SQLAlchemy 2.0 base, session management, Alembic configured | High | T-202, T-203 | `alembic upgrade head` runs | Completed | 1h | MVP |
 | T-205 | Frontend scaffold | Vite + React + TS + Tailwind + Router + TanStack Query + lint/format | High | T-201 | Blank shell on :5173 | Completed | 1.5h | MVP |
-| T-206 | Design tokens and base components | Tailwind theme from `DESIGN_SYSTEM.md`, fonts, global CSS | Medium | T-205 | Theme + token page | Not Started | 1.5h | MVP |
+| T-206 | Design tokens and base components | Tailwind theme from `DESIGN_SYSTEM.md`, fonts, global CSS | Medium | T-205 | Theme + token page | Completed | 1.5h | MVP |
 | T-207 | CI pipeline | GitHub Actions: lint, type-check, backend tests, frontend build | Medium | T-202, T-205 | Green CI badge | Not Started | 1h | Stretch |
 
 ## Phase 3 — Database design and backend development

@@ -8,6 +8,7 @@ import {
   FileText,
   Clock,
   LayoutDashboard,
+  Palette,
 } from 'lucide-react';
 import { NavLink, Outlet } from 'react-router-dom';
 
@@ -145,6 +146,20 @@ export const Layout: React.FC = () => {
             <Sliders className="h-4 w-4" />
             Settings
           </NavLink>
+
+          <NavLink
+            to="/design-system"
+            className={({ isActive }) =>
+              `flex items-center gap-2.5 rounded-ctl px-2.5 py-2 transition-colors ${
+                isActive
+                  ? 'bg-accent-50 font-semibold text-accent-700 border-l-2 border-accent-600'
+                  : 'text-ink-2 hover:bg-surface-2 hover:text-ink'
+              }`
+            }
+          >
+            <Palette className="h-4 w-4 text-accent-600" />
+            Design System
+          </NavLink>
         </nav>
 
         {/* User profile footer */}
@@ -231,3 +246,4 @@ export const RosterPlaceholder: React.FC = () => (
     </div>
   </div>
 );
+
