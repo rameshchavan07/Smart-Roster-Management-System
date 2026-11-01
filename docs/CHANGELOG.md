@@ -5,6 +5,18 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 ## [Unreleased]
 
 ### Added
+- Master data repositories and domain services with audit hooks (Task T-306 marked Completed in `TASK_TRACKER.md`):
+  - Created repository layer in `backend/app/repositories/`:
+    - `BaseRepository[ModelType: Base]`: generic CRUD, active filtering, and paginated query helpers.
+    - Specific repositories in `core.py`: `PodRepository`, `EmployeeRepository`, `ProcessRepository`, `BrandRepository`, `BrandProcessRepository`, `AssignmentRepository`, and `AuditLogRepository`.
+  - Created domain use-case service layer in `backend/app/services/master_data.py`:
+    - `PodService`: uniqueness checks on name, lead validation, soft-delete protection against pods with active members/brands, and audit mutation logging.
+    - `EmployeeService`: unique code/email validation, pod foreign key verification, deletion guard against employees with assignments/leaves, and audit logging.
+    - `ProcessService`: unique code/name validation, deletion guard against brand-configured processes, and audit logging.
+    - `BrandService`: unique code/name validation, pod scoping, deletion guard against configured processes, and audit logging.
+    - `BrandProcessService`: unique (brand_id, process_id) pairing, deletion guard against active staff assignments/coverage rules, and audit logging.
+    - `AssignmentService`: exact date overlap constraint checks, employee/brand-process relationship validation, and audit logging.
+  - Added unit test suite in `backend/tests/unit/test_master_data_services.py` testing complete service lifecycle, duplicate validation, deletion constraints, and audit log tracking.
 - Schemas and uniform error handling middleware (Task T-305 marked Completed in `TASK_TRACKER.md`):
   - Created Pydantic v2 schemas across:
     - `backend/app/schemas/common.py`: generic `PaginatedResponse[T]`, `PaginationParams`, `MessageResponse`, `EntityCreatedResponse`.

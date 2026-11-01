@@ -34,7 +34,7 @@
 | T-303 | Roster, conflict, user, audit models | roster_periods, roster_entries, roster_conflicts, users, audit_logs with constraints/indexes | High | T-301 | Models | Completed | 1.5h | MVP |
 | T-304 | Initial migration | Generate and review Alembic migration including partial unique indexes | High | T-301–T-303 | `0001_init` migration | Completed | 0.5h | MVP |
 | T-305 | Schemas and error handling | Pydantic request/response models; uniform error envelope and exception handlers | High | T-202 | `schemas/`, error middleware | Completed | 1.5h | MVP |
-| T-306 | Repositories and services (master data) | Data access + use-case services for master data with audit hooks | High | T-304, T-305 | Service layer | Not Started | 2h | MVP |
+| T-306 | Repositories and services (master data) | Data access + use-case services for master data with audit hooks | High | T-304, T-305 | Service layer | Completed | 2h | MVP |
 | T-307 | Master-data API | CRUD routers for pods, employees, processes, brands, brand-processes, assignments | High | T-306 | Endpoints + OpenAPI | Not Started | 2h | MVP |
 | T-308 | Rules/availability API | CRUD for coverage rules, holidays, weekly-off rules, preferences, leaves, comp-off | High | T-306 | Endpoints | Not Started | 2h | MVP |
 | T-309 | Seed data script | 36 employees, 25 brands, 6 pods, rules, holidays, leaves per `SAMPLE_DATA.md` | High | T-304 | `python -m app.seed` | Not Started | 2.5h | MVP |
