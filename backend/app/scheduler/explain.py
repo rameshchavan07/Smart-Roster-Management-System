@@ -23,6 +23,7 @@ from app.scheduler.domain import (
     BrandProcess,
     Conflict,
     ConflictCode,
+    ConflictSeverity,
     DemandCell,
     Employee,
     EmployeeLeave,
@@ -31,8 +32,9 @@ from app.scheduler.domain import (
     RosterStatus,
     Suggestion,
     SuggestionType,
+    SupplyCell,
 )
-from app.scheduler.validator import partition_into_weeks
+from app.scheduler.validator import partition_into_weeks, validate_roster
 
 
 def get_weekday_abbr(d: date) -> str:
@@ -253,6 +255,110 @@ def generate_weekly_off_swap_suggestions(
     return suggestions
 
 
+def simulate_suggestion_net_effect(
+    suggestion: Suggestion,
+    roster_lookup: dict[tuple[str, date], RosterCell],
+    demand_lookup: dict[tuple[str, date], DemandCell],
+    supply_cells: Sequence[SupplyCell],
+    employees: Sequence[Employee],
+    brand_processes: Sequence[BrandProcess],
+    assignments: Sequence[Assignment],
+    holidays: Sequence[Holiday] = (),
+    leaves: Sequence[EmployeeLeave] = (),
+    previous_tail_work_days: dict[str, int] | None = None,
+    baseline_blocking_count: int = 1,
+) -> tuple[int, int]:
+    """Simulate applying a candidate suggestion in memory through validate_roster.
+
+    Returns (fixes, opens) where fixes is resolved gaps and opens is new BLOCKING conflicts.
+    """
+    sim_cells = dict(roster_lookup)
+    sim_assignments = list(assignments)
+
+    if suggestion.type == SuggestionType.ASSIGN_BACKUP:
+        if suggestion.employee_id and suggestion.target_date and suggestion.brand_process_id:
+            has_assignment = any(
+                a.employee_id == suggestion.employee_id
+                and a.brand_process_id == suggestion.brand_process_id
+                for a in sim_assignments
+            )
+            if not has_assignment:
+                sim_assignments.append(
+                    Assignment(
+                        employee_id=suggestion.employee_id,
+                        brand_process_id=suggestion.brand_process_id,
+                        type=AssignmentType.BACKUP,
+                    )
+                )
+            emp_cell = sim_cells.get((suggestion.employee_id, suggestion.target_date))
+            if emp_cell and emp_cell.status in (RosterStatus.WEEKLY_OFF, RosterStatus.HOLIDAY_OFF):
+                sim_cells[(suggestion.employee_id, suggestion.target_date)] = RosterCell(
+                    employee_id=suggestion.employee_id,
+                    date=suggestion.target_date,
+                    status=RosterStatus.WORK,
+                    is_locked=emp_cell.is_locked,
+                    note=f"Simulated backup assignment for {suggestion.brand_process_id}",
+                )
+
+    elif suggestion.type == SuggestionType.SWAP_WEEKLY_OFF:
+        if suggestion.employee_id and suggestion.target_date and suggestion.source_date:
+            target_cell = sim_cells.get((suggestion.employee_id, suggestion.target_date))
+            source_cell = sim_cells.get((suggestion.employee_id, suggestion.source_date))
+            if target_cell:
+                sim_cells[(suggestion.employee_id, suggestion.target_date)] = RosterCell(
+                    employee_id=suggestion.employee_id,
+                    date=suggestion.target_date,
+                    status=RosterStatus.WORK,
+                    is_locked=target_cell.is_locked,
+                    note="Simulated weekly off swap",
+                )
+            if source_cell:
+                sim_cells[(suggestion.employee_id, suggestion.source_date)] = RosterCell(
+                    employee_id=suggestion.employee_id,
+                    date=suggestion.source_date,
+                    status=RosterStatus.WEEKLY_OFF,
+                    is_locked=source_cell.is_locked,
+                    note="Simulated weekly off swap",
+                )
+
+    elif (
+        suggestion.type == SuggestionType.SHIFT_LEAVE
+        and suggestion.employee_id
+        and suggestion.target_date
+    ):
+        emp_cell = sim_cells.get((suggestion.employee_id, suggestion.target_date))
+        if emp_cell:
+            sim_cells[(suggestion.employee_id, suggestion.target_date)] = RosterCell(
+                employee_id=suggestion.employee_id,
+                date=suggestion.target_date,
+                status=RosterStatus.WORK,
+                is_locked=emp_cell.is_locked,
+                note="Simulated leave shift",
+            )
+
+    val_res, _ = validate_roster(
+        roster_cells=list(sim_cells.values()),
+        demand_cells=list(demand_lookup.values()),
+        supply_cells=supply_cells,
+        employees=employees,
+        brand_processes=brand_processes,
+        assignments=sim_assignments,
+        holidays=holidays,
+        leaves=leaves,
+        previous_tail_work_days=previous_tail_work_days,
+    )
+    sim_blocking = len([c for c in val_res.conflicts if c.severity == ConflictSeverity.BLOCKING])
+
+    if sim_blocking < baseline_blocking_count:
+        fixes = baseline_blocking_count - sim_blocking
+        opens = 0
+    else:
+        fixes = 1
+        opens = max(0, sim_blocking - (baseline_blocking_count - 1))
+
+    return fixes, opens
+
+
 def explain_conflict(
     conflict: Conflict,
     employees: Sequence[Employee],
@@ -260,8 +366,10 @@ def explain_conflict(
     assignments: Sequence[Assignment],
     roster_cells: Sequence[RosterCell],
     demand_cells: Sequence[DemandCell] = (),
+    supply_cells: Sequence[SupplyCell] = (),
     holidays: Sequence[Holiday] = (),
     leaves: Sequence[EmployeeLeave] = (),
+    previous_tail_work_days: dict[str, int] | None = None,
 ) -> Conflict:
     """Enrich a single Conflict with structured explanation and ranked suggestions."""
     # Fast lookups
@@ -312,12 +420,12 @@ def explain_conflict(
         available_backups=available_backups_for_msg,
     )
 
-    # 3. Build ranked suggestions list
-    suggestions: list[Suggestion] = []
+    # 3. Build candidate suggestions list
+    candidates: list[Suggestion] = []
 
     # Backup / Floater suggestions (top 3)
     for emp, score, desc in ranked_backups[:3]:
-        suggestions.append(
+        candidates.append(
             Suggestion(
                 type=SuggestionType.ASSIGN_BACKUP,
                 action=f"Assign {emp.full_name} ({desc.split(',')[0].strip()})",
@@ -342,14 +450,14 @@ def explain_conflict(
         demand_lookup=demand_lookup,
         all_dates=all_dates,
     )
-    suggestions.extend(swap_suggestions)
+    candidates.extend(swap_suggestions)
 
     # Leave shift proposal if root cause is leave
     if "LEAVE" in conflict.root_causes:
         for emp in assigned_employees:
             cell = roster_lookup.get((emp.id, target_date))
             if cell and cell.status in (RosterStatus.LEAVE, RosterStatus.COMP_OFF):
-                suggestions.append(
+                candidates.append(
                     Suggestion(
                         type=SuggestionType.SHIFT_LEAVE,
                         action=f"Request leave reschedule for {emp.full_name}",
@@ -365,8 +473,44 @@ def explain_conflict(
                     )
                 )
 
+    # 4. Second-order check: simulate each candidate through validator (SCHEDULING_ENGINE.md §9)
+    simulated_suggestions: list[Suggestion] = []
+    for s in candidates:
+        if supply_cells and demand_cells:
+            fixes, opens = simulate_suggestion_net_effect(
+                suggestion=s,
+                roster_lookup=roster_lookup,
+                demand_lookup=demand_lookup,
+                supply_cells=supply_cells,
+                employees=employees,
+                brand_processes=brand_processes,
+                assignments=assignments,
+                holidays=holidays,
+                leaves=leaves,
+                previous_tail_work_days=previous_tail_work_days,
+                baseline_blocking_count=1,
+            )
+            sim_score = s.score if opens == 0 else s.score - 50.0 * opens
+            simulated_suggestions.append(
+                Suggestion(
+                    type=s.type,
+                    action=s.action,
+                    description=s.description,
+                    employee_id=s.employee_id,
+                    brand_process_id=s.brand_process_id,
+                    target_date=s.target_date,
+                    source_date=s.source_date,
+                    net_impact=f"Fixes {fixes} coverage gap, opens {opens}",
+                    score=sim_score,
+                    fixes=fixes,
+                    opens=opens,
+                )
+            )
+        else:
+            simulated_suggestions.append(s)
+
     # Sort all suggestions descending by score
-    suggestions.sort(key=lambda s: s.score, reverse=True)
+    simulated_suggestions.sort(key=lambda s: s.score, reverse=True)
 
     return Conflict(
         code=conflict.code,
@@ -377,7 +521,7 @@ def explain_conflict(
         date_to=conflict.date_to,
         root_causes=conflict.root_causes,
         message=explanation_msg,
-        suggestions=tuple(suggestions),
+        suggestions=tuple(simulated_suggestions),
     )
 
 
@@ -388,8 +532,10 @@ def enrich_conflicts(
     assignments: Sequence[Assignment],
     roster_cells: Sequence[RosterCell],
     demand_cells: Sequence[DemandCell] = (),
+    supply_cells: Sequence[SupplyCell] = (),
     holidays: Sequence[Holiday] = (),
     leaves: Sequence[EmployeeLeave] = (),
+    previous_tail_work_days: dict[str, int] | None = None,
 ) -> list[Conflict]:
     """Enrich an entire sequence of conflicts with explanations and suggestions."""
     return [
@@ -400,8 +546,10 @@ def enrich_conflicts(
             assignments=assignments,
             roster_cells=roster_cells,
             demand_cells=demand_cells,
+            supply_cells=supply_cells,
             holidays=holidays,
             leaves=leaves,
+            previous_tail_work_days=previous_tail_work_days,
         )
         for c in conflicts
     ]

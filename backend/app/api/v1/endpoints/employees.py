@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import (
     check_employee_scope,
     check_pod_scope,
+    get_current_user,
     get_db,
     require_ops_manager,
     require_pod_lead_or_manager,
@@ -16,6 +17,8 @@ from app.api.deps import (
 from app.models.auth import User
 from app.schemas.common import MessageResponse, PaginatedResponse
 from app.schemas.core import EmployeeCreate, EmployeeRead, EmployeeUpdate
+from app.schemas.rules import CompOffBalanceRead
+from app.services.compoff import CompOffService
 from app.services.master_data import EmployeeService
 
 router = APIRouter(prefix="/employees", tags=["Employees"])
@@ -107,3 +110,15 @@ def delete_employee(
     service.delete_employee(employee_id, actor_id=current_user.id)
     db.commit()
     return MessageResponse(message=f"Employee '{employee_id}' deleted successfully")
+
+
+@router.get("/{employee_id}/comp-off-balance", response_model=CompOffBalanceRead)
+def get_employee_comp_off_balance(
+    employee_id: uuid.UUID,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> CompOffBalanceRead:
+    """Get earned, redeemed, and available comp-off balances for an employee."""
+    check_employee_scope(current_user, employee_id, db)
+    service = CompOffService(db)
+    return service.get_balance(employee_id)

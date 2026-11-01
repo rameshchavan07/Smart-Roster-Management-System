@@ -12,14 +12,11 @@ from sqlalchemy.orm import Session
 
 from app.core.errors import ConflictError, NotFoundError
 from app.models.rules import (
-    CompOffKind,
-    CompOffLedger,
     CoverageRule,
     EmployeePreference,
     Holiday,
     Leave,
     LeaveStatus,
-    LeaveType,
     WeeklyOffRule,
 )
 from app.repositories.core import (
@@ -29,7 +26,6 @@ from app.repositories.core import (
     EmployeeRepository,
 )
 from app.repositories.rules import (
-    CompOffLedgerRepository,
     CoverageRuleRepository,
     EmployeePreferenceRepository,
     HolidayRepository,
@@ -37,9 +33,6 @@ from app.repositories.rules import (
     WeeklyOffRuleRepository,
 )
 from app.schemas.rules import (
-    CompOffBalanceRead,
-    CompOffLedgerCreate,
-    CompOffRedeemRequest,
     CoverageRuleCreate,
     CoverageRuleUpdate,
     EmployeePreferenceCreate,
@@ -51,6 +44,7 @@ from app.schemas.rules import (
     WeeklyOffRuleCreate,
     WeeklyOffRuleUpdate,
 )
+from app.services.compoff import CompOffService as CompOffService
 
 
 class CoverageRuleService:
@@ -717,113 +711,3 @@ class LeaveService:
             before=before_state,
             after=None,
         )
-
-
-class CompOffService:
-    """Service for CompOff ledger management and redemptions."""
-
-    def __init__(self, session: Session) -> None:
-        self.session = session
-        self.repo = CompOffLedgerRepository(session)
-        self.emp_repo = EmployeeRepository(session)
-        self.leave_service = LeaveService(session)
-        self.audit_repo = AuditLogRepository(session)
-
-    def get_balance(self, employee_id: uuid.UUID) -> CompOffBalanceRead:
-        if not self.emp_repo.get_by_id(employee_id):
-            raise NotFoundError(f"Employee '{employee_id}' not found")
-        earned, redeemed, available = self.repo.get_balance(employee_id)
-        return CompOffBalanceRead(
-            employee_id=employee_id,
-            earned=earned,
-            redeemed=redeemed,
-            available=available,
-        )
-
-    def list_entries(
-        self,
-        *,
-        offset: int = 0,
-        limit: int = 50,
-        employee_id: uuid.UUID | None = None,
-    ) -> tuple[Sequence[CompOffLedger], int]:
-        def query_filter(stmt: Any) -> Any:
-            if employee_id is not None:
-                stmt = stmt.where(CompOffLedger.employee_id == employee_id)
-            return stmt.order_by(CompOffLedger.entry_date.desc())
-
-        return self.repo.list(offset=offset, limit=limit, query_modifier=query_filter)
-
-    def create_entry(
-        self, data: CompOffLedgerCreate, actor_id: uuid.UUID | None = None
-    ) -> CompOffLedger:
-        emp = self.emp_repo.get_by_id(data.employee_id)
-        if not emp:
-            raise NotFoundError(f"Employee '{data.employee_id}' not found")
-        if not emp.is_active:
-            raise ConflictError(f"Cannot add comp-off entry for inactive employee '{emp.code}'")
-
-        entry = CompOffLedger(
-            employee_id=data.employee_id,
-            entry_date=data.entry_date,
-            kind=data.kind,
-            source_roster_entry_id=data.source_roster_entry_id,
-            status=data.status,
-            expires_on=data.expires_on,
-            note=data.note,
-        )
-        self.repo.create(entry)
-
-        self.audit_repo.log_mutation(
-            action="compoff.create",
-            entity_type="CompOffLedger",
-            entity_id=str(entry.id),
-            user_id=actor_id,
-            before=None,
-            after={
-                "employee_id": str(entry.employee_id),
-                "kind": entry.kind.value,
-                "date": str(entry.entry_date),
-            },
-        )
-        return entry
-
-    def redeem_compoff(
-        self, data: CompOffRedeemRequest, actor_id: uuid.UUID | None = None
-    ) -> CompOffLedger:
-        balance = self.get_balance(data.employee_id)
-        if balance.available < 1:
-            raise ConflictError("No available comp-off balance to redeem")
-
-        # 1. Create REDEEMED ledger record
-        redeemed_entry = CompOffLedger(
-            employee_id=data.employee_id,
-            entry_date=data.date,
-            kind=CompOffKind.REDEEMED,
-            status="CONFIRMED",
-            note=data.note or "Comp-off redemption",
-        )
-        self.repo.create(redeemed_entry)
-
-        # 2. Automatically generate approved COMP_OFF leave for the day
-        self.leave_service.create_leave(
-            LeaveCreate(
-                employee_id=data.employee_id,
-                start_date=data.date,
-                end_date=data.date,
-                type=LeaveType.COMP_OFF,
-                status=LeaveStatus.APPROVED,
-                note=f"Redeemed comp-off credit on {data.date}",
-            ),
-            actor_id=actor_id,
-        )
-
-        self.audit_repo.log_mutation(
-            action="compoff.redeem",
-            entity_type="CompOffLedger",
-            entity_id=str(redeemed_entry.id),
-            user_id=actor_id,
-            before={"available": balance.available},
-            after={"available": balance.available - 1, "date": str(data.date)},
-        )
-        return redeemed_entry

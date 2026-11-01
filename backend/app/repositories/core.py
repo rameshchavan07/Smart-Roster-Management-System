@@ -2,10 +2,10 @@
 
 import uuid
 from collections.abc import Sequence
-from datetime import date
+from datetime import date, datetime, time
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.models.auth import AuditLog
@@ -175,3 +175,47 @@ class AuditLogRepository(BaseRepository[AuditLog]):
         self.session.add(audit_entry)
         self.session.flush()
         return audit_entry
+
+    def list_audit_logs(
+        self,
+        *,
+        action: str | None = None,
+        entity_type: str | None = None,
+        entity_id: str | None = None,
+        user_id: uuid.UUID | None = None,
+        date_from: datetime | date | None = None,
+        date_to: datetime | date | None = None,
+        offset: int = 0,
+        limit: int = 50,
+    ) -> tuple[Sequence[AuditLog], int]:
+        """Query audit log entries with flexible filtering and pagination."""
+        stmt = select(AuditLog).options(selectinload(AuditLog.user))
+
+        if action:
+            stmt = stmt.where(AuditLog.action == action)
+        if entity_type:
+            stmt = stmt.where(AuditLog.entity_type == entity_type)
+        if entity_id:
+            stmt = stmt.where(AuditLog.entity_id == entity_id)
+        if user_id:
+            stmt = stmt.where(AuditLog.user_id == user_id)
+        if date_from:
+            if isinstance(date_from, date) and not isinstance(date_from, datetime):
+                dt_from = datetime.combine(date_from, time.min)
+            else:
+                dt_from = date_from
+            stmt = stmt.where(AuditLog.created_at >= dt_from)
+        if date_to:
+            if isinstance(date_to, date) and not isinstance(date_to, datetime):
+                dt_to = datetime.combine(date_to, time.max)
+            else:
+                dt_to = date_to
+            stmt = stmt.where(AuditLog.created_at <= dt_to)
+
+        count_stmt = select(func.count()).select_from(stmt.subquery())
+        total = self.session.scalar(count_stmt) or 0
+
+        paged_stmt = stmt.order_by(AuditLog.created_at.desc()).offset(offset).limit(limit)
+        items = self.session.scalars(paged_stmt).all()
+
+        return items, total

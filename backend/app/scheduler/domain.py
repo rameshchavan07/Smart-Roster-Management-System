@@ -286,6 +286,8 @@ class Suggestion:
     source_date: date | None = None
     net_impact: str = ""
     score: float = 0.0
+    fixes: int = 1
+    opens: int = 0
 
 
 @dataclass(frozen=True)
@@ -345,6 +347,7 @@ class GenerationInput:
     random_seed: int = 42
     time_limit_seconds: float = 20.0
     previous_tail_work_days: dict[str, int] = field(default_factory=dict)
+    initial_compoff_balances: dict[str, int] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -358,3 +361,27 @@ class GenerationOutput:
     solve_time_seconds: float
     objective_value: float = 0.0
     slack_shortfall_total: int = 0
+
+
+@dataclass(frozen=True)
+class RepairInput:
+    """Input parameters for local repair around an impacted window."""
+
+    gen_input: GenerationInput
+    current_roster_cells: tuple[RosterCell, ...]
+    repair_dates: tuple[date, ...]
+    repair_employee_ids: tuple[str, ...] | None = None
+    use_fallback: bool = False
+
+
+@dataclass(frozen=True)
+class RepairOutput:
+    """Result of local repair containing diff and validated result."""
+
+    repaired_cells: tuple[RosterCell, ...]
+    all_roster_cells: tuple[RosterCell, ...]
+    coverage_cells: tuple[CoverageCell, ...]
+    validation_result: ValidationResult
+    solver_status: SolverStatus
+    solve_time_seconds: float
+    changed_cells_count: int

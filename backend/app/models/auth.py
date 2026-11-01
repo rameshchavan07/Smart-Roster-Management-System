@@ -103,3 +103,8 @@ class AuditLog(Base, UUIDPrimaryKeyMixin):
 
     # Relationships
     user: Mapped[User | None] = relationship("User", back_populates="audit_logs")
+
+    @property
+    def user_email(self) -> str | None:
+        """Convenience property for user's email address."""
+        return self.user.email if self.user else None

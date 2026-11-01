@@ -35,6 +35,8 @@ from app.scheduler.domain import (
     GenerationOutput,
     Holiday,
     LeaveType,
+    RepairInput,
+    RepairOutput,
     RosterCell,
     RosterStatus,
     SolverStatus,
@@ -52,6 +54,7 @@ from app.scheduler.explain import (
 )
 from app.scheduler.generator_cpsat import generate_cpsat
 from app.scheduler.generator_greedy import generate_greedy
+from app.scheduler.repair import repair_roster
 from app.scheduler.supply import (
     build_supply_cell,
     build_supply_lookup,
@@ -116,4 +119,8 @@ __all__ = [
     # Generator
     "generate_cpsat",
     "generate_greedy",
+    # Repair
+    "repair_roster",
+    "RepairInput",
+    "RepairOutput",
 ]

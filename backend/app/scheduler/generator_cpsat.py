@@ -267,6 +267,7 @@ def generate_cpsat(gen_input: GenerationInput) -> GenerationOutput:
         assignments=gen_input.assignments,
         holidays=gen_input.holidays,
         leaves=gen_input.leaves,
+        initial_compoff_balances=gen_input.initial_compoff_balances,
         previous_tail_work_days=gen_input.previous_tail_work_days,
     )
 

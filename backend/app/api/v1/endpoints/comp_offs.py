@@ -21,7 +21,7 @@ from app.schemas.rules import (
     CompOffLedgerRead,
     CompOffRedeemRequest,
 )
-from app.services.rules import CompOffService
+from app.services.compoff import CompOffService
 
 router = APIRouter(prefix="/comp-offs", tags=["CompOffs"])
 
@@ -90,3 +90,22 @@ def redeem_comp_off(
     db.commit()
     db.refresh(entry)
     return CompOffLedgerRead.model_validate(entry)
+
+
+@router.post(
+    "/accrue-from-roster/{roster_id}",
+    response_model=list[CompOffLedgerRead],
+    status_code=status.HTTP_201_CREATED,
+)
+def accrue_holiday_work_credits(
+    roster_id: uuid.UUID,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_pod_lead_or_manager)],
+) -> list[CompOffLedgerRead]:
+    """Accrue comp-off credits for all employees who worked on a public holiday (HOLIDAY_WORK) in the roster."""
+    service = CompOffService(db)
+    entries = service.accrue_holiday_work_credits(roster_id, actor_id=current_user.id)
+    db.commit()
+    for e in entries:
+        db.refresh(e)
+    return [CompOffLedgerRead.model_validate(e) for e in entries]

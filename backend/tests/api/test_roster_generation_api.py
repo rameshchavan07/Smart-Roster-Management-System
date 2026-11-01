@@ -743,3 +743,437 @@ def test_roster_impact_scenario_s1() -> None:
 
     db.close()
     Base.metadata.drop_all(engine)
+
+
+def test_roster_cell_edit_and_validation() -> None:
+    """Test PUT /api/v1/rosters/{period_id}/entries for cell edits, validation, audit logs, and conflict diffs."""
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(engine)
+    session_factory = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    db = session_factory()
+
+    seed_database(db, scale=1, clean=False)
+    ops_user = db.scalars(select(User).where(User.role == UserRole.OPS_MANAGER)).first()
+    employee_user = db.scalars(select(User).where(User.role == UserRole.EMPLOYEE)).first()
+    assert ops_user is not None and employee_user is not None
+
+    emp_riya = db.scalars(select(Employee).where(Employee.code == "EMP-007")).first()
+    assert emp_riya is not None
+
+    app = create_app()
+
+    def override_get_db() -> Generator[Session, None, None]:
+        try:
+            yield db
+        finally:
+            pass
+
+    current_test_user = ops_user
+    app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_current_user] = lambda: current_test_user
+
+    with TestClient(app, raise_server_exceptions=False) as client:
+        # 1. Generate clean December 2026 roster
+        gen_res = client.post("/api/v1/rosters", json={"month": "2026-12", "options": {"seed": 42}})
+        assert gen_res.status_code == 201
+        period_id = gen_res.json()["id"]
+
+        # 2. RBAC: non-ops user cannot edit cells (HTTP 403)
+        current_test_user = employee_user
+        edit_payload = {
+            "entries": [
+                {
+                    "employee_id": str(emp_riya.id),
+                    "date": "2026-12-14",
+                    "status": "WEEKLY_OFF",
+                    "reason": "Emergency swap",
+                }
+            ]
+        }
+        forbidden_res = client.put(f"/api/v1/rosters/{period_id}/entries", json=edit_payload)
+        assert forbidden_res.status_code == 403
+
+        # 3. Ops user applies cell edit
+        current_test_user = ops_user
+        edit_res = client.put(f"/api/v1/rosters/{period_id}/entries", json=edit_payload)
+        assert edit_res.status_code == 200
+        data = edit_res.json()
+
+        assert data["roster_period_id"] == period_id
+        assert len(data["updated_entries"]) == 1
+        updated = data["updated_entries"][0]
+        assert updated["employee_id"] == str(emp_riya.id)
+        assert updated["date"] == "2026-12-14"
+        assert updated["status"] == "WEEKLY_OFF"
+        assert updated["source"] == "MANUAL"
+        assert updated["note"] == "Emergency swap"
+
+        # 4. Conflict diff: 2026-12-14 has new Aurora coverage gaps
+        assert "2026-12-14" in data["affected_dates"]
+        new_aurora_gaps = [c for c in data["new_conflicts"] if c.get("brand") == "Aurora"]
+        assert len(new_aurora_gaps) >= 1
+
+        # 5. Verify database persistence
+        db_entry = db.scalars(
+            select(RosterEntry).where(
+                RosterEntry.roster_period_id == uuid.UUID(period_id),
+                RosterEntry.employee_id == emp_riya.id,
+                RosterEntry.date == dt.date(2026, 12, 14),
+            )
+        ).first()
+        assert db_entry is not None
+        assert db_entry.status.value == "WEEKLY_OFF"
+        assert db_entry.source.value == "MANUAL"
+        assert db_entry.note == "Emergency swap"
+
+        # 6. Verify AuditLog
+        audit = db.scalars(
+            select(AuditLog).where(
+                AuditLog.action == "ROSTER_CELL_EDIT",
+                AuditLog.entity_id == str(db_entry.id),
+            )
+        ).first()
+        assert audit is not None
+        assert audit.user_id == ops_user.id
+        assert audit.before["status"] == "WORK"
+        assert audit.after["status"] == "WEEKLY_OFF"
+
+        # 7. Date out-of-bounds error (HTTP 422)
+        invalid_date_payload = {
+            "entries": [
+                {
+                    "employee_id": str(emp_riya.id),
+                    "date": "2027-01-05",
+                    "status": "WORK",
+                }
+            ]
+        }
+        oob_res = client.put(f"/api/v1/rosters/{period_id}/entries", json=invalid_date_payload)
+        assert oob_res.status_code == 422
+
+        # 8. Employee not found error (HTTP 404)
+        random_emp_payload = {
+            "entries": [
+                {
+                    "employee_id": str(uuid.uuid4()),
+                    "date": "2026-12-10",
+                    "status": "WORK",
+                }
+            ]
+        }
+        not_found_res = client.put(f"/api/v1/rosters/{period_id}/entries", json=random_emp_payload)
+        assert not_found_res.status_code == 404
+
+    db.close()
+    Base.metadata.drop_all(engine)
+
+
+def test_roster_cell_locking() -> None:
+    """Test POST /api/v1/rosters/{period_id}/entries/lock for locking and unlocking schedule cells."""
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(engine)
+    session_factory = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    db = session_factory()
+
+    seed_database(db, scale=1, clean=False)
+    ops_user = db.scalars(select(User).where(User.role == UserRole.OPS_MANAGER)).first()
+    emp_riya = db.scalars(select(Employee).where(Employee.code == "EMP-007")).first()
+    assert ops_user is not None and emp_riya is not None
+
+    app = create_app()
+
+    def override_get_db() -> Generator[Session, None, None]:
+        try:
+            yield db
+        finally:
+            pass
+
+    app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_current_user] = lambda: ops_user
+
+    with TestClient(app, raise_server_exceptions=False) as client:
+        gen_res = client.post("/api/v1/rosters", json={"month": "2026-12", "options": {"seed": 42}})
+        period_id = gen_res.json()["id"]
+
+        # Lock specific cell
+        lock_payload = {
+            "cells": [
+                {
+                    "employee_id": str(emp_riya.id),
+                    "date": "2026-12-10",
+                    "is_locked": True,
+                }
+            ]
+        }
+        lock_res = client.post(f"/api/v1/rosters/{period_id}/entries/lock", json=lock_payload)
+        assert lock_res.status_code == 200
+        lock_data = lock_res.json()
+        assert lock_data["locked_count"] == 1
+        assert lock_data["unlocked_count"] == 0
+        assert lock_data["updated_entries"][0]["is_locked"] is True
+        assert lock_data["updated_entries"][0]["source"] == "LOCKED_FIXED"
+
+        # Verify DB audit for LOCK
+        lock_audit = db.scalars(
+            select(AuditLog).where(AuditLog.action == "ROSTER_CELL_LOCK")
+        ).first()
+        assert lock_audit is not None
+
+        # Unlock cell
+        unlock_payload = {
+            "cells": [
+                {
+                    "employee_id": str(emp_riya.id),
+                    "date": "2026-12-10",
+                    "is_locked": False,
+                }
+            ]
+        }
+        unlock_res = client.post(f"/api/v1/rosters/{period_id}/entries/lock", json=unlock_payload)
+        assert unlock_res.status_code == 200
+        unlock_data = unlock_res.json()
+        assert unlock_data["unlocked_count"] == 1
+        assert unlock_data["updated_entries"][0]["is_locked"] is False
+
+        # Verify DB audit for UNLOCK
+        unlock_audit = db.scalars(
+            select(AuditLog).where(AuditLog.action == "ROSTER_CELL_UNLOCK")
+        ).first()
+        assert unlock_audit is not None
+
+    db.close()
+    Base.metadata.drop_all(engine)
+
+
+def test_published_roster_edit_creates_new_draft() -> None:
+    """Test that editing a PUBLISHED roster automatically clones it as a new DRAFT version."""
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(engine)
+    session_factory = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    db = session_factory()
+
+    seed_database(db, scale=1, clean=False)
+    ops_user = db.scalars(select(User).where(User.role == UserRole.OPS_MANAGER)).first()
+    emp_riya = db.scalars(select(Employee).where(Employee.code == "EMP-007")).first()
+    assert ops_user is not None and emp_riya is not None
+
+    app = create_app()
+
+    def override_get_db() -> Generator[Session, None, None]:
+        try:
+            yield db
+        finally:
+            pass
+
+    app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_current_user] = lambda: ops_user
+
+    with TestClient(app, raise_server_exceptions=False) as client:
+        # Generate initial version 1
+        gen_res = client.post("/api/v1/rosters", json={"month": "2026-12", "options": {"seed": 42}})
+        period_id = gen_res.json()["id"]
+
+        # Mark version 1 as PUBLISHED directly
+        v1_period = db.get(RosterPeriod, uuid.UUID(period_id))
+        assert v1_period is not None
+        v1_period.status = RosterPeriodStatus.PUBLISHED
+        db.commit()
+
+        # Edit a cell in the published roster
+        edit_payload = {
+            "entries": [
+                {
+                    "employee_id": str(emp_riya.id),
+                    "date": "2026-12-14",
+                    "status": "WEEKLY_OFF",
+                    "reason": "Post-publish modification",
+                }
+            ]
+        }
+        res = client.put(f"/api/v1/rosters/{period_id}/entries", json=edit_payload)
+        assert res.status_code == 200
+        data = res.json()
+
+        # Should have created version 2 as DRAFT
+        new_period_id = data["roster_period_id"]
+        assert new_period_id != period_id
+        assert data["version"] == 2
+        assert data["status"] == "DRAFT"
+
+        # Original version 1 must remain intact and PUBLISHED
+        db.refresh(v1_period)
+        assert v1_period.version == 1
+        assert v1_period.status == RosterPeriodStatus.PUBLISHED
+
+        # AuditLog should contain ROSTER_CLONE_DRAFT
+        clone_audit = db.scalars(
+            select(AuditLog).where(AuditLog.action == "ROSTER_CLONE_DRAFT")
+        ).first()
+        assert clone_audit is not None
+        assert clone_audit.after["version"] == 2
+
+    db.close()
+    Base.metadata.drop_all(engine)
+
+
+def test_roster_stale_flag_handling() -> None:
+    """Test flagging rosters as stale and clearing stale flag upon re-validated cell edits."""
+    from app.services.roster import RosterService
+
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(engine)
+    session_factory = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    db = session_factory()
+
+    seed_database(db, scale=1, clean=False)
+    ops_user = db.scalars(select(User).where(User.role == UserRole.OPS_MANAGER)).first()
+    emp_riya = db.scalars(select(Employee).where(Employee.code == "EMP-007")).first()
+    assert ops_user is not None and emp_riya is not None
+
+    app = create_app()
+
+    def override_get_db() -> Generator[Session, None, None]:
+        try:
+            yield db
+        finally:
+            pass
+
+    app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_current_user] = lambda: ops_user
+
+    with TestClient(app, raise_server_exceptions=False) as client:
+        gen_res = client.post("/api/v1/rosters", json={"month": "2026-12", "options": {"seed": 42}})
+        period_id = gen_res.json()["id"]
+
+        service = RosterService(db)
+        # Flag rosters covering Dec 15 as stale
+        flagged = service.flag_rosters_stale([dt.date(2026, 12, 15)], user_id=ops_user.id)
+        assert uuid.UUID(period_id) in flagged
+
+        p = db.get(RosterPeriod, uuid.UUID(period_id))
+        assert p is not None
+        assert p.is_stale is True
+
+        # Now edit a cell and verify is_stale is cleared back to False
+        edit_payload = {
+            "entries": [
+                {
+                    "employee_id": str(emp_riya.id),
+                    "date": "2026-12-15",
+                    "status": "WEEKLY_OFF",
+                }
+            ]
+        }
+        res = client.put(f"/api/v1/rosters/{period_id}/entries", json=edit_payload)
+        assert res.status_code == 200
+
+        db.refresh(p)
+        assert p.is_stale is False
+
+    db.close()
+    Base.metadata.drop_all(engine)
+
+
+def test_roster_suggestions_api() -> None:
+    """Test GET /api/v1/rosters/{period_id}/suggestions for ranked candidate fixes and net effect."""
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(engine)
+    session_factory = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    db = session_factory()
+
+    seed_database(db, scale=1, clean=False)
+    ops_user = db.scalars(select(User).where(User.role == UserRole.OPS_MANAGER)).first()
+    emp_riya = db.scalars(select(Employee).where(Employee.code == "EMP-007")).first()
+    assert ops_user is not None and emp_riya is not None
+
+    app = create_app()
+
+    def override_get_db() -> Generator[Session, None, None]:
+        try:
+            yield db
+        finally:
+            pass
+
+    app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_current_user] = lambda: ops_user
+
+    with TestClient(app, raise_server_exceptions=False) as client:
+        # Generate initial December 2026 roster
+        gen_res = client.post("/api/v1/rosters", json={"month": "2026-12", "options": {"seed": 42}})
+        period_id = gen_res.json()["id"]
+
+        # Create a gap by setting Riya Shah to WEEKLY_OFF on Mon 14 Dec
+        edit_payload = {
+            "entries": [
+                {
+                    "employee_id": str(emp_riya.id),
+                    "date": "2026-12-14",
+                    "status": "WEEKLY_OFF",
+                    "reason": "Test gap creation",
+                }
+            ]
+        }
+        edit_res = client.put(f"/api/v1/rosters/{period_id}/entries", json=edit_payload)
+        assert edit_res.status_code == 200
+
+        # Query all suggestions for the period
+        sugg_res = client.get(f"/api/v1/rosters/{period_id}/suggestions")
+        assert sugg_res.status_code == 200
+        suggestions = sugg_res.json()
+        assert len(suggestions) > 0
+
+        # Top suggestions should include floater Kabir Nair (EMP-033)
+        kabir_suggestions = [s for s in suggestions if "Kabir" in (s.get("employee_name") or "")]
+        assert len(kabir_suggestions) > 0
+        top_kabir = kabir_suggestions[0]
+        assert top_kabir["type"] == "ASSIGN_BACKUP"
+        assert top_kabir["net_effect"]["fixes"] >= 1
+        assert top_kabir["net_effect"]["opens"] == 0
+        assert "apply_payload" in top_kabir
+        assert top_kabir["apply_payload"]["action"] == "ASSIGN_BACKUP"
+
+        # Query suggestions filtered by conflict_id for a coverage gap conflict
+        conflicts = client.get(f"/api/v1/rosters/{period_id}/conflicts").json()
+        blocking_conflicts = [c for c in conflicts if c["severity"] == "BLOCKING"]
+        assert len(blocking_conflicts) > 0
+        target_conflict = next(c for c in blocking_conflicts if c.get("suggestions"))
+
+        filtered_res = client.get(
+            f"/api/v1/rosters/{period_id}/suggestions?conflict_id={target_conflict['id']}"
+        )
+        assert filtered_res.status_code == 200
+        filtered_suggestions = filtered_res.json()
+        assert len(filtered_suggestions) > 0
+
+        # Query with non-existent conflict ID returns 404
+        non_existent_res = client.get(
+            f"/api/v1/rosters/{period_id}/suggestions?conflict_id={uuid.uuid4()}"
+        )
+        assert non_existent_res.status_code == 404
+
+        # Query with non-existent period ID returns 404
+        bad_period_res = client.get(f"/api/v1/rosters/{uuid.uuid4()}/suggestions")
+        assert bad_period_res.status_code == 404
+
+    db.close()
+    Base.metadata.drop_all(engine)

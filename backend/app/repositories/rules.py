@@ -130,6 +130,33 @@ class CompOffLedgerRepository(BaseRepository[CompOffLedger]):
         available = max(0, earned - redeemed)
         return earned, redeemed, available
 
+    def get_balances_for_employees(self, employee_ids: Sequence[uuid.UUID]) -> dict[str, int]:
+        """Compute available comp-off count for multiple employees."""
+        if not employee_ids:
+            return {}
+        earned_stmt = (
+            select(CompOffLedger.employee_id, func.count().label("cnt"))
+            .where(
+                CompOffLedger.employee_id.in_(employee_ids),
+                CompOffLedger.kind == CompOffKind.EARNED,
+            )
+            .group_by(CompOffLedger.employee_id)
+        )
+        redeemed_stmt = (
+            select(CompOffLedger.employee_id, func.count().label("cnt"))
+            .where(
+                CompOffLedger.employee_id.in_(employee_ids),
+                CompOffLedger.kind == CompOffKind.REDEEMED,
+            )
+            .group_by(CompOffLedger.employee_id)
+        )
+        earned_map = dict(self.session.execute(earned_stmt).all())
+        redeemed_map = dict(self.session.execute(redeemed_stmt).all())
+        return {
+            str(emp_id): max(0, earned_map.get(emp_id, 0) - redeemed_map.get(emp_id, 0))
+            for emp_id in employee_ids
+        }
+
 
 class WeeklyOffRuleRepository(BaseRepository[WeeklyOffRule]):
     """Data access for WeeklyOffRule entities."""

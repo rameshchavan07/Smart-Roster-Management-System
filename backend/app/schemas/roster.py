@@ -112,25 +112,89 @@ class RosterEntryUpdateItem(BaseModel):
     source: EntrySource = EntrySource.MANUAL
     is_locked: bool | None = None
     note: str | None = None
+    reason: str | None = None
 
 
 class RosterEntriesBatchUpdateRequest(BaseModel):
     """Batch cell edit request."""
 
     entries: list[RosterEntryUpdateItem] = Field(min_length=1)
+    acknowledge_blocking: bool = False
+
+
+class RosterEntriesUpdateResponse(BaseModel):
+    """Result of applying cell updates, including conflict diffs."""
+
+    roster_period_id: uuid.UUID
+    version: int
+    status: RosterPeriodStatus
+    updated_entries: list[RosterEntryRead]
+    new_conflicts: list[dict[str, Any]] = Field(default_factory=list)
+    resolved_conflicts: list[dict[str, Any]] = Field(default_factory=list)
+    unchanged_conflicts: list[dict[str, Any]] = Field(default_factory=list)
+    unchanged: int = 0
+    net_conflict_change: int = 0
+    affected_dates: list[str] = Field(default_factory=list)
+
+
+class RosterCellLockItem(BaseModel):
+    """Single cell lock specification."""
+
+    employee_id: uuid.UUID
+    date: dt.date
+    is_locked: bool = True
 
 
 class RosterEntriesLockRequest(BaseModel):
     """Lock or unlock schedule cells."""
 
+    cells: list[RosterCellLockItem] = Field(default_factory=list)
     employee_ids: list[uuid.UUID] = Field(default_factory=list)
     dates: list[dt.date] = Field(default_factory=list)
     is_locked: bool = True
 
 
+class RosterEntriesLockResponse(BaseModel):
+    """Result of locking/unlocking cells."""
+
+    roster_period_id: uuid.UUID
+    version: int
+    locked_count: int
+    unlocked_count: int
+    updated_entries: list[RosterEntryRead] = Field(default_factory=list)
+
+
 # -----------------------------------------------------------------------------
-# RosterConflict Schemas
+# RosterConflict & Suggestion Schemas
 # -----------------------------------------------------------------------------
+class SuggestionNetEffect(BaseModel):
+    """Impact of applying suggestion on total gaps."""
+
+    fixes: int = 1
+    opens: int = 0
+
+
+class RosterSuggestionItem(BaseModel):
+    """Ranked actionable resolution for a roster gap."""
+
+    type: str
+    kind: str
+    action: str
+    description: str
+    employee_id: uuid.UUID | None = None
+    employee_name: str | None = None
+    employee_code: str | None = None
+    brand_process_id: uuid.UUID | None = None
+    brand_name: str | None = None
+    process_name: str | None = None
+    target_date: dt.date | None = None
+    source_date: dt.date | None = None
+    score: float = 0.0
+    net_effect: SuggestionNetEffect = Field(default_factory=SuggestionNetEffect)
+    net_impact: str = ""
+    apply_payload: dict[str, Any] = Field(default_factory=dict)
+
+
 class RosterConflictRead(BaseModel):
     """Validation conflict representation."""
 
@@ -169,14 +233,115 @@ class RosterAcknowledgeRequest(BaseModel):
 class RosterPublishRequest(BaseModel):
     """Publish a draft roster period."""
 
-    period_id: uuid.UUID
+    period_id: uuid.UUID | None = None
 
 
 class RosterCloneRequest(BaseModel):
     """Clone a roster period into a new working version."""
 
-    parent_period_id: uuid.UUID
+    parent_period_id: uuid.UUID | None = None
     note: str | None = None
+
+
+class RosterRepairRequest(BaseModel):
+    """Request for local repair around an impacted window."""
+
+    dates: list[dt.date] = Field(default_factory=list, description="Specific dates to re-solve")
+    date_from: dt.date | None = Field(default=None, description="Start date of impacted window")
+    date_to: dt.date | None = Field(default=None, description="End date of impacted window")
+    employee_ids: list[uuid.UUID] = Field(
+        default_factory=list, description="Eligible employees for re-solving"
+    )
+    brand_process_ids: list[uuid.UUID] = Field(
+        default_factory=list, description="Filter employees by brand-processes"
+    )
+    conflict_id: uuid.UUID | None = Field(
+        default=None, description="Derive window from a specific conflict"
+    )
+    apply: bool = Field(
+        default=False, description="Persist repaired entries directly to draft roster"
+    )
+    use_fallback: bool = Field(
+        default=False, description="Use greedy heuristic instead of CP-SAT solver"
+    )
+
+
+class RosterRepairResponse(BaseModel):
+    """Result of local repair diffing changes and conflicts."""
+
+    is_feasible: bool
+    repaired_cells_count: int
+    repaired_cells: list[RosterEntryRead] = Field(default_factory=list)
+    new_conflicts: list[dict[str, Any]] = Field(default_factory=list)
+    resolved_conflicts: list[dict[str, Any]] = Field(default_factory=list)
+    unchanged_conflicts: list[dict[str, Any]] = Field(default_factory=list)
+    net_conflict_change: int
+    solver_status: str
+    solve_time_seconds: float
+    applied: bool
+    period: RosterPeriodRead | None = None
+
+
+# -----------------------------------------------------------------------------
+# Comparison Schemas
+# -----------------------------------------------------------------------------
+class RosterVersionMetrics(BaseModel):
+    """Side-by-side quality and fairness metrics for a single roster version."""
+
+    period_id: uuid.UUID
+    version: int
+    status: RosterPeriodStatus
+    month: dt.date
+    blocking_conflicts: int
+    warning_conflicts: int
+    info_conflicts: int
+    total_conflicts: int
+    coverage_pct: float
+    total_shortfall: int
+    shortfall_slots_count: int
+    fairness_spread: int
+    min_weekend_offs: int
+    max_weekend_offs: int
+    weekend_offs_by_employee: dict[str, int] = Field(default_factory=dict)
+
+
+class RosterCellDiffItem(BaseModel):
+    """Difference in cell assignment between two roster versions."""
+
+    employee_id: uuid.UUID
+    employee_code: str
+    employee_name: str
+    date: dt.date
+    status_a: RosterEntryStatus | None = None
+    status_b: RosterEntryStatus | None = None
+
+
+class RosterCompareDelta(BaseModel):
+    """Summary deltas comparing version B relative to version A (B - A)."""
+
+    blocking_delta: int
+    warnings_delta: int
+    coverage_pct_delta: float
+    fairness_spread_delta: int
+    total_cells_changed: int
+
+
+class RosterCompareResponse(BaseModel):
+    """Side-by-side comparison of two roster periods."""
+
+    period_a: RosterPeriodRead
+    period_b: RosterPeriodRead
+    metrics_a: RosterVersionMetrics
+    metrics_b: RosterVersionMetrics
+    delta: RosterCompareDelta
+    conflict_diff: dict[str, list[dict[str, Any]]] = Field(
+        default_factory=dict,
+        description="Categorized conflicts: 'new_in_b', 'resolved_in_b', 'common'",
+    )
+    cell_diffs: list[RosterCellDiffItem] = Field(
+        default_factory=list,
+        description="Granular list of modified cells between version A and version B",
+    )
 
 
 # -----------------------------------------------------------------------------

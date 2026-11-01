@@ -9,7 +9,7 @@ import uuid
 from collections.abc import Sequence
 from datetime import date
 
-from sqlalchemy import desc, func, select
+from sqlalchemy import delete, desc, func, select
 from sqlalchemy.orm import Session, joinedload
 
 from app.models.core import BrandProcess
@@ -122,6 +122,12 @@ class RosterConflictRepository(BaseRepository[RosterConflict]):
     def bulk_create(self, conflicts: list[RosterConflict]) -> None:
         """Persist a collection of validation conflicts in bulk."""
         self.session.add_all(conflicts)
+        self.session.flush()
+
+    def delete_by_period(self, period_id: uuid.UUID) -> None:
+        """Remove all validation conflicts associated with a roster period."""
+        stmt = delete(RosterConflict).where(RosterConflict.roster_period_id == period_id)
+        self.session.execute(stmt)
         self.session.flush()
 
     def get_by_period(

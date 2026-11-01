@@ -5,6 +5,107 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 ## [Unreleased]
 
 ### Added
+- Roster version comparison service and endpoint (Task T-518 marked Completed in `TASK_TRACKER.md`):
+  - Created comparison schemas in `backend/app/schemas/roster.py`:
+    - `RosterVersionMetrics`: Side-by-side quality metrics for each version including conflict breakdown (blocking, warnings, info), coverage percentage, total headcount shortfall, shortfall slot counts, fairness spread (`max - min` weekend offs), and per-employee weekend-off distribution dictionary.
+    - `RosterCellDiffItem`: Granular representation of modified cells (`employee_id`, `employee_code`, `employee_name`, `date`, `status_a`, `status_b`).
+    - `RosterCompareDelta`: Net metric differences (`blocking_delta`, `warnings_delta`, `coverage_pct_delta`, `fairness_spread_delta`, `total_cells_changed`).
+    - `RosterCompareResponse`: Full payload containing Version A and B metadata, metrics, deltas, categorized conflict diffs (`new_in_b`, `resolved_in_b`, `common`), and granular cell diffs.
+  - Implemented `RosterService.compare_rosters` in `backend/app/services/roster.py`:
+    - Validates both versions belong to the same calendar month (returns 422 `VALIDATION_ERROR` with uniform error envelope if differing).
+    - Computes coverage percentage and weekend-off distribution for each version.
+    - Performs cell-by-cell diffing across all dates and employees.
+    - Computes conflict state diff (`new_in_b`, `resolved_in_b`, `common`) with complete entity details and messages.
+  - Exposed REST endpoint `GET /api/v1/rosters/compare?a={id}&b={id}` in `backend/app/api/v1/endpoints/rosters.py` positioned before `/{period_id}` to avoid routing collisions.
+  - Added comprehensive integration tests in `backend/tests/api/test_roster_compare_api.py` covering multi-version delta calculations, self-comparison idempotency, non-existent roster 404, and cross-month 422 validation.
+- Multi-view CSV and XLSX export service and endpoint (Task T-517 marked Completed in `TASK_TRACKER.md`):
+  - Added `openpyxl>=3.1.5` to `backend/pyproject.toml` per `docs/TECH_STACK.md` (confirmed by owner) and installed in environment.
+  - Created `backend/app/services/export.py` supporting:
+    - Monthly grid view export (`export_grid_csv`, `export_grid_xlsx`) with employee code, name, pod, primary assignments, date columns showing letter codes (W, WO, PH, HW, L, CO), and monthly summary counts (Work, Weekly Off, HW, PH, Leave, Comp Off).
+    - Daily operational view export (`export_day_csv`, `export_day_xlsx`) showing Brand, Process, operating status, required/actual headcount, shortfall, and scheduled employees.
+    - Coverage summary export (`export_coverage_csv`, `export_coverage_xlsx`) showing required headcount, actual scheduled staff, shortfall, and coverage status (MET vs GAP).
+    - Validation conflicts report export (`export_conflicts_csv`, `export_conflicts_xlsx`) with code, severity, date range, entity IDs, root causes, message, and acknowledgment status/reason.
+    - OpenPyXL workbook formatting with bold headers, light fill (`#F1F5F9`), center-aligned data columns, and freeze panes for smooth scrolling.
+    - UTF-8 with BOM (`utf-8-sig`) CSV encoding for seamless opening in Microsoft Excel and external spreadsheet viewers.
+  - Implemented `RosterService.export_roster` in `backend/app/services/roster.py` dispatching view queries and format serializations.
+  - Added REST endpoint `GET /api/v1/rosters/{period_id}/export?format=csv|xlsx&view=grid|day|coverage|conflicts&date=YYYY-MM-DD` returning appropriate file attachments with `Content-Disposition`.
+  - Added comprehensive integration tests in `backend/tests/api/test_roster_export_api.py` covering all 4 views in both CSV and XLSX, header and content validation, openpyxl workbook parsing, and validation error cases (422 and 404).
+- Local repair engine and re-solve endpoint (Task T-516 marked Completed in `TASK_TRACKER.md`):
+  - Created pure Python `repair_roster` algorithm in `backend/app/scheduler/repair.py` conforming strictly to `AGENTS.md` (no external framework or database imports, pure dataclasses in and out).
+  - Added domain dataclasses `RepairInput` and `RepairOutput` to `backend/app/scheduler/domain.py` and exported them in `backend/app/scheduler/__init__.py`.
+  - Added `RosterRepairRequest` and `RosterRepairResponse` schemas in `backend/app/schemas/roster.py` supporting impacted window targeting by explicit dates, date ranges, employee IDs, brand-process IDs, or conflict IDs.
+  - Implemented `RosterService.repair_roster` in `backend/app/services/roster.py`:
+    - Dynamically derives impacted dates and eligible employees based on request criteria or linked `conflict_id`.
+    - Automatically locks all unaffected cells outside the window with `SupplyAvailability.LOCKED` to guarantee non-impacted cells remain immutable.
+    - Re-solves using the CP-SAT solver (with automated greedy fallback when requested or upon constraint failure).
+    - Runs conflict diffing (`_diff_conflicts`) to categorize `new_conflicts`, `resolved_conflicts`, and `unchanged_conflicts`.
+    - Supports dry-run preview mode (`apply=False`, default) returning the cell and conflict diff without database mutations.
+    - Supports application mode (`apply=True`) applying cell mutations with audit logging (`ROSTER_LOCAL_REPAIR_CELL`, `ROSTER_LOCAL_REPAIR_APPLY`), refreshing conflicts, clearing stale state, and automatically cloning to draft `v(n+1)` when invoked on published rosters.
+  - Added REST endpoint `POST /api/v1/rosters/{period_id}/repair` in `backend/app/api/v1/endpoints/rosters.py` guarded by `require_pod_lead_or_manager`.
+  - Added unit tests in `backend/tests/unit/scheduler/test_repair.py` and integration tests in `backend/tests/api/test_roster_repair_api.py`.
+- Publish gating, conflict acknowledgment, and version cloning (Task T-515 marked Completed in `TASK_TRACKER.md`):
+  - Implemented publish gating in `RosterService.publish_roster`:
+    - Strict gating on unacknowledged `BLOCKING` conflicts per `A-13` and `docs/API_DOCUMENTATION.md` §4: returns HTTP 422 `ROSTER_BLOCKED` with detailed conflict IDs and messages if any blocking conflicts remain without an override.
+    - Non-blocking warnings (`WARNING`, `INFO`) remain visible but do not block publication.
+    - Prevents publishing an already published roster (HTTP 409 `CONFLICT`) or an archived roster (HTTP 422 `VALIDATION_ERROR`).
+    - Enforces partial unique constraint on published rosters per month: archiving previous published rosters (`status = RosterPeriodStatus.ARCHIVED`) with `ROSTER_ARCHIVE_SUPERSEDED` audit logs and flushing state before transition.
+    - Automatically updates status to `PUBLISHED`, sets `published_at` timestamp, clears stale flag (`is_stale = False`), triggers holiday work comp-off credit accrual, and records `ROSTER_PUBLISH` audit log.
+  - Implemented conflict acknowledgment in `RosterService.acknowledge_conflict`:
+    - Allows Ops Managers to acknowledge any `BLOCKING` conflict with a required plain-language logged reason (`min_length=5`).
+    - Sets `is_acknowledged = True`, saves `acknowledged_reason` and `acknowledged_by_id`, and creates immutable `AuditLog` entry with `action="ROSTER_CONFLICT_ACKNOWLEDGE"`.
+  - Implemented roster cloning in `RosterService.clone_roster`:
+    - Clones an existing draft or published roster into a new working draft version `n+1` for the month.
+    - Clones all `RosterEntry` cells and `RosterConflict` records (preserving acknowledgment history), records parent linkage in `generation_params`, and audits `ROSTER_CLONE`.
+  - Exposed REST endpoints in `backend/app/api/v1/endpoints/rosters.py`:
+    - `POST /api/v1/rosters/{period_id}/publish`: Ops Manager only (`require_ops_manager`).
+    - `POST /api/v1/rosters/{period_id}/acknowledge`: Ops Manager only (`require_ops_manager`).
+    - `POST /api/v1/rosters/{period_id}/clone`: Ops Manager or Pod Lead (`require_pod_lead_or_manager`).
+  - Added comprehensive integration tests in `backend/tests/api/test_roster_publish_api.py` covering Scenario S5 publish gating, 422 `ROSTER_BLOCKED`, RBAC negative tests (403 on pod lead publish/acknowledge), acknowledgment validation, clean publishing, 409 on duplicate publish, cloning to draft v2, and automatic archiving of superseded published version.
+
+- Comp-off logic: holiday work accrual, balance validation, and redemption service (Task T-514 marked Completed in `TASK_TRACKER.md`):
+  - Extracted and enhanced `CompOffService` in dedicated service `backend/app/services/compoff.py` with backward compatibility re-export in `backend/app/services/rules.py` and `backend/app/services/__init__.py`.
+  - Implemented `accrue_holiday_work_credits`:
+    - Automatically scans a roster period for `HOLIDAY_WORK` cells and credits 1 comp-off credit per employee-date in `comp_off_ledger` (`kind=CompOffKind.EARNED`, `status="ACTIVE"`).
+    - Fully idempotent: prevents duplicate credits for identical roster entries/dates upon re-execution.
+    - Records immutable `AuditLog` mutations with `action="compoff.accrue_holiday_work"`.
+  - Implemented bulk balance query `get_balances_for_employees` in `CompOffLedgerRepository` (`backend/app/repositories/rules.py`) for high-performance multi-employee balance lookups.
+  - Connected comp-off ledger balances directly to the scheduling engine:
+    - Added `initial_compoff_balances` to `GenerationInput` in `backend/app/scheduler/domain.py`.
+    - Wired `initial_compoff_balances` into CP-SAT solver (`generator_cpsat.py`), greedy solver (`generator_greedy.py`), `simulate_impact`, and `update_entries` in `backend/app/services/roster.py`, ensuring `E009` (`COMPOFF_BALANCE`) conflicts are accurately evaluated during generation, simulation, and cell editing.
+  - Enhanced comp-off redemption in `CompOffService.redeem_compoff`:
+    - Validates active employee status and verifies `available_balance >= 1` (raises HTTP 409 Conflict if zero or insufficient balance).
+    - Enforces leave overlap checks through `LeaveService.create_leave` with `type=LeaveType.COMP_OFF` and `status=LeaveStatus.APPROVED`.
+    - Automatically marks covering draft or published rosters as `is_stale=True`.
+    - Creates immutable audit record for each redemption.
+  - Exposed REST API endpoints:
+    - `GET /api/v1/employees/{id}/comp-off-balance`: Per-employee balance endpoint conforming to `docs/API_DOCUMENTATION.md` §4 line 72.
+    - `POST /api/v1/comp-offs/accrue-from-roster/{roster_id}`: Accrue comp-offs from roster.
+    - `POST /api/v1/rosters/{period_id}/accrue-compoffs`: Accrue holiday work credits on the roster period resource.
+  - Added unit test suite in `backend/tests/unit/test_compoff_service.py` and integration tests in `backend/tests/api/test_compoff_api.py`.
+
+- Suggestion engine and second-order simulation API (Task T-513 marked Completed in `TASK_TRACKER.md`):
+  - Updated `Suggestion` domain dataclass in `backend/app/scheduler/domain.py` with `fixes` and `opens` metrics.
+  - Implemented second-order validator simulation check in `backend/app/scheduler/explain.py`:
+    - `simulate_suggestion_net_effect`: Fast in-memory simulation evaluating proposed candidate fixes (backup assignment, weekly-off swap, leave shift) through `validate_roster` to compute exact headcount gaps fixed and new blocking gaps opened.
+    - Penalizes or discards candidate suggestions opening new blocking conflicts, ensuring recommendations guarantee "fixes N, opens 0".
+  - Created suggestion response schemas in `backend/app/schemas/roster.py`: `SuggestionNetEffect` and `RosterSuggestionItem` (with `apply_payload` for instant one-click application via cell edit).
+  - Implemented `get_suggestions` in `backend/app/services/roster.py` supporting conflict-specific and period-wide ranked resolution queries.
+  - Exposed REST endpoint `GET /api/v1/rosters/{period_id}/suggestions` in `backend/app/api/v1/endpoints/rosters.py` with filters for `conflict_id`, `brand_process_id`, `date`, and `employee_id`.
+  - Added integration test `test_roster_suggestions_api` in `backend/tests/api/test_roster_generation_api.py` validating floater suggestions (Kabir Nair `EMP-033`), second-order net impact verification, conflict filtering, and 404 handling.
+
+- Cell edit, cell locking, and stale flag handling (Task T-512 marked Completed in `TASK_TRACKER.md`):
+  - Created cell update and locking schemas in `backend/app/schemas/roster.py`: `RosterEntryUpdateItem`, `RosterEntriesBatchUpdateRequest`, `RosterEntriesUpdateResponse`, `RosterCellLockItem`, `RosterEntriesLockRequest`, and `RosterEntriesLockResponse`.
+  - Implemented cell edit and lock workflows in `backend/app/services/roster.py`:
+    - `update_entries`: Validates cell bounds, updates status and notes with `source=MANUAL`, captures before/after states and creates immutable `AuditLog` records for every cell change. Re-evaluates entire roster using independent `validate_roster` + `enrich_conflicts`, replaces persisted conflicts in `roster_conflicts`, resets `is_stale=False`, and returns conflict diff (`new_conflicts`, `resolved_conflicts`, `unchanged_conflicts`).
+    - Published roster cloning: When `PUT /entries` or cell locking is invoked on a `PUBLISHED` roster, automatically clones it into a new draft version `n+1` with all entries copied and `ROSTER_CLONE_DRAFT` audited.
+    - `lock_cells`: Bulk/granular locking and unlocking of roster cells (`source=LOCKED_FIXED`), auditing each action with `ROSTER_CELL_LOCK` / `ROSTER_CELL_UNLOCK`.
+    - `flag_rosters_stale`: Flags any draft or published roster overlapping changed dates as `is_stale=True` with audit logging.
+  - Added repository deletion support `delete_by_period` in `backend/app/repositories/roster.py` for conflict refreshes.
+  - Exposed REST endpoints in `backend/app/api/v1/endpoints/rosters.py`:
+    - `PUT /api/v1/rosters/{period_id}/entries`: Ops Manager only.
+    - `POST /api/v1/rosters/{period_id}/entries/lock`: Ops Manager only.
+  - Added integration test suite in `backend/tests/api/test_roster_generation_api.py` covering RBAC enforcement (403 on non-ops), valid cell edits, audit log creation, conflict diffing and DB refresh, date out-of-bounds (422), cell not found (404), cell locking/unlocking, published roster cloning to new draft version, and stale flag clearing upon edit.
+
 - Roster impact (what-if) simulation service and REST API (Task T-511 marked Completed in `TASK_TRACKER.md`):
   - Created impact simulation schemas in `backend/app/schemas/roster.py`: `ImpactChangeType` (`ADD_LEAVE`, `REMOVE_LEAVE`, `CELL_EDIT`, `MARK_UNAVAILABLE`), `RosterImpactChangeItem`, `RosterImpactRequest` (supporting batch `changes` and `edits`), and `RosterImpactResponse` (`is_feasible`, `new_conflicts`, `resolved_conflicts`, `unchanged_conflicts`, `unchanged`, `net_conflict_change`, `affected_dates`).
   - Implemented `simulate_impact` in `backend/app/services/roster.py`:
