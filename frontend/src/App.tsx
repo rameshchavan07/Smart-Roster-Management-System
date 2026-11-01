@@ -5,6 +5,7 @@ import { Layout, DashboardPlaceholder, RosterPlaceholder } from './routes';
 import { DesignSystemPage } from './features/design-system/DesignSystemPage';
 import { AuthProvider, useAuth } from './features/auth/AuthContext';
 import { MonthProvider } from './context/MonthContext';
+import { ToastProvider } from './components/ui';
 import { ProtectedRoute } from './features/auth/ProtectedRoute';
 import { LoginPage } from './features/auth/LoginPage';
 
@@ -31,7 +32,8 @@ export const App: React.FC = () => {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <MonthProvider>
-          <BrowserRouter>
+          <ToastProvider>
+            <BrowserRouter>
             <Routes>
             {/* Public Authentication Route */}
             <Route path="/login" element={<LoginPage />} />
