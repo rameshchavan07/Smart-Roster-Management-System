@@ -9,6 +9,7 @@ import { LeavesPage } from './features/leaves/LeavesPage';
 import { RulesHolidaysPage } from './features/rules/RulesHolidaysPage';
 import { RosterWorkspacePage } from './features/roster/RosterWorkspacePage';
 import { ConflictsPage } from './features/roster/ConflictsPage';
+import { ImpactSimulatorPage } from './features/roster/ImpactSimulatorPage';
 import { AuthProvider, useAuth } from './features/auth/AuthContext';
 import { MonthProvider } from './context/MonthContext';
 import { ToastProvider } from './components/ui';
@@ -60,6 +61,14 @@ export const App: React.FC = () => {
                 element={
                   <ProtectedRoute allowedRoles={['OPS_MANAGER', 'POD_LEAD']}>
                     <ConflictsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="simulator"
+                element={
+                  <ProtectedRoute allowedRoles={['OPS_MANAGER', 'POD_LEAD']}>
+                    <ImpactSimulatorPage />
                   </ProtectedRoute>
                 }
               />

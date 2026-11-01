@@ -14,6 +14,8 @@ import type {
   RosterConflict,
   RosterSuggestionItem,
   RosterAcknowledgeRequest,
+  RosterRepairRequest,
+  RosterRepairResponse,
 } from '../types/roster';
 
 // ----------------------------------------------------------------------------
@@ -132,6 +134,16 @@ export async function acknowledgeRosterConflictApi(
   request: RosterAcknowledgeRequest
 ): Promise<RosterConflict> {
   return apiClient<RosterConflict>(`/rosters/${periodId}/acknowledge`, {
+    method: 'POST',
+    body: JSON.stringify(request),
+  });
+}
+
+export async function repairRosterApi(
+  periodId: string,
+  request: RosterRepairRequest
+): Promise<RosterRepairResponse> {
+  return apiClient<RosterRepairResponse>(`/rosters/${periodId}/repair`, {
     method: 'POST',
     body: JSON.stringify(request),
   });
@@ -284,6 +296,25 @@ export function useAcknowledgeConflictMutation() {
     }) => acknowledgeRosterConflictApi(periodId, request),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['roster-conflicts', variables.periodId] });
+      queryClient.invalidateQueries({ queryKey: ['rosters'] });
+    },
+  });
+}
+
+export function useRepairRosterMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      periodId,
+      request,
+    }: {
+      periodId: string;
+      request: RosterRepairRequest;
+    }) => repairRosterApi(periodId, request),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['roster-grid', variables.periodId] });
+      queryClient.invalidateQueries({ queryKey: ['roster-conflicts', variables.periodId] });
+      queryClient.invalidateQueries({ queryKey: ['roster-coverage', variables.periodId] });
       queryClient.invalidateQueries({ queryKey: ['rosters'] });
     },
   });

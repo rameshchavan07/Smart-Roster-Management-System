@@ -5,6 +5,19 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 ## [Unreleased]
 
 ### Added
+- What-If Impact simulator screen and local solver repair (Task T-612 marked Completed in `TASK_TRACKER.md`):
+  - Defined TypeScript models in `frontend/src/types/roster.ts` (`RosterRepairRequest`, `RosterRepairResponse`).
+  - Added API endpoints and React Query hooks in `frontend/src/api/rosters.ts` (`repairRosterApi`, `useRepairRosterMutation`).
+  - Built `ImpactSimulatorPage` in `frontend/src/features/roster/ImpactSimulatorPage.tsx`:
+    - Left form: change action selector (`ADD_LEAVE`, `REMOVE_LEAVE`, `MARK_UNAVAILABLE`, `CELL_EDIT`), target employee dropdown, start/end dates, shift status override, and audit note.
+    - Right Before → After comparison: feasibility banner, net delta metric, new gaps count, resolved conflicts count, and unchanged baseline count.
+    - Remaining employees vs demand matrix per affected date: evaluates multi-person brand pools and displays on-duty staff against required headcount with `COVERED` vs `UNDERSTAFFED` indicators.
+    - Three-tier action bar: Discard/Reset, Apply Change directly, or Apply + Local Solver Repair to automatically heal the impacted window using CP-SAT solver.
+  - Linked Impact Simulator across the application:
+    - Added `/simulator` protected route in `frontend/src/App.tsx`.
+    - Added "Impact Simulator" navigation item in `Sidebar.tsx`.
+    - Added "Simulator" button in `RosterWorkspacePage.tsx` toolbar.
+    - Added "Preview Impact" quick button in `LeavesPage.tsx` with deep-linked URL parameters (`type=ADD_LEAVE&employeeId=...&autoRun=true`).
 - Conflict drawer and full-width list view (Task T-611 marked Completed in `TASK_TRACKER.md`):
   - Defined TypeScript models in `frontend/src/types/roster.ts` (`RosterConflict`, `SuggestionNetEffect`, `RosterSuggestionItem`, `RosterAcknowledgeRequest`, and `CONFLICT_CODE_INFO` catalogue).
   - Added API endpoints and React Query hooks in `frontend/src/api/rosters.ts` (`useRosterConflictsQuery`, `useRosterSuggestionsQuery`, `useAcknowledgeConflictMutation`).

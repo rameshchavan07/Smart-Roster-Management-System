@@ -278,6 +278,33 @@ export interface RosterImpactResponse {
   affected_dates: string[];
 }
 
+export interface RosterRepairRequest {
+  dates?: string[];
+  date_from?: string | null;
+  date_to?: string | null;
+  employee_ids?: string[];
+  brand_process_ids?: string[];
+  conflict_id?: string | null;
+  apply?: boolean;
+  use_fallback?: boolean;
+  time_limit_s?: number;
+  seed?: number;
+}
+
+export interface RosterRepairResponse {
+  is_feasible: boolean;
+  repaired_cells_count: number;
+  repaired_cells: Array<Record<string, unknown>>;
+  new_conflicts: Array<Record<string, unknown>>;
+  resolved_conflicts: Array<Record<string, unknown>>;
+  unchanged_conflicts: Array<Record<string, unknown>>;
+  net_conflict_change: number;
+  solver_status: string;
+  solve_time_seconds: number;
+  applied: boolean;
+  period?: RosterPeriod | null;
+}
+
 export interface RosterEntriesLockRequest {
   cells?: RosterCellLockItem[];
   employee_ids?: string[];

@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Clock,
   Search,
@@ -11,6 +12,7 @@ import {
   ChevronRight,
   AlertCircle,
   Gift,
+  Sparkles,
 } from 'lucide-react';
 import {
   Button,
@@ -40,6 +42,7 @@ import { RedeemCompOffModal } from './RedeemCompOffModal';
 import type { Leave, LeaveStatus } from '../../types/leaves';
 
 export const LeavesPage: React.FC = () => {
+  const navigate = useNavigate();
   const toast = useToast();
   const { isOpsManager, isPodLead, isEmployee, user } = useAuth();
   const canApprove = isOpsManager || isPodLead;
@@ -370,6 +373,20 @@ export const LeavesPage: React.FC = () => {
                         >
                           {leave.status === 'REQUESTED' && canApprove && (
                             <>
+                              <Button
+                                variant="secondary"
+                                size="sm"
+                                onClick={() =>
+                                  navigate(
+                                    `/simulator?type=ADD_LEAVE&employeeId=${leave.employee_id}&date=${leave.start_date}&endDate=${leave.end_date}&autoRun=true`
+                                  )
+                                }
+                                className="h-6 px-1.5 text-[11px]"
+                                title="Preview schedule impact in Simulator"
+                              >
+                                <Sparkles className="h-3 w-3 mr-0.5 text-accent-700" />
+                                Preview Impact
+                              </Button>
                               <Button
                                 variant="primary"
                                 size="sm"

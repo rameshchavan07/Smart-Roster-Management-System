@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Search,
   CheckCircle2,
@@ -7,6 +8,7 @@ import {
   LayoutGrid,
   BarChart2,
   Calendar,
+  Sparkles,
 } from 'lucide-react';
 import {
   Button,
@@ -70,6 +72,7 @@ const SAMPLE_EMPLOYEES = [
 ];
 
 export const RosterWorkspacePage: React.FC = () => {
+  const navigate = useNavigate();
   const { currentMonth, monthLabel, daysInMonth, year } = useMonth();
   const { isOpsManager, isPodLead } = useAuth();
   const { success, error } = useToast();
@@ -719,6 +722,16 @@ export const RosterWorkspacePage: React.FC = () => {
           >
             <Calendar className="w-3.5 h-3.5 mr-1 text-accent-600" />
             Day View
+          </Button>
+
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => navigate('/simulator')}
+            title="Launch What-If Impact Simulator"
+          >
+            <Sparkles className="w-3.5 h-3.5 mr-1 text-accent-700" />
+            Simulator
           </Button>
 
           <Button

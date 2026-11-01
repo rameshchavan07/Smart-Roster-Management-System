@@ -4,6 +4,7 @@ import {
   LayoutDashboard,
   Calendar,
   AlertTriangle,
+  Sparkles,
   Clock,
   Users,
   Briefcase,
@@ -99,6 +100,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <NavLink to="/conflicts" className={navLinkClass} onClick={onCloseMobile}>
             <AlertTriangle className="h-4 w-4 shrink-0 text-warn" />
             <span>Conflicts</span>
+          </NavLink>
+        )}
+
+        {!isEmployee && (
+          <NavLink to="/simulator" className={navLinkClass} onClick={onCloseMobile}>
+            <Sparkles className="h-4 w-4 shrink-0 text-accent-700" />
+            <span>Impact Simulator</span>
           </NavLink>
         )}
 
