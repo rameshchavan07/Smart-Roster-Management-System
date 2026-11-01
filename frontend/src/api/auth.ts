@@ -39,3 +39,4 @@ export async function getMeApi(): Promise<User> {
 export async function getDemoAccountsApi(): Promise<DemoAccountInfo[]> {
   return apiClient<DemoAccountInfo[]>('/auth/demo-accounts');
 }
+

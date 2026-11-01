@@ -51,6 +51,7 @@ from app.scheduler.explain import (
     rank_backup_candidates,
 )
 from app.scheduler.generator_cpsat import generate_cpsat
+from app.scheduler.generator_greedy import generate_greedy
 from app.scheduler.supply import (
     build_supply_cell,
     build_supply_lookup,
@@ -114,4 +115,5 @@ __all__ = [
     "rank_backup_candidates",
     # Generator
     "generate_cpsat",
+    "generate_greedy",
 ]

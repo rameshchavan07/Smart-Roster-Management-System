@@ -35,3 +35,4 @@ export interface DemoAccountInfo {
   employee_name?: string | null;
   default_password?: string | null;
 }
+

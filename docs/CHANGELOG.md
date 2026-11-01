@@ -5,6 +5,16 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 ## [Unreleased]
 
 ### Added
+- Greedy baseline and deterministic fallback roster generator (Task T-507 marked Completed in `TASK_TRACKER.md`):
+  - Created pure-Python generator `backend/app/scheduler/generator_greedy.py`:
+    - Enforces hard constraints H1–H5 (fixed cells, weekly off pro-rating, max consecutive work days, cell validity, fixed mandatory weekdays).
+    - Implements greedy weekly-off scheduling assigning offs to dates with highest coverage slack across each employee's assigned brand-processes.
+    - Includes soft preference tie-breaking (P1 preferred off weekdays/dates and weekend balance).
+    - Incorporates consecutive work days enforcement and streak breaking with previous month carry-in tail support.
+    - Performs local coverage repair swapping flexible weekly offs with surplus coverage days within the same week.
+    - Integrates with independent `validate_roster` and explanation enrichment (`enrich_conflicts`), returning `SolverStatus.FALLBACK`.
+  - Exported `generate_greedy` in `backend/app/scheduler/__init__.py`.
+  - Added unit test suite in `backend/tests/unit/scheduler/test_generator_greedy.py` testing module isolation, determinism, mandatory off weekdays, carry-in streaks, coverage slack, and fixed cell immutability.
 - Frontend authentication flow and role-based navigation (Task T-405 marked Completed in `TASK_TRACKER.md`):
   - Created authentication API layer and HTTP interceptor:
     - `frontend/src/api/client.ts`: Intercepts API calls to inject `Authorization: Bearer <token>`, manages token in memory/localStorage, automatically triggers silent refresh on HTTP 401 via `/auth/refresh`, and transparently retries requests.
