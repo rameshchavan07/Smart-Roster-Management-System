@@ -22,14 +22,45 @@ from app.models.roster import (
 # -----------------------------------------------------------------------------
 # RosterPeriod Schemas
 # -----------------------------------------------------------------------------
+class RosterGenerateOptions(BaseModel):
+    """Execution options for the scheduling solver."""
+
+    seed: int = 42
+    time_limit_s: int = 20
+    base_roster_id: uuid.UUID | None = None
+    use_fallback: bool = False
+
+
 class RosterGenerateRequest(BaseModel):
     """Payload to trigger monthly roster generation."""
 
-    month: dt.date = Field(description="First day of target month, e.g. 2026-12-01")
+    month: str | dt.date = Field(description="Target month, e.g. '2026-12' or '2026-12-01'")
     pod_id: uuid.UUID | None = Field(default=None, description="Optional pod scope")
-    seed: int = Field(default=42, description="RNG seed for solver determinism")
-    time_limit_s: int = Field(default=20, ge=1, le=120, description="CP-SAT time limit")
+    options: RosterGenerateOptions | None = None
+    seed: int | None = Field(default=None, description="RNG seed for solver determinism")
+    time_limit_s: int | None = Field(default=None, ge=1, le=120, description="CP-SAT time limit")
     weights: dict[str, int] | None = Field(default=None, description="Custom objective weights")
+
+
+class RosterSummary(BaseModel):
+    """Validation conflict and coverage summary metrics."""
+
+    blocking: int = 0
+    warnings: int = 0
+    info: int = 0
+    coverage_pct: float = 100.0
+
+
+class RosterGenerateResponse(BaseModel):
+    """Response returned upon roster creation and generation."""
+
+    id: uuid.UUID
+    month: dt.date
+    version: int
+    status: RosterPeriodStatus
+    solver_status: str | None = None
+    summary: RosterSummary
+    created_at: dt.datetime
 
 
 class RosterPeriodRead(BaseModel):

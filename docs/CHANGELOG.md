@@ -5,6 +5,20 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 ## [Unreleased]
 
 ### Added
+- Roster generation application layer and REST API (Task T-509 marked Completed in `TASK_TRACKER.md`):
+  - Created `RosterPeriodRepository`, `RosterEntryRepository`, and `RosterConflictRepository` in `backend/app/repositories/roster.py` for versioned roster periods, daily cells, and enriched conflicts.
+  - Built `RosterService` in `backend/app/services/roster.py`:
+    - Pure boundary layer bridging SQLAlchemy ORM models with pure Python scheduler dataclasses.
+    - Implemented `parse_month_bounds` normalizing target month strings and dates into first/last day of month.
+    - Added carry-in tail work streak detection (H3) across month boundaries from preceding roster periods.
+    - Integrated CP-SAT solver with automatic greedy fallback on timeout, infeasibility, or explicit request (`use_fallback=True`).
+    - Bulk-persisted `RosterPeriod`, `RosterEntry`, `RosterConflict`, and immutable `AuditLog` records in a single database transaction.
+    - Implemented metadata retrieval and version listing.
+  - Created REST endpoints in `backend/app/api/v1/endpoints/rosters.py` and registered them in `backend/app/api/v1/router.py`:
+    - `POST /api/v1/rosters`: Generates draft roster version; guarded by `require_ops_manager` (HTTP 403 on non-ops).
+    - `GET /api/v1/rosters`: Lists generated versions for a month (newest first).
+    - `GET /api/v1/rosters/{period_id}`: Retrieves period metadata, solver status, entry count, and conflict count.
+  - Added comprehensive integration test suite in `backend/tests/api/test_roster_generation_api.py` covering RBAC authorization, solver execution, database persistence, version incrementing, listing, and greedy fallback.
 - Greedy baseline and deterministic fallback roster generator (Task T-507 marked Completed in `TASK_TRACKER.md`):
   - Created pure-Python generator `backend/app/scheduler/generator_greedy.py`:
     - Enforces hard constraints H1–H5 (fixed cells, weekly off pro-rating, max consecutive work days, cell validity, fixed mandatory weekdays).

@@ -60,7 +60,7 @@
 | T-506 | Root-cause and explainer | Attach causes (WO/LEAVE/…) and generate plain-language messages | High | T-505 | Conflict messages | Completed | 1.5h | MVP |
 | T-507 | Greedy baseline generator | Deterministic fallback generator respecting hard constraints | High | T-505 | `generate_greedy()` | Completed | 3h | MVP |
 | T-508 | CP-SAT model | Variables, H1–H5, coverage slack, objective for preferences/fairness/stability | High | T-505 | `generate_cpsat()` | Completed | 4h | MVP |
-| T-509 | Generation service and API | Load inputs, run engine, persist roster + conflicts, `POST /rosters` | High | T-507, T-508, T-306 | Endpoint | Not Started | 2h | MVP |
+| T-509 | Generation service and API | Load inputs, run engine, persist roster + conflicts, `POST /rosters` | High | T-507, T-508, T-306 | Endpoint | Completed | 2h | MVP |
 | T-510 | Roster read APIs | `grid` for 5 views, `coverage`, `day`, `conflicts` endpoints | High | T-509 | Endpoints | Not Started | 2.5h | MVP |
 | T-511 | Impact (what-if) service | Dry-run changes; conflict diff (new / resolved / unchanged) on affected dates only | High | T-505, T-510 | `POST /impact` | Not Started | 2.5h | MVP |
 | T-512 | Cell edit and lock | Apply validated edits, locks, audit entries, stale flag handling | High | T-511 | `PUT /entries` | Not Started | 2h | MVP |

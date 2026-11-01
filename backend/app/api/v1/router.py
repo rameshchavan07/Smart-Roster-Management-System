@@ -16,6 +16,7 @@ from app.api.v1.endpoints import (
     pods,
     preferences,
     processes,
+    rosters,
     weekly_off_rules,
 )
 
@@ -42,3 +43,6 @@ api_router.include_router(weekly_off_rules.router)
 api_router.include_router(preferences.router)
 api_router.include_router(leaves.router)
 api_router.include_router(comp_offs.router)
+
+# Roster routes
+api_router.include_router(rosters.router)
