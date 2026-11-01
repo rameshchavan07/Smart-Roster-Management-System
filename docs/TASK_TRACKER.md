@@ -99,7 +99,7 @@
 |---|---|---|---|---|---|---|---|---|
 | T-701 | Typed API client | Generate TypeScript client from OpenAPI; auth interceptor | High | T-307 | `api/` client | Completed | 1h | MVP |
 | T-702 | Query hooks and error layer | TanStack Query hooks, global error/toast mapping, request-id display | High | T-701 | Hooks | Completed | 1.5h | MVP |
-| T-703 | Wire master-data and rules screens | Connect T-603–T-606 to API | High | T-702 | Working CRUD | Not Started | 2h | MVP |
+| T-703 | Wire master-data and rules screens | Connect T-603–T-606 to API | High | T-702 | Working CRUD | Completed | 2h | MVP |
 | T-704 | Wire roster generation and views | Generate, grid, coverage, day endpoints | High | T-510, T-607 | Live roster | Not Started | 2.5h | MVP |
 | T-705 | Wire conflicts, impact, suggestions | Connect drawer/simulator/edit popover | High | T-511–T-513 | Live validation | Not Started | 2h | MVP |
 | T-706 | Cache invalidation and optimistic edits | Keep grid, conflicts and dashboard consistent after changes | Medium | T-705 | Consistent UI | Not Started | 1h | MVP |

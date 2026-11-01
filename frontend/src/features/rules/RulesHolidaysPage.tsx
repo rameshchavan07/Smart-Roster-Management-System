@@ -27,6 +27,7 @@ import {
   useDeleteHolidayMutation,
 } from '../../api/rules';
 import { useBrandProcessesQuery } from '../../api/brands';
+import { showApiErrorToast } from '../../api/errorMapping';
 import { useAuth } from '../auth/AuthContext';
 import { useMonth } from '../../context/MonthContext';
 import { CoverageRuleModal } from './CoverageRuleModal';
@@ -155,8 +156,7 @@ export const RulesHolidaysPage: React.FC = () => {
       await deleteRuleMutation.mutateAsync(rule.id);
       toast.success('Rule deleted', 'Coverage override rule was removed.');
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to delete rule';
-      toast.error('Deletion failed', msg);
+      showApiErrorToast(err, toast, 'Failed to delete rule');
     }
   };
 
@@ -165,8 +165,7 @@ export const RulesHolidaysPage: React.FC = () => {
       await deleteHolidayMutation.mutateAsync(h.id);
       toast.success('Holiday deleted', `"${h.name}" was removed.`);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to delete holiday';
-      toast.error('Deletion failed', msg);
+      showApiErrorToast(err, toast, 'Failed to delete holiday');
     }
   };
 

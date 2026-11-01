@@ -59,6 +59,12 @@ export async function deleteBrandApi(id: string): Promise<{ message: string }> {
   });
 }
 
+export async function deleteProcessApi(id: string): Promise<{ message: string }> {
+  return apiClient<{ message: string }>(`/processes/${id}`, {
+    method: 'DELETE',
+  });
+}
+
 export async function getProcessesApi(params?: {
   offset?: number;
   limit?: number;
@@ -247,6 +253,49 @@ export function useUpdateBrandMutation() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['brands'] });
       queryClient.invalidateQueries({ queryKey: ['brand', variables.id] });
+    },
+  });
+}
+
+export function useDeleteBrandMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: deleteBrandApi,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['brands'] });
+      queryClient.invalidateQueries({ queryKey: ['brand-processes'] });
+    },
+  });
+}
+
+export function useCreateProcessMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: createProcessApi,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['processes'] });
+    },
+  });
+}
+
+export function useUpdateProcessMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: ProcessUpdateInput }) =>
+      updateProcessApi(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['processes'] });
+    },
+  });
+}
+
+export function useDeleteProcessMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: deleteProcessApi,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['processes'] });
+      queryClient.invalidateQueries({ queryKey: ['brand-processes'] });
     },
   });
 }

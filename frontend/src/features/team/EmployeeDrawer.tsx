@@ -14,8 +14,10 @@ import {
   useEmployeeAssignmentsQuery,
   useEmployeeWeeklyOffRulesQuery,
   useUpdateEmployeeMutation,
+  useDeleteEmployeeMutation,
   usePodsQuery,
 } from '../../api/team';
+import { showApiErrorToast } from '../../api/errorMapping';
 import type { EmployeeUpdateInput } from '../../types/team';
 import { Award, Briefcase, CalendarCheck } from 'lucide-react';
 
@@ -43,6 +45,7 @@ export const EmployeeDrawer: React.FC<EmployeeDrawerProps> = ({
   const { data: podsData } = usePodsQuery();
 
   const updateMutation = useUpdateEmployeeMutation();
+  const deleteMutation = useDeleteEmployeeMutation();
 
   const [formData, setFormData] = useState<EmployeeUpdateInput>({});
   const [activeTab, setActiveTab] = useState<'profile' | 'assignments' | 'rules'>('profile');
@@ -72,8 +75,7 @@ export const EmployeeDrawer: React.FC<EmployeeDrawerProps> = ({
       toast.success('Employee updated', `${formData.full_name || 'Employee'} details saved successfully.`);
       onClose();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to update employee';
-      toast.error('Update failed', msg);
+      showApiErrorToast(err, toast, 'Update failed');
     }
   };
 
@@ -90,8 +92,19 @@ export const EmployeeDrawer: React.FC<EmployeeDrawerProps> = ({
         `${employee.full_name} is now ${newStatus ? 'active' : 'inactive'}.`
       );
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Action failed';
-      toast.error('Failed to change status', msg);
+      showApiErrorToast(err, toast, 'Failed to change status');
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!employeeId || !employee) return;
+    if (!window.confirm(`Are you sure you want to permanently delete ${employee.full_name}?`)) return;
+    try {
+      await deleteMutation.mutateAsync(employeeId);
+      toast.success('Employee deleted', `${employee.full_name} has been removed.`);
+      onClose();
+    } catch (err: unknown) {
+      showApiErrorToast(err, toast, 'Failed to delete employee');
     }
   };
 
@@ -110,14 +123,25 @@ export const EmployeeDrawer: React.FC<EmployeeDrawerProps> = ({
       footer={
         canEdit && employee ? (
           <div className="flex w-full items-center justify-between">
-            <Button
-              variant={employee.is_active ? 'destructive' : 'secondary'}
-              size="sm"
-              onClick={handleToggleActive}
-              isLoading={updateMutation.isPending}
-            >
-              {employee.is_active ? 'Deactivate' : 'Activate'}
-            </Button>
+            <div className="flex items-center gap-1.5">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleToggleActive}
+                isLoading={updateMutation.isPending}
+              >
+                {employee.is_active ? 'Deactivate' : 'Activate'}
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleDelete}
+                isLoading={deleteMutation.isPending}
+                title="Delete employee (blocked if employee has roster history)"
+              >
+                Delete
+              </Button>
+            </div>
             <div className="flex items-center gap-2">
               <Button variant="ghost" size="sm" onClick={onClose}>
                 Cancel

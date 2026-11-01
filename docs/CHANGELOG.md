@@ -5,6 +5,19 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 ## [Unreleased]
 
 ### Added
+- Wire Master-Data and Rules Screens with Full CRUD and Error Layer (Task T-703 marked Completed in `TASK_TRACKER.md`):
+  - Connected Team & Employees screen (`T-603`):
+    - Added `deletePodApi` and `useDeletePodMutation` in `frontend/src/api/team.ts`.
+    - Added Pod deletion flow in `frontend/src/features/team/PodModal.tsx` with confirmation dialog and `showApiErrorToast` handling (e.g. 409 conflict when deleting pods with assigned members).
+    - Added Employee deletion flow in `frontend/src/features/team/EmployeeDrawer.tsx` with confirmation dialog and `showApiErrorToast` handling (e.g. 409 conflict when deleting employees with shift history).
+  - Connected Brands & Processes screen (`T-604`):
+    - Added `deleteBrandApi`, `deleteProcessApi`, `useDeleteBrandMutation`, `useCreateProcessMutation`, `useUpdateProcessMutation`, and `useDeleteProcessMutation` in `frontend/src/api/brands.ts`.
+    - Added Brand deletion and Brand-Process unassignment flows in `frontend/src/features/brands/BrandsPage.tsx` with confirmation dialogs and `showApiErrorToast` feedback.
+  - Connected Rules & Holidays screen (`T-605`):
+    - Integrated `showApiErrorToast` across Coverage Rule, Holiday, and Weekly-Off rule deletions in `frontend/src/features/rules/RulesHolidaysPage.tsx`.
+  - Connected Leaves & Comp-Offs screen (`T-606`):
+    - Integrated `showApiErrorToast` across leave approval, leave rejection, and cancellation actions in `frontend/src/features/leaves/LeavesPage.tsx` and `LeaveDrawer.tsx`.
+
 - Query Hooks and Error Layer with Request-ID Display (Task T-702 marked Completed in `TASK_TRACKER.md`):
   - Built Global Error Mapping Layer in `frontend/src/api/errorMapping.ts` conforming to `API_DOCUMENTATION.md` §3:
     - Structured error parser mapping `ApiError` codes (`UNAUTHENTICATED`, `FORBIDDEN`, `NOT_FOUND`, `CONFLICT`, `ROSTER_BLOCKED`, `VALIDATION_ERROR`, `RATE_LIMITED`, `INTERNAL_ERROR`).

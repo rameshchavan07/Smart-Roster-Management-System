@@ -10,6 +10,7 @@ import {
   useRejectLeaveMutation,
   useCancelLeaveMutation,
 } from '../../api/leaves';
+import { showApiErrorToast } from '../../api/errorMapping';
 import type { Leave } from '../../types/leaves';
 import { Calendar, User, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
 
@@ -49,8 +50,7 @@ export const LeaveDrawer: React.FC<LeaveDrawerProps> = ({
       );
       onClose();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Approval failed';
-      toast.error('Action failed', msg);
+      showApiErrorToast(err, toast, 'Approval failed');
     }
   };
 
@@ -63,8 +63,7 @@ export const LeaveDrawer: React.FC<LeaveDrawerProps> = ({
       );
       onClose();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Rejection failed';
-      toast.error('Action failed', msg);
+      showApiErrorToast(err, toast, 'Rejection failed');
     }
   };
 
@@ -77,8 +76,7 @@ export const LeaveDrawer: React.FC<LeaveDrawerProps> = ({
       );
       onClose();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Cancellation failed';
-      toast.error('Action failed', msg);
+      showApiErrorToast(err, toast, 'Cancellation failed');
     }
   };
 

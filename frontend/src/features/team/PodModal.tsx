@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Button, Input, useToast } from '../../components/ui';
-import { useCreatePodMutation, useUpdatePodMutation } from '../../api/team';
+import { useCreatePodMutation, useUpdatePodMutation, useDeletePodMutation } from '../../api/team';
+import { showApiErrorToast } from '../../api/errorMapping';
 import type { Pod } from '../../types/team';
 
 export interface PodModalProps {
@@ -13,6 +14,7 @@ export const PodModal: React.FC<PodModalProps> = ({ isOpen, onClose, pod }) => {
   const toast = useToast();
   const createMutation = useCreatePodMutation();
   const updateMutation = useUpdatePodMutation();
+  const deleteMutation = useDeletePodMutation();
 
   const isEditing = !!pod;
   const [name, setName] = useState('');
@@ -52,13 +54,22 @@ export const PodModal: React.FC<PodModalProps> = ({ isOpen, onClose, pod }) => {
       }
       onClose();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Operation failed';
-      setErrorMsg(msg);
-      toast.error('Failed to save pod', msg);
+      showApiErrorToast(err, toast, 'Failed to save pod');
     }
   };
 
-  const isPending = createMutation.isPending || updateMutation.isPending;
+  const handleDelete = async () => {
+    if (!pod || !window.confirm(`Are you sure you want to delete pod "${pod.name}"?`)) return;
+    try {
+      await deleteMutation.mutateAsync(pod.id);
+      toast.success('Pod deleted', `Pod "${pod.name}" has been removed.`);
+      onClose();
+    } catch (err: unknown) {
+      showApiErrorToast(err, toast, 'Failed to delete pod');
+    }
+  };
+
+  const isPending = createMutation.isPending || updateMutation.isPending || deleteMutation.isPending;
 
   return (
     <Modal
@@ -67,19 +78,34 @@ export const PodModal: React.FC<PodModalProps> = ({ isOpen, onClose, pod }) => {
       title={isEditing ? 'Edit Pod' : 'Create Pod'}
       description="Pods group employees and define management boundaries for leads."
       footer={
-        <div className="flex items-center justify-end gap-2">
-          <Button variant="ghost" size="sm" type="button" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button
-            variant="primary"
-            size="sm"
-            type="submit"
-            form="pod-form"
-            isLoading={isPending}
-          >
-            {isEditing ? 'Save Changes' : 'Create Pod'}
-          </Button>
+        <div className="flex items-center justify-between w-full">
+          {isEditing && pod ? (
+            <Button
+              variant="destructive"
+              size="sm"
+              type="button"
+              onClick={handleDelete}
+              isLoading={deleteMutation.isPending}
+            >
+              Delete Pod
+            </Button>
+          ) : (
+            <div />
+          )}
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" type="button" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              type="submit"
+              form="pod-form"
+              isLoading={isPending}
+            >
+              {isEditing ? 'Save Changes' : 'Create Pod'}
+            </Button>
+          </div>
         </div>
       }
     >

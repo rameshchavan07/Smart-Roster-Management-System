@@ -35,6 +35,7 @@ import {
   useCompOffLedgerQuery,
 } from '../../api/leaves';
 import { useEmployeesQuery } from '../../api/team';
+import { showApiErrorToast } from '../../api/errorMapping';
 import { useAuth } from '../auth/AuthContext';
 import { LeaveDrawer } from './LeaveDrawer';
 import { LeaveModal } from './LeaveModal';
@@ -138,8 +139,7 @@ export const LeavesPage: React.FC = () => {
       await approveMutation.mutateAsync(leave.id);
       toast.success('Leave approved', `Approved leave for ${leave.employee_name || 'Staff'}.`);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Approval failed';
-      toast.error('Action failed', msg);
+      showApiErrorToast(err, toast, 'Approval failed');
     }
   };
 
@@ -149,8 +149,7 @@ export const LeavesPage: React.FC = () => {
       await rejectMutation.mutateAsync(leave.id);
       toast.warning('Leave rejected', `Rejected leave for ${leave.employee_name || 'Staff'}.`);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Rejection failed';
-      toast.error('Action failed', msg);
+      showApiErrorToast(err, toast, 'Rejection failed');
     }
   };
 

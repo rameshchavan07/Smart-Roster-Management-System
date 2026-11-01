@@ -23,8 +23,11 @@ import {
   useBrandProcessesQuery,
   useAssignmentsQuery,
   useDeleteAssignmentMutation,
+  useDeleteBrandMutation,
+  useDeleteBrandProcessMutation,
 } from '../../api/brands';
 import { usePodsQuery } from '../../api/team';
+import { showApiErrorToast } from '../../api/errorMapping';
 import { useAuth } from '../auth/AuthContext';
 import { BrandModal } from './BrandModal';
 import { BrandProcessModal } from './BrandProcessModal';
@@ -67,6 +70,30 @@ export const BrandsPage: React.FC = () => {
   });
 
   const deleteAssignmentMutation = useDeleteAssignmentMutation();
+  const deleteBrandMutation = useDeleteBrandMutation();
+  const deleteBPMutation = useDeleteBrandProcessMutation();
+
+  const handleDeleteBrand = async () => {
+    if (!activeBrand) return;
+    if (!window.confirm(`Are you sure you want to delete brand "${activeBrand.name}"?`)) return;
+    try {
+      await deleteBrandMutation.mutateAsync(activeBrand.id);
+      toast.success('Brand deleted', `Brand "${activeBrand.name}" was removed.`);
+      setSelectedBrandId(null);
+    } catch (err: unknown) {
+      showApiErrorToast(err, toast, 'Failed to delete brand');
+    }
+  };
+
+  const handleDeleteBP = async (bp: BrandProcess) => {
+    if (!window.confirm(`Are you sure you want to remove process "${bp.process_name || 'Process'}" from ${activeBrand?.name}?`)) return;
+    try {
+      await deleteBPMutation.mutateAsync(bp.id);
+      toast.success('Process removed', `Process removed from ${activeBrand?.name}.`);
+    } catch (err: unknown) {
+      showApiErrorToast(err, toast, 'Failed to remove process');
+    }
+  };
 
   // Filtered brands
   const filteredBrands = useMemo(() => {
@@ -121,8 +148,7 @@ export const BrandsPage: React.FC = () => {
         `Staff assignment for ${asgn.employee_name || 'Employee'} removed.`
       );
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to delete assignment';
-      toast.error('Action failed', msg);
+      showApiErrorToast(err, toast, 'Failed to delete assignment');
     }
   };
 
@@ -294,6 +320,16 @@ export const BrandsPage: React.FC = () => {
                       <Plus className="h-3.5 w-3.5 mr-1" />
                       Add Process
                     </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={handleDeleteBrand}
+                      isLoading={deleteBrandMutation.isPending}
+                      title="Delete brand (requires 0 active rosters)"
+                    >
+                      <Trash2 className="h-3 w-3 mr-1" />
+                      Delete
+                    </Button>
                   </div>
                 )}
               </div>
@@ -388,15 +424,25 @@ export const BrandsPage: React.FC = () => {
                                 </Badge>
                               )}
                               {canEdit && (
-                                <Button
-                                  variant="secondary"
-                                  size="sm"
-                                  onClick={() => setAssignmentModalTarget(bp)}
-                                  className="h-7 text-xs"
-                                >
-                                  <UserPlus className="h-3 w-3 mr-1" />
-                                  Assign Staff
-                                </Button>
+                                <>
+                                  <Button
+                                    variant="secondary"
+                                    size="sm"
+                                    onClick={() => setAssignmentModalTarget(bp)}
+                                    className="h-7 text-xs"
+                                  >
+                                    <UserPlus className="h-3 w-3 mr-1" />
+                                    Assign Staff
+                                  </Button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteBP(bp)}
+                                    className="text-ink-3 hover:text-bad p-1 rounded transition-colors"
+                                    title="Remove process from brand"
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </button>
+                                </>
                               )}
                             </div>
                           </div>

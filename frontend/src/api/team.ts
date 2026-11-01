@@ -233,3 +233,14 @@ export function useUpdatePodMutation() {
   });
 }
 
+export function useDeletePodMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: deletePodApi,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pods'] });
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
+    },
+  });
+}
+
