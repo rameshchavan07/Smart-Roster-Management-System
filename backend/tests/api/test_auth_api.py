@@ -222,3 +222,107 @@ def test_auth_me_endpoint(client_and_users: TestClient) -> None:
     )
     assert invalid_res.status_code == 401
     assert invalid_res.json()["error"]["code"] == "UNAUTHENTICATED"
+
+
+def test_get_demo_accounts_endpoint(client_and_users: TestClient) -> None:
+    """Verify GET /api/v1/auth/demo-accounts returns documented demo roles for evaluators."""
+    res = client_and_users.get("/api/v1/auth/demo-accounts")
+    assert res.status_code == 200
+    data = res.json()
+    assert len(data) == 3
+
+    roles = {item["role"]: item for item in data}
+    assert "OPS_MANAGER" in roles
+    assert roles["OPS_MANAGER"]["email"] == "ops@example.test"
+    assert "company-wide" in roles["OPS_MANAGER"]["description"]
+
+    assert "POD_LEAD" in roles
+    assert roles["POD_LEAD"]["email"] == "lead.a@example.test"
+    assert roles["POD_LEAD"]["employee_code"] == "EMP-001"
+
+    assert "EMPLOYEE" in roles
+    assert roles["EMPLOYEE"]["email"] == "emp@example.test"
+    assert roles["EMPLOYEE"]["employee_code"] == "EMP-007"
+
+
+def test_seeded_demo_accounts_login_and_roles() -> None:
+    """Verify that seeded demo accounts from app.seed can log in and reflect correct RBAC roles."""
+    from app.seed import seed_database
+
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(engine)
+    session_factory = sessionmaker(bind=engine, autocommit=False, autoflush=False)
+
+    session = session_factory()
+    seed_database(session, scale=1, clean=False, demo_password="DemoPass123!")
+    session.close()
+
+    app = create_app()
+
+    def override_get_db() -> Generator[Session, None, None]:
+        db = session_factory()
+        try:
+            yield db
+        finally:
+            db.close()
+
+    app.dependency_overrides[get_db] = override_get_db
+
+    with TestClient(app, raise_server_exceptions=False) as client:
+        # 1. Ops Manager Login
+        ops_res = client.post(
+            "/api/v1/auth/login",
+            json={"email": "ops@example.test", "password": "DemoPass123!"},
+        )
+        assert ops_res.status_code == 200
+        ops_token = ops_res.json()["access_token"]
+        assert ops_res.json()["user"]["role"] == "OPS_MANAGER"
+
+        ops_me = client.get(
+            "/api/v1/auth/me",
+            headers={"Authorization": f"Bearer {ops_token}"},
+        )
+        assert ops_me.status_code == 200
+        assert ops_me.json()["role"] == "OPS_MANAGER"
+        assert ops_me.json()["employee_id"] is None
+
+        # 2. Pod Lead Login
+        lead_res = client.post(
+            "/api/v1/auth/login",
+            json={"email": "lead.a@example.test", "password": "DemoPass123!"},
+        )
+        assert lead_res.status_code == 200
+        lead_token = lead_res.json()["access_token"]
+        assert lead_res.json()["user"]["role"] == "POD_LEAD"
+
+        lead_me = client.get(
+            "/api/v1/auth/me",
+            headers={"Authorization": f"Bearer {lead_token}"},
+        )
+        assert lead_me.status_code == 200
+        assert lead_me.json()["role"] == "POD_LEAD"
+        assert lead_me.json()["employee_id"] is not None
+
+        # 3. Employee Login
+        emp_res = client.post(
+            "/api/v1/auth/login",
+            json={"email": "emp@example.test", "password": "DemoPass123!"},
+        )
+        assert emp_res.status_code == 200
+        emp_token = emp_res.json()["access_token"]
+        assert emp_res.json()["user"]["role"] == "EMPLOYEE"
+
+        emp_me = client.get(
+            "/api/v1/auth/me",
+            headers={"Authorization": f"Bearer {emp_token}"},
+        )
+        assert emp_me.status_code == 200
+        assert emp_me.json()["role"] == "EMPLOYEE"
+        assert emp_me.json()["employee_id"] is not None
+
+    Base.metadata.drop_all(engine)
+    app.dependency_overrides.clear()

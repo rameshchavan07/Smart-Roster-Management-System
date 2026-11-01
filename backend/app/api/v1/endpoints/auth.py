@@ -13,8 +13,9 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_current_user, get_current_user_optional, get_db
 from app.core.config import get_settings
 from app.core.errors import AuthenticationError
-from app.models.auth import User
+from app.models.auth import User, UserRole
 from app.schemas.auth import (
+    DemoAccountRead,
     RefreshTokenRequest,
     TokenResponse,
     UserLoginRequest,
@@ -112,3 +113,34 @@ def get_me(
 ) -> UserRead:
     """Return the currently authenticated user's profile and RBAC role."""
     return UserRead.model_validate(current_user)
+
+
+@router.get("/demo-accounts", response_model=list[DemoAccountRead], status_code=status.HTTP_200_OK)
+def get_demo_accounts() -> list[DemoAccountRead]:
+    """Return publicly documented demo accounts for evaluators conforming to SAMPLE_DATA.md §8."""
+    settings = get_settings()
+    pwd = settings.DEMO_PASSWORD if settings.APP_ENV != "production" else None
+    return [
+        DemoAccountRead(
+            role=UserRole.OPS_MANAGER,
+            email="ops@example.test",
+            description="Full company-wide management, generation, and publishing",
+            default_password=pwd,
+        ),
+        DemoAccountRead(
+            role=UserRole.POD_LEAD,
+            email="lead.a@example.test",
+            description="Pod A scoped management; reviews own pod roster",
+            employee_code="EMP-001",
+            employee_name="Aarav Sharma",
+            default_password=pwd,
+        ),
+        DemoAccountRead(
+            role=UserRole.EMPLOYEE,
+            email="emp@example.test",
+            description="Linked to EMP-007 (Riya Shah); read-only personal schedule & ledger",
+            employee_code="EMP-007",
+            employee_name="Riya Shah",
+            default_password=pwd,
+        ),
+    ]

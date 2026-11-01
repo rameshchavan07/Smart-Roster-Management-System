@@ -70,6 +70,17 @@ class RefreshTokenRequest(BaseModel):
     refresh_token: str | None = Field(default=None)
 
 
+class DemoAccountRead(BaseModel):
+    """Documented demo credentials for evaluators conforming to SAMPLE_DATA.md §8."""
+
+    role: UserRole
+    email: str
+    description: str
+    employee_code: str | None = None
+    employee_name: str | None = None
+    default_password: str | None = None
+
+
 # -----------------------------------------------------------------------------
 # AuditLog Schemas
 # -----------------------------------------------------------------------------

@@ -5,6 +5,13 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 ## [Unreleased]
 
 ### Added
+- Seed demo accounts and documented credentials (Task T-404 marked Completed in `TASK_TRACKER.md`):
+  - Created public endpoint `GET /api/v1/auth/demo-accounts` returning evaluator credentials per `SAMPLE_DATA.md` §8:
+    - `OPS_MANAGER`: `ops@example.test` (Full company-wide management, generation, and publishing).
+    - `POD_LEAD`: `lead.a@example.test` (Pod A scoped management, linked to `EMP-001` Aarav Sharma).
+    - `EMPLOYEE`: `emp@example.test` (Read-only personal schedule & ledger, linked to `EMP-007` Riya Shah).
+  - Created frontend demo credentials configuration in `frontend/src/config/demoAccounts.ts` ready for the login screen's "Demo access" disclosure (`UI_UX_REQUIREMENTS.md` §3.1).
+  - Added test coverage in `backend/tests/api/test_auth_api.py` validating that all 3 seeded demo accounts log in successfully with `DemoPass123!`, receive valid JWT tokens, and reflect their respective RBAC roles and employee links.
 - Role-based access control and own-pod scoping (Task T-403 marked Completed in `TASK_TRACKER.md`):
   - Implemented reusable FastAPI RBAC dependencies and scoping verifiers in `backend/app/api/deps.py`:
     - `require_roles(*allowed_roles)`: Validates authenticated user role, returning HTTP 403 `FORBIDDEN` if unauthorized.
