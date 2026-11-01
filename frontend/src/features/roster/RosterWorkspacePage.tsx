@@ -23,6 +23,7 @@ import {
 } from '../../components/ui';
 import { useMonth } from '../../context/MonthContext';
 import { useAuth } from '../auth/AuthContext';
+import { showApiErrorToast } from '../../api/errorMapping';
 import {
   useRosterPeriodsQuery,
   useRosterGridQuery,
@@ -85,7 +86,7 @@ export const RosterWorkspacePage: React.FC = () => {
   const navigate = useNavigate();
   const { currentMonth, monthLabel, daysInMonth, year } = useMonth();
   const { isOpsManager, isPodLead } = useAuth();
-  const { success, error } = useToast();
+  const toast = useToast();
 
   const canEdit = isOpsManager || isPodLead;
 
@@ -509,24 +510,31 @@ export const RosterWorkspacePage: React.FC = () => {
 
       // If active roster period exists, trigger backend mutation
       if (activePeriod?.id) {
-        updateEntriesMutation.mutate({
-          periodId: activePeriod.id,
-          request: {
-            entries: [
-              {
-                employee_id: employeeId,
-                date,
-                status: newStatus,
-                source: 'MANUAL',
-              },
-            ],
+        updateEntriesMutation.mutate(
+          {
+            periodId: activePeriod.id,
+            request: {
+              entries: [
+                {
+                  employee_id: employeeId,
+                  date,
+                  status: newStatus,
+                  source: 'MANUAL',
+                },
+              ],
+            },
           },
-        });
+          {
+            onError: (err) => {
+              showApiErrorToast(err, toast, 'Quick status update failed');
+            },
+          }
+        );
       }
 
-      success('Cell Updated', `Set status to ${newStatus} for ${date}`);
+      toast.success('Cell Updated', `Set status to ${newStatus} for ${date}`);
     },
-    [canEdit, activePeriod, updateEntriesMutation, success]
+    [canEdit, activePeriod, updateEntriesMutation, toast]
   );
 
   // Apply edits from CellEditPopover
@@ -580,13 +588,12 @@ export const RosterWorkspacePage: React.FC = () => {
           });
         }
 
-        success('Schedule Updated', `Saved schedule for ${row.employee_name} on ${date}`);
+        toast.success('Schedule Updated', `Saved schedule for ${row.employee_name} on ${date}`);
       } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : 'Failed to update schedule cell';
-        error('Update Failed', msg);
+        showApiErrorToast(err, toast, 'Failed to update schedule cell');
       }
     } else {
-      success('Schedule Updated', `Saved schedule for ${row.employee_name} on ${date}`);
+      toast.success('Schedule Updated', `Saved schedule for ${row.employee_name} on ${date}`);
     }
 
     setSelectedCellInfo(null);
@@ -990,7 +997,7 @@ export const RosterWorkspacePage: React.FC = () => {
                 onCellClick={handleCellClick}
                 onDayHeaderClick={(date) => setDayViewDate(date)}
                 onCoverageCellClick={(cell) => {
-                  success(
+                  toast.success(
                     `${cell.brand_name} · ${cell.process_name}`,
                     `Demand: ${cell.required} · Actual: ${cell.actual} · Shortfall: ${cell.shortfall}`
                   );
@@ -1009,7 +1016,7 @@ export const RosterWorkspacePage: React.FC = () => {
           dates={monthDates}
           isLoading={isPeriodsLoading || isCoverageLoading}
           onCellClick={(cell) => {
-            success(
+            toast.success(
               `${cell.brand_name} · ${cell.process_name}`,
               `Demand: ${cell.required} · Actual: ${cell.actual} · Shortfall: ${cell.shortfall}`
             );

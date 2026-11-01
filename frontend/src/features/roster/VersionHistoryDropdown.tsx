@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { Badge, Button, useToast } from '../../components/ui';
 import { useCloneRosterMutation } from '../../api/rosters';
+import { showApiErrorToast } from '../../api/errorMapping';
 import { useAuth } from '../auth/AuthContext';
 import type { RosterPeriod } from '../../types/roster';
 
@@ -27,7 +28,7 @@ export const VersionHistoryDropdown: React.FC<VersionHistoryDropdownProps> = ({
   onCompareVersions,
 }) => {
   const { isOpsManager, isPodLead } = useAuth();
-  const { success, error } = useToast();
+  const toast = useToast();
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -57,7 +58,7 @@ export const VersionHistoryDropdown: React.FC<VersionHistoryDropdownProps> = ({
           note: `Cloned from v${targetPeriod.version}`,
         },
       });
-      success(
+      toast.success(
         'New Draft Created',
         `Version v${res.version} cloned from v${targetPeriod.version} as an editable draft.`
       );
@@ -67,8 +68,7 @@ export const VersionHistoryDropdown: React.FC<VersionHistoryDropdownProps> = ({
       }
       onSelectPeriod(res);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to clone roster version';
-      error('Clone Failed', msg);
+      showApiErrorToast(err, toast, 'Failed to clone roster version');
     }
   };
 

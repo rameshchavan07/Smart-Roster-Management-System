@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { Button, Badge, Modal, Input, useToast } from '../../components/ui';
 import { useGenerateRosterMutation } from '../../api/rosters';
+import { showApiErrorToast } from '../../api/errorMapping';
 import { useMonth } from '../../context/MonthContext';
 import type { RosterGenerateResponse } from '../../types/roster';
 
@@ -31,7 +32,7 @@ export const GenerateRosterModal: React.FC<GenerateRosterModalProps> = ({
   onGenerated,
 }) => {
   const { currentMonth, monthLabel } = useMonth();
-  const { success, error } = useToast();
+  const toast = useToast();
   const generateMutation = useGenerateRosterMutation();
 
   const [timeLimit, setTimeLimit] = useState<number>(20);
@@ -83,7 +84,7 @@ export const GenerateRosterModal: React.FC<GenerateRosterModalProps> = ({
 
       setGeneratedResult(res);
       setStep('RESULT');
-      success(
+      toast.success(
         'Roster Generated',
         `Version v${res.version} created for ${monthLabel} with ${res.summary.coverage_pct}% coverage.`
       );
@@ -96,8 +97,7 @@ export const GenerateRosterModal: React.FC<GenerateRosterModalProps> = ({
         timerRef.current = null;
       }
       setStep('CONFIG');
-      const msg = err instanceof Error ? err.message : 'Solver failed to generate roster';
-      error('Generation Failed', msg);
+      showApiErrorToast(err, toast, 'Generation Failed');
     }
   };
 

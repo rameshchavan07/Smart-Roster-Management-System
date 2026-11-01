@@ -241,8 +241,11 @@ export function useUpdateRosterEntriesMutation() {
       periodId: string;
       request: RosterEntriesBatchUpdateRequest;
     }) => updateRosterEntriesApi(periodId, request),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['roster-grid', variables.periodId] });
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['roster-grid'] });
+      queryClient.invalidateQueries({ queryKey: ['roster-coverage'] });
+      queryClient.invalidateQueries({ queryKey: ['roster-conflicts'] });
+      queryClient.invalidateQueries({ queryKey: ['roster-day-view'] });
       queryClient.invalidateQueries({ queryKey: ['rosters'] });
     },
   });
@@ -258,8 +261,9 @@ export function useLockRosterEntriesMutation() {
       periodId: string;
       request: RosterEntriesLockRequest;
     }) => lockRosterEntriesApi(periodId, request),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['roster-grid', variables.periodId] });
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['roster-grid'] });
+      queryClient.invalidateQueries({ queryKey: ['rosters'] });
     },
   });
 }
@@ -355,6 +359,11 @@ export function useGenerateRosterMutation() {
     mutationFn: (request: RosterGenerateRequest) => generateRosterApi(request),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['rosters'] });
+      queryClient.invalidateQueries({ queryKey: ['roster-grid'] });
+      queryClient.invalidateQueries({ queryKey: ['roster-coverage'] });
+      queryClient.invalidateQueries({ queryKey: ['roster-conflicts'] });
+      queryClient.invalidateQueries({ queryKey: ['roster-day-view'] });
+      queryClient.invalidateQueries({ queryKey: ['roster-dashboard'] });
     },
   });
 }
@@ -365,6 +374,10 @@ export function usePublishRosterMutation() {
     mutationFn: (periodId: string) => publishRosterApi(periodId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['rosters'] });
+      queryClient.invalidateQueries({ queryKey: ['roster-grid'] });
+      queryClient.invalidateQueries({ queryKey: ['roster-coverage'] });
+      queryClient.invalidateQueries({ queryKey: ['roster-conflicts'] });
+      queryClient.invalidateQueries({ queryKey: ['roster-dashboard'] });
     },
   });
 }
@@ -381,6 +394,10 @@ export function useCloneRosterMutation() {
     }) => cloneRosterApi(periodId, request),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['rosters'] });
+      queryClient.invalidateQueries({ queryKey: ['roster-grid'] });
+      queryClient.invalidateQueries({ queryKey: ['roster-coverage'] });
+      queryClient.invalidateQueries({ queryKey: ['roster-conflicts'] });
+      queryClient.invalidateQueries({ queryKey: ['roster-dashboard'] });
     },
   });
 }

@@ -16,6 +16,7 @@ import {
   useAcknowledgeConflictMutation,
   usePublishRosterMutation,
 } from '../../api/rosters';
+import { showApiErrorToast } from '../../api/errorMapping';
 import { useAuth } from '../auth/AuthContext';
 import type { RosterPeriod, RosterConflict } from '../../types/roster';
 
@@ -34,7 +35,7 @@ export const PublishConfirmModal: React.FC<PublishConfirmModalProps> = ({
 }) => {
   const navigate = useNavigate();
   const { isOpsManager } = useAuth();
-  const { success, error } = useToast();
+  const toast = useToast();
 
   const publishMutation = usePublishRosterMutation();
   const acknowledgeMutation = useAcknowledgeConflictMutation();
@@ -62,7 +63,7 @@ export const PublishConfirmModal: React.FC<PublishConfirmModalProps> = ({
   const handleQuickAcknowledge = async (conflict: RosterConflict) => {
     const reason = inlineReasons[conflict.id]?.trim() || '';
     if (reason.length < 5) {
-      error('Reason Required', 'Please provide a valid override reason of at least 5 characters.');
+      toast.error('Reason Required', 'Please provide a valid override reason of at least 5 characters.');
       return;
     }
 
@@ -75,12 +76,11 @@ export const PublishConfirmModal: React.FC<PublishConfirmModalProps> = ({
           reason,
         },
       });
-      success('Conflict Acknowledged', `Override recorded for ${conflict.code}.`);
+      toast.success('Conflict Acknowledged', `Override recorded for ${conflict.code}.`);
       setInlineReasons((prev) => ({ ...prev, [conflict.id]: '' }));
       refetchConflicts();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to record override';
-      error('Acknowledgment Failed', msg);
+      showApiErrorToast(err, toast, 'Acknowledgment Failed');
     } finally {
       setAcknowledgingId(null);
     }
@@ -88,13 +88,13 @@ export const PublishConfirmModal: React.FC<PublishConfirmModalProps> = ({
 
   const handleConfirmPublish = async () => {
     if (!isOpsManager) {
-      error('Unauthorized', 'Only an Operations Manager can publish a roster.');
+      toast.error('Unauthorized', 'Only an Operations Manager can publish a roster.');
       return;
     }
 
     try {
       const res = await publishMutation.mutateAsync(period.id);
-      success(
+      toast.success(
         'Roster Published',
         `Version v${res.version} is now the official published roster for this month.`
       );
@@ -103,8 +103,7 @@ export const PublishConfirmModal: React.FC<PublishConfirmModalProps> = ({
       }
       onClose();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Publish failed';
-      error('Publish Blocked', msg);
+      showApiErrorToast(err, toast, 'Publish Blocked');
     }
   };
 

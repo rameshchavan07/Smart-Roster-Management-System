@@ -5,6 +5,13 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 ## [Unreleased]
 
 ### Added
+- Wire Roster Generation and Views (Task T-704 marked Completed in `TASK_TRACKER.md`):
+  - Connected live roster generation flow in `frontend/src/features/roster/GenerateRosterModal.tsx` to `POST /api/v1/rosters` with deterministic solver settings (`seed`, `time_limit_s`, `use_fallback`), elapsed progress ticker, and integrated `showApiErrorToast` with `request_id`.
+  - Wired full grid view queries (`GET /api/v1/rosters/{period_id}/grid`) supporting all 5 view modes (`company`, `pod`, `brand`, `process`, `employee`) with live cell edit mutations (`PUT /api/v1/rosters/{period_id}/entries`) and cell locking (`POST /api/v1/rosters/{period_id}/entries/lock`) in `frontend/src/features/roster/RosterWorkspacePage.tsx`.
+  - Connected live coverage calculations (`GET /api/v1/rosters/{period_id}/coverage`) rendering demand headcount vs scheduled staff across dates in `frontend/src/features/roster/CoverageHeatmap.tsx` and the sticky `CoverageStrip` in `RosterGrid.tsx`.
+  - Wired single-day floor operational view (`GET /api/v1/rosters/{period_id}/day`) in `frontend/src/features/roster/DayViewDrawer.tsx` with date stepping, loading skeleton cards, empty state, and error handling.
+  - Enhanced cache invalidations in `frontend/src/api/rosters.ts` across `useGenerateRosterMutation`, `useUpdateRosterEntriesMutation`, `useLockRosterEntriesMutation`, `usePublishRosterMutation`, and `useCloneRosterMutation`.
+
 - Wire Master-Data and Rules Screens with Full CRUD and Error Layer (Task T-703 marked Completed in `TASK_TRACKER.md`):
   - Connected Team & Employees screen (`T-603`):
     - Added `deletePodApi` and `useDeletePodMutation` in `frontend/src/api/team.ts`.

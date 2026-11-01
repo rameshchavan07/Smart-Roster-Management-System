@@ -12,6 +12,8 @@ import {
   Badge,
   Button,
   StatusCell,
+  Skeleton,
+  EmptyState,
 } from '../../components/ui';
 import { useRosterDayViewQuery } from '../../api/rosters';
 import type {
@@ -43,10 +45,11 @@ export const DayViewDrawer: React.FC<DayViewDrawerProps> = ({
   holidayName,
 }) => {
   // Query day view from backend
-  const { data: apiDayData } = useRosterDayViewQuery(
-    periodId,
-    selectedDate
-  );
+  const {
+    data: apiDayData,
+    isLoading,
+    error,
+  } = useRosterDayViewQuery(periodId, selectedDate);
 
   // Formatted date string (e.g. "Monday, 14 Dec 2026")
   const dateHeading = useMemo(() => {
@@ -379,57 +382,87 @@ export const DayViewDrawer: React.FC<DayViewDrawerProps> = ({
           </Button>
         </div>
 
-        {/* Daily Summary Metric Badges */}
-        <div className="grid grid-cols-3 gap-2">
-          <div className="p-2.5 bg-surface-1 border border-border rounded-md">
-            <span className="text-[10px] text-text-muted font-medium uppercase">
-              Staff Working
-            </span>
-            <div className="text-base font-mono font-semibold text-text-primary mt-0.5">
-              {dayStats.totalWorking} <span className="text-xs font-normal text-text-muted">on duty</span>
+        {isLoading ? (
+          <div className="space-y-4 py-2">
+            <div className="grid grid-cols-3 gap-2">
+              <Skeleton className="h-16 w-full" />
+              <Skeleton className="h-16 w-full" />
+              <Skeleton className="h-16 w-full" />
+            </div>
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-40" />
+              <Skeleton className="h-28 w-full" />
+              <Skeleton className="h-28 w-full" />
             </div>
           </div>
-
-          <div className="p-2.5 bg-surface-1 border border-border rounded-md">
-            <span className="text-[10px] text-text-muted font-medium uppercase">
-              Required Demand
-            </span>
-            <div className="text-base font-mono font-semibold text-text-primary mt-0.5">
-              {dayStats.totalRequired} <span className="text-xs font-normal text-text-muted">slots</span>
+        ) : error ? (
+          <div className="p-3 bg-critical-50 border border-critical-200 rounded-ctl text-xs text-critical-900">
+            <div className="flex items-center gap-2 font-semibold">
+              <AlertTriangle className="w-4 h-4 text-critical-600 shrink-0" />
+              <span>Failed to load daily operational schedule</span>
             </div>
+            <p className="mt-1 text-critical-800">
+              {error instanceof Error ? error.message : 'An unexpected error occurred while fetching day view.'}
+            </p>
           </div>
+        ) : effectiveData.groups.length === 0 && effectiveData.unassigned_working_employees.length === 0 ? (
+          <EmptyState
+            title="No Staffing Data"
+            description="No scheduled shifts or operating brand-processes found for this date."
+          />
+        ) : (
+          <>
+            {/* Daily Summary Metric Badges */}
+            <div className="grid grid-cols-3 gap-2">
+              <div className="p-2.5 bg-surface-1 border border-border rounded-md">
+                <span className="text-[10px] text-text-muted font-medium uppercase">
+                  Staff Working
+                </span>
+                <div className="text-base font-mono font-semibold text-text-primary mt-0.5">
+                  {dayStats.totalWorking} <span className="text-xs font-normal text-text-muted">on duty</span>
+                </div>
+              </div>
 
-          <div className="p-2.5 bg-surface-1 border border-border rounded-md">
-            <span className="text-[10px] text-text-muted font-medium uppercase">
-              Coverage Health
-            </span>
-            <div className="flex items-center gap-1 text-xs font-semibold mt-0.5">
-              {dayStats.isFullyMet ? (
-                <>
-                  <CheckCircle2 className="w-3.5 h-3.5 text-[#2E7D5B]" />
-                  <span className="text-[#2E7D5B]">100% Met</span>
-                </>
-              ) : (
-                <>
-                  <AlertTriangle className="w-3.5 h-3.5 text-[#C2412D]" />
-                  <span className="text-[#C2412D]">
-                    {dayStats.gapsCount} Under-staffed
-                  </span>
-                </>
-              )}
+              <div className="p-2.5 bg-surface-1 border border-border rounded-md">
+                <span className="text-[10px] text-text-muted font-medium uppercase">
+                  Required Demand
+                </span>
+                <div className="text-base font-mono font-semibold text-text-primary mt-0.5">
+                  {dayStats.totalRequired} <span className="text-xs font-normal text-text-muted">slots</span>
+                </div>
+              </div>
+
+              <div className="p-2.5 bg-surface-1 border border-border rounded-md">
+                <span className="text-[10px] text-text-muted font-medium uppercase">
+                  Coverage Health
+                </span>
+                <div className="flex items-center gap-1 text-xs font-semibold mt-0.5">
+                  {dayStats.isFullyMet ? (
+                    <>
+                      <CheckCircle2 className="w-3.5 h-3.5 text-[#2E7D5B]" />
+                      <span className="text-[#2E7D5B]">100% Met</span>
+                    </>
+                  ) : (
+                    <>
+                      <AlertTriangle className="w-3.5 h-3.5 text-[#C2412D]" />
+                      <span className="text-[#C2412D]">
+                        {dayStats.gapsCount} Under-staffed
+                      </span>
+                    </>
+                  )}
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
 
-        {/* Brand-Processes Group Breakdown */}
-        <div className="space-y-2.5">
-          <h4 className="text-[11px] font-semibold text-text-secondary uppercase tracking-wider">
-            Brand-Process Coverage Breakdown
-          </h4>
+            {/* Brand-Processes Group Breakdown */}
+            <div className="space-y-2.5">
+              <h4 className="text-[11px] font-semibold text-text-secondary uppercase tracking-wider">
+                Brand-Process Coverage Breakdown
+              </h4>
 
-          {effectiveData.groups.map((group) => {
-            const hasShortfall = group.shortfall > 0;
-            const isClosed = !group.is_operating_day;
+              {effectiveData.groups.map((group) => {
+                const hasShortfall = group.shortfall > 0;
+                const isClosed = !group.is_operating_day;
 
             return (
               <div
@@ -597,6 +630,8 @@ export const DayViewDrawer: React.FC<DayViewDrawerProps> = ({
               ))}
             </div>
           </div>
+        )}
+          </>
         )}
       </div>
     </Drawer>
