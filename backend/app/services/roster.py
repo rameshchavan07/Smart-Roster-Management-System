@@ -10,9 +10,10 @@ from __future__ import annotations
 import contextlib
 import datetime as dt
 import uuid
+from collections import defaultdict
 
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.core.config import get_settings
 from app.core.errors import BusinessValidationError, NotFoundError
@@ -69,7 +70,7 @@ from app.repositories.roster import (
     RosterEntryRepository,
     RosterPeriodRepository,
 )
-from app.scheduler.demand import build_demand_matrix
+from app.scheduler.demand import build_demand_cell, build_demand_matrix
 from app.scheduler.domain import (
     Assignment as DomainAssignment,
 )
@@ -109,8 +110,16 @@ from app.scheduler.generator_cpsat import generate_cpsat
 from app.scheduler.generator_greedy import generate_greedy
 from app.scheduler.supply import build_supply_matrix
 from app.schemas.roster import (
+    RosterConflictRead,
+    RosterCoverageCell,
+    RosterDayBrandProcessGroup,
+    RosterDayEmployeeItem,
+    RosterDayViewResponse,
     RosterGenerateRequest,
     RosterGenerateResponse,
+    RosterGridCell,
+    RosterGridRow,
+    RosterGridViewResponse,
     RosterPeriodRead,
     RosterSummary,
 )
@@ -545,3 +554,448 @@ class RosterService:
             month_start, _ = parse_month_bounds(month)
         periods = self.period_repo.list_periods(month_start)
         return [self.get_roster_period(p.id) for p in periods]
+
+    def get_grid_view(
+        self,
+        period_id: uuid.UUID,
+        view: str = "company",
+        ref_id: uuid.UUID | None = None,
+    ) -> RosterGridViewResponse:
+        """Construct the interactive roster matrix for company, pod, brand, process, or employee view."""
+        period_read = self.get_roster_period(period_id)
+        start_date, end_date = parse_month_bounds(period_read.month)
+
+        stmt = (
+            select(DbEmployee)
+            .options(
+                joinedload(DbEmployee.pod),
+                joinedload(DbEmployee.assignments)
+                .joinedload(DbAssignment.brand_process)
+                .joinedload(DbBrandProcess.brand),
+                joinedload(DbEmployee.assignments)
+                .joinedload(DbAssignment.brand_process)
+                .joinedload(DbBrandProcess.process),
+            )
+            .where(DbEmployee.is_active.is_(True))
+        )
+
+        view_clean = view.lower().strip()
+        if view_clean == "pod":
+            if ref_id is not None:
+                stmt = stmt.where(DbEmployee.pod_id == ref_id)
+        elif view_clean == "brand":
+            if ref_id is not None:
+                stmt = (
+                    stmt.join(DbEmployee.assignments)
+                    .join(DbAssignment.brand_process)
+                    .where(DbBrandProcess.brand_id == ref_id)
+                )
+        elif view_clean == "process":
+            if ref_id is not None:
+                stmt = (
+                    stmt.join(DbEmployee.assignments)
+                    .join(DbAssignment.brand_process)
+                    .where(DbBrandProcess.process_id == ref_id)
+                )
+        elif view_clean == "employee":
+            if ref_id is not None:
+                stmt = stmt.where(DbEmployee.id == ref_id)
+        elif view_clean == "company":
+            pass
+        else:
+            raise BusinessValidationError(
+                f"Invalid view mode '{view}'. Expected one of: company, pod, brand, process, employee"
+            )
+
+        stmt = stmt.order_by(DbEmployee.code)
+        employees = self.session.scalars(stmt).unique().all()
+        emp_ids = [e.id for e in employees]
+
+        # Fetch roster entries for these employees and this period
+        entries_stmt = select(DbRosterEntry).where(
+            DbRosterEntry.roster_period_id == period_id,
+            DbRosterEntry.employee_id.in_(emp_ids),
+        )
+        entries = self.session.scalars(entries_stmt).all() if emp_ids else []
+        entry_map = {(e.employee_id, e.date): e for e in entries}
+
+        # Fetch conflicts for this period to badge cells
+        conflicts = self.conflict_repo.get_by_period(period_id)
+        conflicts_by_emp_date: dict[tuple[uuid.UUID, dt.date], list[str]] = defaultdict(list)
+        for c in conflicts:
+            if c.employee_id and c.date_from:
+                end_d = c.date_to or c.date_from
+                curr = c.date_from
+                while curr <= end_d:
+                    conflicts_by_emp_date[(c.employee_id, curr)].append(c.code)
+                    curr += dt.timedelta(days=1)
+
+        # Build Grid Rows
+        days_in_month = (end_date - start_date).days + 1
+        all_dates = [start_date + dt.timedelta(days=i) for i in range(days_in_month)]
+
+        rows: list[RosterGridRow] = []
+        for emp in employees:
+            primary_asgns = [
+                f"{a.brand_process.brand.code} {a.brand_process.process.code}"
+                for a in emp.assignments
+                if a.type.value == "PRIMARY"
+                and a.brand_process
+                and a.brand_process.brand
+                and a.brand_process.process
+            ]
+            cells: dict[str, RosterGridCell] = {}
+            for d in all_dates:
+                d_str = d.isoformat()
+                entry = entry_map.get((emp.id, d))
+                cell_conflicts = conflicts_by_emp_date.get((emp.id, d), [])
+                if entry:
+                    cells[d_str] = RosterGridCell(
+                        date=d,
+                        status=entry.status,
+                        source=entry.source,
+                        is_locked=entry.is_locked,
+                        note=entry.note,
+                        conflicts=cell_conflicts,
+                    )
+                else:
+                    cells[d_str] = RosterGridCell(
+                        date=d,
+                        status=DbRosterEntryStatus.WEEKLY_OFF,
+                        source=EntrySource.AUTO,
+                        is_locked=False,
+                        note=None,
+                        conflicts=cell_conflicts,
+                    )
+
+            rows.append(
+                RosterGridRow(
+                    employee_id=emp.id,
+                    employee_name=emp.full_name,
+                    employee_code=emp.code,
+                    pod_name=emp.pod.name if emp.pod else None,
+                    primary_assignments=primary_asgns,
+                    cells=cells,
+                )
+            )
+
+        return RosterGridViewResponse(
+            period=period_read,
+            view=view_clean,
+            start_date=start_date,
+            end_date=end_date,
+            rows=rows,
+        )
+
+    def get_coverage(
+        self,
+        period_id: uuid.UUID,
+        brand_process_id: uuid.UUID | None = None,
+        date_from: dt.date | None = None,
+        date_to: dt.date | None = None,
+    ) -> list[RosterCoverageCell]:
+        """Compute required vs actual coverage headcount for brand-processes per date."""
+        period_read = self.get_roster_period(period_id)
+        month_start, month_end = parse_month_bounds(period_read.month)
+        start_d = date_from or month_start
+        end_d = date_to or month_end
+
+        # Load brand-processes
+        bp_stmt = (
+            select(DbBrandProcess)
+            .options(
+                joinedload(DbBrandProcess.brand),
+                joinedload(DbBrandProcess.process),
+                joinedload(DbBrandProcess.coverage_rules),
+            )
+            .where(DbBrandProcess.is_active.is_(True))
+        )
+        if brand_process_id:
+            bp_stmt = bp_stmt.where(DbBrandProcess.id == brand_process_id)
+        db_bps = self.session.scalars(bp_stmt).unique().all()
+        bp_ids = [bp.id for bp in db_bps]
+
+        if not bp_ids:
+            return []
+
+        # Load assignments for these brand-processes
+        asgns_stmt = select(DbAssignment).where(
+            DbAssignment.brand_process_id.in_(bp_ids),
+            (DbAssignment.valid_from.is_(None) | (DbAssignment.valid_from <= end_d)),
+            (DbAssignment.valid_to.is_(None) | (DbAssignment.valid_to >= start_d)),
+        )
+        asgns = self.session.scalars(asgns_stmt).all()
+        bp_emp_map: dict[uuid.UUID, set[uuid.UUID]] = defaultdict(set)
+        for a in asgns:
+            bp_emp_map[a.brand_process_id].add(a.employee_id)
+
+        # Load holidays
+        holidays_stmt = select(DbHoliday).where(
+            DbHoliday.is_active.is_(True),
+            DbHoliday.date >= start_d,
+            DbHoliday.date <= end_d,
+        )
+        db_holidays = self.session.scalars(holidays_stmt).all()
+        domain_holidays = [
+            DomainHoliday(
+                date=h.date,
+                name=h.name,
+                brand_id=str(h.brand_id) if h.brand_id else None,
+            )
+            for h in db_holidays
+        ]
+
+        # Load roster entries in range
+        entries_stmt = select(DbRosterEntry).where(
+            DbRosterEntry.roster_period_id == period_id,
+            DbRosterEntry.date >= start_d,
+            DbRosterEntry.date <= end_d,
+        )
+        entries = self.session.scalars(entries_stmt).all()
+        working_emps_by_date: dict[dt.date, set[uuid.UUID]] = defaultdict(set)
+        for e in entries:
+            if e.status in (DbRosterEntryStatus.WORK, DbRosterEntryStatus.HOLIDAY_WORK):
+                working_emps_by_date[e.date].add(e.employee_id)
+
+        # Compute coverage per date and brand-process
+        result: list[RosterCoverageCell] = []
+        curr = start_d
+        while curr <= end_d:
+            for bp in db_bps:
+                domain_bp = DomainBrandProcess(
+                    id=str(bp.id),
+                    brand_id=str(bp.brand_id),
+                    brand_name=bp.brand.name if bp.brand else "",
+                    process_id=str(bp.process_id),
+                    process_name=bp.process.name if bp.process else "",
+                    calendar_type=DomainCalendarType(bp.calendar_type.value),
+                    min_coverage_default=bp.min_coverage_default,
+                )
+                domain_rules = [
+                    DomainCoverageRule(
+                        brand_process_id=str(r.brand_process_id),
+                        weekday=r.weekday,
+                        specific_date=r.specific_date,
+                        min_staff=r.min_staff,
+                        reason=r.reason or "",
+                    )
+                    for r in bp.coverage_rules
+                    if r.is_active
+                ]
+                cell = build_demand_cell(
+                    domain_bp, curr, holidays=domain_holidays, rules=domain_rules
+                )
+                required = cell.required_headcount
+
+                assigned_emps = bp_emp_map.get(bp.id, set())
+                actual = len(assigned_emps.intersection(working_emps_by_date.get(curr, set())))
+                shortfall = max(0, required - actual)
+
+                result.append(
+                    RosterCoverageCell(
+                        date=curr,
+                        brand_process_id=bp.id,
+                        brand_name=bp.brand.name if bp.brand else None,
+                        process_name=bp.process.name if bp.process else None,
+                        required=required,
+                        actual=actual,
+                        shortfall=shortfall,
+                    )
+                )
+            curr += dt.timedelta(days=1)
+
+        return result
+
+    def get_day_view(self, period_id: uuid.UUID, target_date: dt.date) -> RosterDayViewResponse:
+        """Provide detailed staffing breakdown on a single date grouped by brand-process."""
+        self.get_roster_period(period_id)
+
+        # Fetch active brand-processes
+        bp_stmt = (
+            select(DbBrandProcess)
+            .options(
+                joinedload(DbBrandProcess.brand),
+                joinedload(DbBrandProcess.process),
+                joinedload(DbBrandProcess.coverage_rules),
+            )
+            .where(DbBrandProcess.is_active.is_(True))
+            .order_by(DbBrandProcess.id)
+        )
+        db_bps = self.session.scalars(bp_stmt).unique().all()
+
+        # Fetch assignments for target date
+        asgns_stmt = (
+            select(DbAssignment)
+            .options(joinedload(DbAssignment.employee))
+            .where(
+                (DbAssignment.valid_from.is_(None) | (DbAssignment.valid_from <= target_date)),
+                (DbAssignment.valid_to.is_(None) | (DbAssignment.valid_to >= target_date)),
+            )
+        )
+        asgns = self.session.scalars(asgns_stmt).all()
+        bp_asgns_map: dict[uuid.UUID, list[DbAssignment]] = defaultdict(list)
+        all_assigned_emp_ids: set[uuid.UUID] = set()
+        for a in asgns:
+            bp_asgns_map[a.brand_process_id].append(a)
+            all_assigned_emp_ids.add(a.employee_id)
+
+        # Fetch entries on target_date
+        entries_stmt = (
+            select(DbRosterEntry)
+            .options(joinedload(DbRosterEntry.employee))
+            .where(
+                DbRosterEntry.roster_period_id == period_id,
+                DbRosterEntry.date == target_date,
+            )
+        )
+        entries = self.session.scalars(entries_stmt).all()
+        entry_by_emp: dict[uuid.UUID, DbRosterEntry] = {e.employee_id: e for e in entries}
+
+        # Holidays for demand
+        holidays_stmt = select(DbHoliday).where(
+            DbHoliday.is_active.is_(True),
+            DbHoliday.date == target_date,
+        )
+        db_holidays = self.session.scalars(holidays_stmt).all()
+        domain_holidays = [
+            DomainHoliday(
+                date=h.date,
+                name=h.name,
+                brand_id=str(h.brand_id) if h.brand_id else None,
+            )
+            for h in db_holidays
+        ]
+
+        groups: list[RosterDayBrandProcessGroup] = []
+        for bp in db_bps:
+            domain_bp = DomainBrandProcess(
+                id=str(bp.id),
+                brand_id=str(bp.brand_id),
+                brand_name=bp.brand.name if bp.brand else "",
+                process_id=str(bp.process_id),
+                process_name=bp.process.name if bp.process else "",
+                calendar_type=DomainCalendarType(bp.calendar_type.value),
+                min_coverage_default=bp.min_coverage_default,
+            )
+            domain_rules = [
+                DomainCoverageRule(
+                    brand_process_id=str(r.brand_process_id),
+                    weekday=r.weekday,
+                    specific_date=r.specific_date,
+                    min_staff=r.min_staff,
+                    reason=r.reason or "",
+                )
+                for r in bp.coverage_rules
+                if r.is_active
+            ]
+            cell = build_demand_cell(
+                domain_bp, target_date, holidays=domain_holidays, rules=domain_rules
+            )
+            required = cell.required_headcount
+            is_operating = cell.is_operating_day
+
+            assigned_list = bp_asgns_map.get(bp.id, [])
+            working_items: list[RosterDayEmployeeItem] = []
+            off_items: list[RosterDayEmployeeItem] = []
+
+            for a in assigned_list:
+                emp = a.employee
+                if not emp:
+                    continue
+                ent = entry_by_emp.get(emp.id)
+                status_val = ent.status if ent else DbRosterEntryStatus.WEEKLY_OFF
+                is_locked = ent.is_locked if ent else False
+                note = ent.note if ent else None
+
+                item = RosterDayEmployeeItem(
+                    employee_id=emp.id,
+                    employee_name=emp.full_name,
+                    employee_code=emp.code,
+                    assignment_type=a.type.value,
+                    status=status_val,
+                    is_locked=is_locked,
+                    note=note,
+                )
+                if status_val in (DbRosterEntryStatus.WORK, DbRosterEntryStatus.HOLIDAY_WORK):
+                    working_items.append(item)
+                else:
+                    off_items.append(item)
+
+            actual = len(working_items)
+            shortfall = max(0, required - actual)
+
+            groups.append(
+                RosterDayBrandProcessGroup(
+                    brand_process_id=bp.id,
+                    brand_name=bp.brand.name if bp.brand else "",
+                    process_name=bp.process.name if bp.process else "",
+                    required=required,
+                    actual=actual,
+                    shortfall=shortfall,
+                    is_operating_day=is_operating,
+                    working_employees=working_items,
+                    off_employees=off_items,
+                )
+            )
+
+        unassigned_working: list[RosterDayEmployeeItem] = []
+        for emp_id, ent in entry_by_emp.items():
+            if emp_id not in all_assigned_emp_ids and ent.status in (
+                DbRosterEntryStatus.WORK,
+                DbRosterEntryStatus.HOLIDAY_WORK,
+            ):
+                emp = ent.employee
+                if emp:
+                    unassigned_working.append(
+                        RosterDayEmployeeItem(
+                            employee_id=emp.id,
+                            employee_name=emp.full_name,
+                            employee_code=emp.code,
+                            assignment_type=None,
+                            status=ent.status,
+                            is_locked=ent.is_locked,
+                            note=ent.note,
+                        )
+                    )
+
+        return RosterDayViewResponse(
+            period_id=period_id,
+            date=target_date,
+            groups=groups,
+            unassigned_working_employees=unassigned_working,
+        )
+
+    def get_conflicts(
+        self,
+        period_id: uuid.UUID,
+        severity: str | None = None,
+        brand_id: uuid.UUID | None = None,
+        target_date: dt.date | None = None,
+        employee_id: uuid.UUID | None = None,
+    ) -> list[RosterConflictRead]:
+        """Fetch conflicts with entity names enriched for table display."""
+        self.get_roster_period(period_id)
+
+        conflicts = self.conflict_repo.get_by_period(
+            period_id=period_id,
+            severity=severity,
+            brand_id=brand_id,
+            target_date=target_date,
+            employee_id=employee_id,
+        )
+
+        results: list[RosterConflictRead] = []
+        for c in conflicts:
+            read = RosterConflictRead.model_validate(c)
+            if c.brand_process and c.brand_process.brand:
+                read.brand_name = c.brand_process.brand.name
+                read.brand_code = c.brand_process.brand.code
+            if c.brand_process and c.brand_process.process:
+                read.process_name = c.brand_process.process.name
+                read.process_code = c.brand_process.process.code
+            if c.employee:
+                read.employee_name = c.employee.full_name
+                read.employee_code = c.employee.code
+            results.append(read)
+
+        return results

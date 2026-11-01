@@ -12,6 +12,7 @@ from datetime import date
 from sqlalchemy import desc, func, select
 from sqlalchemy.orm import Session, joinedload
 
+from app.models.core import BrandProcess
 from app.models.roster import RosterConflict, RosterEntry, RosterPeriod, RosterPeriodStatus
 from app.repositories.base import BaseRepository
 
@@ -130,17 +131,34 @@ class RosterConflictRepository(BaseRepository[RosterConflict]):
         brand_process_id: uuid.UUID | None = None,
         date_from: date | None = None,
         date_to: date | None = None,
+        employee_id: uuid.UUID | None = None,
+        brand_id: uuid.UUID | None = None,
+        target_date: date | None = None,
     ) -> Sequence[RosterConflict]:
         """Fetch validation conflicts for a period with optional severity and entity filters."""
         stmt = (
             select(RosterConflict)
             .where(RosterConflict.roster_period_id == period_id)
+            .options(
+                joinedload(RosterConflict.employee),
+                joinedload(RosterConflict.brand_process).joinedload(BrandProcess.brand),
+                joinedload(RosterConflict.brand_process).joinedload(BrandProcess.process),
+            )
             .order_by(desc(RosterConflict.severity), RosterConflict.date_from, RosterConflict.code)
         )
         if severity:
             stmt = stmt.where(RosterConflict.severity == severity)
         if brand_process_id:
             stmt = stmt.where(RosterConflict.brand_process_id == brand_process_id)
+        if employee_id:
+            stmt = stmt.where(RosterConflict.employee_id == employee_id)
+        if brand_id:
+            stmt = stmt.join(RosterConflict.brand_process).where(BrandProcess.brand_id == brand_id)
+        if target_date:
+            stmt = stmt.where(
+                RosterConflict.date_from <= target_date,
+                (RosterConflict.date_to.is_(None) | (RosterConflict.date_to >= target_date)),
+            )
         if date_from:
             stmt = stmt.where(RosterConflict.date_from >= date_from)
         if date_to:

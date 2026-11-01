@@ -5,6 +5,19 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 ## [Unreleased]
 
 ### Added
+- Roster read APIs for matrix views, coverage, daily breakdown, and conflicts (Task T-510 marked Completed in `TASK_TRACKER.md`):
+  - Created interactive matrix views and daily breakdown schemas in `backend/app/schemas/roster.py`: `RosterGridCell`, `RosterGridRow`, `RosterGridViewResponse`, `RosterCoverageCell`, `RosterDayEmployeeItem`, `RosterDayBrandProcessGroup`, and `RosterDayViewResponse`. Enriched `RosterConflictRead` with brand, process, and employee names.
+  - Implemented service read logic in `backend/app/services/roster.py`:
+    - `get_grid_view`: Generates matrix for 5 view modes (`company`, `pod`, `brand`, `process`, `employee`) with cell status, source, lock state, and mapped cell conflict codes.
+    - `get_coverage`: Computes required headcount, actual scheduled staff, and shortfall for brand-processes per date with date range and brand-process filters.
+    - `get_day_view`: Single-day operational breakdown grouping working and off employees per brand-process with coverage state.
+    - `get_conflicts`: Filterable conflict query with severity, brand, date, and employee filters, eager loading entity names for UI display.
+  - Exposed REST endpoints in `backend/app/api/v1/endpoints/rosters.py`:
+    - `GET /api/v1/rosters/{period_id}/grid?view=company|pod|brand|process|employee&ref_id=…`
+    - `GET /api/v1/rosters/{period_id}/coverage?brand_process_id=…&date_from=…&date_to=…`
+    - `GET /api/v1/rosters/{period_id}/day?date=…`
+    - `GET /api/v1/rosters/{period_id}/conflicts?severity=…&brand_id=…&date=…&employee_id=…`
+  - Added comprehensive test suite in `backend/tests/api/test_roster_generation_api.py` validating all 5 grid views, coverage calculation, day view partitioning, conflict filtering, 401 unauthenticated and 404 not found handling, as well as a full seed benchmark test generating and querying December 2026 (36 employees: 0.43s solve time, 68ms 36x31 grid retrieval).
 - Roster generation application layer and REST API (Task T-509 marked Completed in `TASK_TRACKER.md`):
   - Created `RosterPeriodRepository`, `RosterEntryRepository`, and `RosterConflictRepository` in `backend/app/repositories/roster.py` for versioned roster periods, daily cells, and enriched conflicts.
   - Built `RosterService` in `backend/app/services/roster.py`:

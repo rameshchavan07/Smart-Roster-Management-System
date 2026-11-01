@@ -11,6 +11,7 @@ Tests:
 
 from __future__ import annotations
 
+import time
 import uuid
 from collections.abc import Generator
 
@@ -27,6 +28,7 @@ from app.models.auth import AuditLog, User, UserRole
 from app.models.core import Assignment, AssignmentType, Brand, BrandProcess, Employee, Pod, Process
 from app.models.roster import RosterEntry, RosterPeriod, RosterPeriodStatus
 from app.models.rules import WeeklyOffMode, WeeklyOffRule
+from app.seed import seed_database
 
 
 @pytest.fixture
@@ -291,3 +293,282 @@ def test_roster_generation_fallback(test_setup: dict) -> None:
     assert period.solver_status == "FALLBACK"
 
     db.close()
+
+
+def test_roster_grid_views(test_setup: dict) -> None:
+    """Test all 5 view modes (company, pod, brand, process, employee) on /grid."""
+    client_ops, db = create_client(test_setup, current_user=test_setup["users"]["ops"])
+
+    # Generate a roster
+    gen_res = client_ops.post("/api/v1/rosters", json={"month": "2026-12"})
+    assert gen_res.status_code == 201
+    period_id = gen_res.json()["id"]
+
+    # 1. Company view (all active employees)
+    grid_company = client_ops.get(f"/api/v1/rosters/{period_id}/grid?view=company")
+    assert grid_company.status_code == 200
+    comp_data = grid_company.json()
+    assert comp_data["view"] == "company"
+    assert comp_data["start_date"] == "2026-12-01"
+    assert comp_data["end_date"] == "2026-12-31"
+    assert len(comp_data["rows"]) == 3
+    # Check cells inside row
+    first_row = comp_data["rows"][0]
+    assert len(first_row["cells"]) == 31
+    assert "2026-12-01" in first_row["cells"]
+    assert first_row["cells"]["2026-12-01"]["status"] in [
+        "WORK",
+        "WEEKLY_OFF",
+        "HOLIDAY_WORK",
+        "HOLIDAY_OFF",
+    ]
+
+    # 2. Pod view (scoped by pod_id)
+    pod = db.scalars(select(Pod)).first()
+    assert pod is not None
+    grid_pod = client_ops.get(f"/api/v1/rosters/{period_id}/grid?view=pod&ref_id={pod.id}")
+    assert grid_pod.status_code == 200
+    assert len(grid_pod.json()["rows"]) == 3
+
+    # 3. Brand view (scoped by brand_id)
+    brand = db.scalars(select(Brand)).first()
+    assert brand is not None
+    grid_brand = client_ops.get(f"/api/v1/rosters/{period_id}/grid?view=brand&ref_id={brand.id}")
+    assert grid_brand.status_code == 200
+    assert len(grid_brand.json()["rows"]) == 3
+
+    # 4. Process view (scoped by process_id)
+    proc = db.scalars(select(Process)).first()
+    assert proc is not None
+    grid_proc = client_ops.get(f"/api/v1/rosters/{period_id}/grid?view=process&ref_id={proc.id}")
+    assert grid_proc.status_code == 200
+    assert len(grid_proc.json()["rows"]) == 3
+
+    # 5. Employee view (scoped to 1 employee)
+    emp = test_setup["employees"][0]
+    grid_emp = client_ops.get(f"/api/v1/rosters/{period_id}/grid?view=employee&ref_id={emp.id}")
+    assert grid_emp.status_code == 200
+    assert len(grid_emp.json()["rows"]) == 1
+    assert grid_emp.json()["rows"][0]["employee_id"] == str(emp.id)
+
+    # 6. Invalid view mode returns 422
+    invalid_view = client_ops.get(f"/api/v1/rosters/{period_id}/grid?view=invalid_mode")
+    assert invalid_view.status_code == 422
+    assert invalid_view.json()["error"]["code"] == "VALIDATION_ERROR"
+
+    db.close()
+
+
+def test_roster_coverage_endpoint(test_setup: dict) -> None:
+    """Test /coverage endpoint across dates and with brand-process filter."""
+    client_ops, db = create_client(test_setup, current_user=test_setup["users"]["ops"])
+
+    # Generate a roster
+    gen_res = client_ops.post("/api/v1/rosters", json={"month": "2026-12"})
+    period_id = gen_res.json()["id"]
+
+    # 1. Full coverage for December (31 days * 1 brand-process = 31 cells)
+    cov_res = client_ops.get(f"/api/v1/rosters/{period_id}/coverage")
+    assert cov_res.status_code == 200
+    cells = cov_res.json()
+    assert len(cells) == 31
+    sample = cells[0]
+    assert sample["date"] == "2026-12-01"
+    assert "required" in sample
+    assert "actual" in sample
+    assert "shortfall" in sample
+    assert sample["brand_name"] == "Starlight"
+    assert sample["process_name"] == "Customer Support"
+
+    # 2. Date range filter
+    week_res = client_ops.get(
+        f"/api/v1/rosters/{period_id}/coverage?date_from=2026-12-01&date_to=2026-12-07"
+    )
+    assert week_res.status_code == 200
+    assert len(week_res.json()) == 7
+
+    db.close()
+
+
+def test_roster_day_view_endpoint(test_setup: dict) -> None:
+    """Test /day endpoint returning staffing breakdown per brand-process on a single date."""
+    client_ops, db = create_client(test_setup, current_user=test_setup["users"]["ops"])
+
+    gen_res = client_ops.post("/api/v1/rosters", json={"month": "2026-12"})
+    period_id = gen_res.json()["id"]
+
+    day_res = client_ops.get(f"/api/v1/rosters/{period_id}/day?date=2026-12-15")
+    assert day_res.status_code == 200
+    data = day_res.json()
+    assert data["date"] == "2026-12-15"
+    assert len(data["groups"]) == 1
+
+    group = data["groups"][0]
+    assert group["brand_name"] == "Starlight"
+    assert group["process_name"] == "Customer Support"
+    assert group["actual"] == len(group["working_employees"])
+    assert len(group["working_employees"]) + len(group["off_employees"]) == 3
+
+    db.close()
+
+
+def test_roster_conflicts_endpoint(test_setup: dict) -> None:
+    """Test /conflicts endpoint with severity and date filtering."""
+    client_ops, db = create_client(test_setup, current_user=test_setup["users"]["ops"])
+
+    gen_res = client_ops.post("/api/v1/rosters", json={"month": "2026-12"})
+    period_id = gen_res.json()["id"]
+
+    # 1. Fetch all conflicts
+    all_conflicts = client_ops.get(f"/api/v1/rosters/{period_id}/conflicts")
+    assert all_conflicts.status_code == 200
+    assert isinstance(all_conflicts.json(), list)
+
+    # 2. Filter by severity
+    blocking = client_ops.get(f"/api/v1/rosters/{period_id}/conflicts?severity=BLOCKING")
+    assert blocking.status_code == 200
+    for c in blocking.json():
+        assert c["severity"] == "BLOCKING"
+
+    # 3. Filter by non-existent employee
+    random_emp = uuid.uuid4()
+    empty_res = client_ops.get(f"/api/v1/rosters/{period_id}/conflicts?employee_id={random_emp}")
+    assert empty_res.status_code == 200
+    assert len(empty_res.json()) == 0
+
+    db.close()
+
+
+def test_roster_read_endpoints_unauth_and_not_found(test_setup: dict) -> None:
+    """Test 401 unauthenticated and 404 not found on read endpoints."""
+    # 1. Unauthenticated requests fail with 401
+    client_unauth, db1 = create_client(test_setup, current_user=None)
+    fake_id = uuid.uuid4()
+    assert client_unauth.get(f"/api/v1/rosters/{fake_id}/grid").status_code == 401
+    assert client_unauth.get(f"/api/v1/rosters/{fake_id}/coverage").status_code == 401
+    assert client_unauth.get(f"/api/v1/rosters/{fake_id}/day?date=2026-12-01").status_code == 401
+    assert client_unauth.get(f"/api/v1/rosters/{fake_id}/conflicts").status_code == 401
+    db1.close()
+
+    # 2. Authenticated user with non-existent period_id fails with 404
+    client_ops, db2 = create_client(test_setup, current_user=test_setup["users"]["ops"])
+    assert client_ops.get(f"/api/v1/rosters/{fake_id}/grid").status_code == 404
+    assert client_ops.get(f"/api/v1/rosters/{fake_id}/coverage").status_code == 404
+    assert client_ops.get(f"/api/v1/rosters/{fake_id}/day?date=2026-12-01").status_code == 404
+    assert client_ops.get(f"/api/v1/rosters/{fake_id}/conflicts").status_code == 404
+    db2.close()
+
+
+def test_seeded_december_2026_full_lifecycle_and_timings() -> None:
+    """Generate December 2026 from full seed dataset (36 employees) and verify all 5 grid views."""
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(engine)
+    session_factory = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    db = session_factory()
+
+    # Seed scale 1 (36 employees, 25 brands, 6 pods, holidays, leaves)
+    seed_database(db, scale=1, clean=False)
+
+    ops_user = db.scalars(select(User).where(User.role == UserRole.OPS_MANAGER)).first()
+    assert ops_user is not None
+
+    app = create_app()
+
+    def override_get_db() -> Generator[Session, None, None]:
+        try:
+            yield db
+        finally:
+            pass
+
+    app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_current_user] = lambda: ops_user
+
+    with TestClient(app, raise_server_exceptions=False) as client:
+        start_t = time.perf_counter()
+        gen_res = client.post(
+            "/api/v1/rosters",
+            json={
+                "month": "2026-12",
+                "options": {
+                    "seed": 42,
+                    "time_limit_s": 15,
+                },
+            },
+        )
+        elapsed_gen = time.perf_counter() - start_t
+        assert gen_res.status_code == 201
+        period_data = gen_res.json()
+        period_id = period_data["id"]
+
+        print(
+            f"\n[TIMING] December 2026 (36 emps) generation time: {elapsed_gen:.2f}s, solver_status={period_data['solver_status']}"
+        )
+        assert period_data["month"] == "2026-12-01"
+        assert period_data["status"] == "DRAFT"
+        assert period_data["version"] == 1
+        assert "summary" in period_data
+
+        # 1. Company View: exactly 36 employee rows * 31 days = 1,116 cells
+        t0 = time.perf_counter()
+        grid_res = client.get(f"/api/v1/rosters/{period_id}/grid?view=company")
+        elapsed_grid = time.perf_counter() - t0
+        assert grid_res.status_code == 200
+        grid_data = grid_res.json()
+        assert len(grid_data["rows"]) == 36
+        print(
+            f"[TIMING] Company grid (36 rows x 31 days) retrieval time: {elapsed_grid * 1000:.1f}ms"
+        )
+
+        # 2. Pod View
+        pod_a = db.scalars(select(Pod).where(Pod.name.like("Pod A%"))).first()
+        assert pod_a is not None
+        pod_res = client.get(f"/api/v1/rosters/{period_id}/grid?view=pod&ref_id={pod_a.id}")
+        assert pod_res.status_code == 200
+        assert len(pod_res.json()["rows"]) == 5  # Pod A has EMP-001 (lead) + EMP-007, 008, 009, 010
+
+        # 3. Brand View
+        brand_aurora = db.scalars(select(Brand).where(Brand.name == "Aurora")).first()
+        assert brand_aurora is not None
+        brand_res = client.get(
+            f"/api/v1/rosters/{period_id}/grid?view=brand&ref_id={brand_aurora.id}"
+        )
+        assert brand_res.status_code == 200
+        assert len(brand_res.json()["rows"]) >= 1
+
+        # 4. Process View
+        proc_cs = db.scalars(select(Process).where(Process.code == "CS")).first()
+        assert proc_cs is not None
+        proc_res = client.get(f"/api/v1/rosters/{period_id}/grid?view=process&ref_id={proc_cs.id}")
+        assert proc_res.status_code == 200
+        assert len(proc_res.json()["rows"]) >= 1
+
+        # 5. Employee View
+        emp_riya = db.scalars(select(Employee).where(Employee.code == "EMP-007")).first()
+        assert emp_riya is not None
+        emp_res = client.get(f"/api/v1/rosters/{period_id}/grid?view=employee&ref_id={emp_riya.id}")
+        assert emp_res.status_code == 200
+        assert len(emp_res.json()["rows"]) == 1
+
+        # 6. Coverage View
+        cov_res = client.get(f"/api/v1/rosters/{period_id}/coverage")
+        assert cov_res.status_code == 200
+        cov_data = cov_res.json()
+        assert len(cov_data) > 0
+
+        # 7. Day View
+        day_res = client.get(f"/api/v1/rosters/{period_id}/day?date=2026-12-14")
+        assert day_res.status_code == 200
+        day_data = day_res.json()
+        assert len(day_data["groups"]) > 0
+
+        # 8. Conflicts View
+        conflicts_res = client.get(f"/api/v1/rosters/{period_id}/conflicts")
+        assert conflicts_res.status_code == 200
+        assert isinstance(conflicts_res.json(), list)
+
+    db.close()
+    Base.metadata.drop_all(engine)

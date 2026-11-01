@@ -150,6 +150,12 @@ class RosterConflictRead(BaseModel):
     acknowledged_by_id: uuid.UUID | None = None
     acknowledged_reason: str | None = None
     resolved_at: dt.datetime | None = None
+    brand_name: str | None = None
+    brand_code: str | None = None
+    process_name: str | None = None
+    process_code: str | None = None
+    employee_name: str | None = None
+    employee_code: str | None = None
 
 
 class RosterAcknowledgeRequest(BaseModel):
@@ -217,6 +223,41 @@ class RosterCoverageCell(BaseModel):
     required: int
     actual: int
     shortfall: int
+
+
+class RosterDayEmployeeItem(BaseModel):
+    """Employee representation in daily view."""
+
+    employee_id: uuid.UUID
+    employee_name: str
+    employee_code: str
+    assignment_type: str | None = None
+    status: RosterEntryStatus
+    is_locked: bool = False
+    note: str | None = None
+
+
+class RosterDayBrandProcessGroup(BaseModel):
+    """Staffing and coverage state for a brand-process on a specific date."""
+
+    brand_process_id: uuid.UUID
+    brand_name: str
+    process_name: str
+    required: int
+    actual: int
+    shortfall: int
+    is_operating_day: bool = True
+    working_employees: list[RosterDayEmployeeItem] = Field(default_factory=list)
+    off_employees: list[RosterDayEmployeeItem] = Field(default_factory=list)
+
+
+class RosterDayViewResponse(BaseModel):
+    """Who is working on a date, grouped by brand-process with coverage state."""
+
+    period_id: uuid.UUID
+    date: dt.date
+    groups: list[RosterDayBrandProcessGroup]
+    unassigned_working_employees: list[RosterDayEmployeeItem] = Field(default_factory=list)
 
 
 # -----------------------------------------------------------------------------
