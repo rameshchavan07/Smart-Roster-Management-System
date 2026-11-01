@@ -5,6 +5,20 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 ## [Unreleased]
 
 ### Added
+- Database seed script and topology generator (Task T-309 marked Completed in `TASK_TRACKER.md`):
+  - Created executable seed module in `backend/app/seed.py` executable via `python -m app.seed`:
+    - Seeds 6 Pods (A to F) with their designated Pod Leads (`EMP-001` through `EMP-006`).
+    - Seeds 4 Processes (`CS`, `ACC`, `RET`, `NDR`).
+    - Seeds 36 Employees matching headcount arithmetic: 6 Pod Leads, 26 Primary Staff, 4 Floaters (`EMP-033` to `EMP-036`), with exact weekly off entitlements (34 with 1 off, 2 with 2 offs).
+    - Seeds 25 Brands (20 single-resource brands `BRD-01` to `BRD-20` and 5 multi-resource brands `BRD-21` to `BRD-25`) distributed across pods with operating calendars.
+    - Creates 38 BrandProcesses and 42 Staffing Assignments (including primary and secondary cross-skilling, e.g. `EMP-015` secondary on `BRD-21` ACC).
+    - Seeds Coverage Rule Overrides: Pulse Monday surge (`BRD-23` CS min 2), Nova Friday surge (`BRD-21` ACC min 2), and Aurora campaign surge (`BRD-01` CS min 2 on 2026-12-18).
+    - Seeds Weekly Off Policy Rules: `FIXED_MANDATORY` on Fridays for `EMP-023` and `EMP-024`, `FIXED_PREFERRED` for `EMP-007` (Sun), `EMP-015` (Wed), `EMP-022` (Mon), `ROTATING` for `EMP-008` and `EMP-028`, and `ANY` for the remaining 29 employees.
+    - Seeds Holidays: Global Christmas (`2026-12-25`) and brand-specific Regional Event for Kredo (`2026-12-10`).
+    - Seeds Pre-seeded Approved Leaves for December 2026 (`EMP-016`, `EMP-018`, `EMP-026`, `EMP-029`), preserving a clean zero-leave state for `EMP-007` to enable live Scenario S1 demonstration.
+    - Seeds Demo Accounts with Argon2-hashed passwords: `ops@example.test` (`OPS_MANAGER`), `lead.a@example.test` (`POD_LEAD`), and `emp@example.test` (`EMPLOYEE`).
+    - Added CLI argument parser supporting `--scale` (e.g. `--scale 3` generating 18 pods, 108 employees, 75 brands for stress testing), `--clean`/`--no-clean`, `--db-url`, and `--demo-password`.
+  - Added unit test suite in `backend/tests/unit/test_seed.py` testing complete topology verification, demo account credentials, clean database wiping, and stress scale generation.
 - Rules and availability REST CRUD endpoints and services (Task T-308 marked Completed in `TASK_TRACKER.md`):
   - Created repository layer in `backend/app/repositories/rules.py`:
     - `CoverageRuleRepository`: `list_by_brand_process`.
