@@ -9,6 +9,17 @@ from __future__ import annotations
 import uuid
 from datetime import date
 from enum import StrEnum
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from app.models.rules import (
+        CompOffLedger,
+        CoverageRule,
+        EmployeePreference,
+        Holiday,
+        Leave,
+        WeeklyOffRule,
+    )
 
 from sqlalchemy import (
     Boolean,
@@ -109,6 +120,26 @@ class Employee(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         back_populates="employee",
         cascade="all, delete-orphan",
     )
+    leaves: Mapped[list[Leave]] = relationship(
+        "Leave",
+        back_populates="employee",
+        cascade="all, delete-orphan",
+    )
+    comp_off_entries: Mapped[list[CompOffLedger]] = relationship(
+        "CompOffLedger",
+        back_populates="employee",
+        cascade="all, delete-orphan",
+    )
+    weekly_off_rules: Mapped[list[WeeklyOffRule]] = relationship(
+        "WeeklyOffRule",
+        back_populates="employee",
+        cascade="all, delete-orphan",
+    )
+    preferences: Mapped[list[EmployeePreference]] = relationship(
+        "EmployeePreference",
+        back_populates="employee",
+        cascade="all, delete-orphan",
+    )
 
 
 class Process(Base, UUIDPrimaryKeyMixin, TimestampMixin):
@@ -154,6 +185,11 @@ class Brand(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         back_populates="brand",
         cascade="all, delete-orphan",
     )
+    holidays: Mapped[list[Holiday]] = relationship(
+        "Holiday",
+        back_populates="brand",
+        cascade="all, delete-orphan",
+    )
 
 
 class BrandProcess(Base, UUIDPrimaryKeyMixin, TimestampMixin):
@@ -195,6 +231,11 @@ class BrandProcess(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     )
     assignments: Mapped[list[Assignment]] = relationship(
         "Assignment",
+        back_populates="brand_process",
+        cascade="all, delete-orphan",
+    )
+    coverage_rules: Mapped[list[CoverageRule]] = relationship(
+        "CoverageRule",
         back_populates="brand_process",
         cascade="all, delete-orphan",
     )

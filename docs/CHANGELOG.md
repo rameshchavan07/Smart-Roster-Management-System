@@ -5,6 +5,16 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 ## [Unreleased]
 
 ### Added
+- Rules, availability, leaves, and holidays ORM models (Task T-302 marked Completed in `TASK_TRACKER.md`):
+  - Created `backend/app/models/rules.py` defining:
+    - `CoverageRule`: with mutual exclusivity CheckConstraint for `weekday` (0..6) vs `specific_date` and non-negative `min_staff`.
+    - `Holiday`: global vs brand-scoped holidays with `(date, brand_id)` unique constraint.
+    - `Leave`: approved and requested employee leaves with `end_date >= start_date` constraint and compound index.
+    - `CompOffLedger`: credit tracking with `EARNED` and `REDEEMED` transactions.
+    - `WeeklyOffRule`: employee policies with JSON array of weekdays.
+    - `EmployeePreference`: soft scheduling preferences with weights and JSON values.
+  - Linked back-populating relationships in `backend/app/models/core.py` and registered models on `backend/app/models/__init__.py`.
+  - Added unit test suite in `backend/tests/unit/test_rules_models.py` verifying table discovery, check constraints, unique constraints, and relationship navigation.
 - Core SQLAlchemy 2.0 ORM models and relationships (Task T-301 marked Completed in `TASK_TRACKER.md`):
   - Created `backend/app/models/mixins.py` providing `UUIDPrimaryKeyMixin` and `TimestampMixin` (`created_at`, `updated_at`).
   - Created `backend/app/models/core.py` defining core tables per `DATABASE_DESIGN.md` §3:

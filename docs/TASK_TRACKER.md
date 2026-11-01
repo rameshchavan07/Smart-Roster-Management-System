@@ -30,7 +30,7 @@
 | ID | Task | Description | Priority | Depends on | Expected output | Status | Est. | Scope |
 |---|---|---|---|---|---|---|---|---|
 | T-301 | Core ORM models | pods, employees, processes, brands, brand_processes, assignments | High | T-204 | Models + relations | Completed | 2h | MVP |
-| T-302 | Rules and availability models | coverage_rules, holidays, leaves, comp_off_ledger, weekly_off_rules, preferences | High | T-301 | Models | Not Started | 1.5h | MVP |
+| T-302 | Rules and availability models | coverage_rules, holidays, leaves, comp_off_ledger, weekly_off_rules, preferences | High | T-301 | Models | Completed | 1.5h | MVP |
 | T-303 | Roster, conflict, user, audit models | roster_periods, roster_entries, roster_conflicts, users, audit_logs with constraints/indexes | High | T-301 | Models | Not Started | 1.5h | MVP |
 | T-304 | Initial migration | Generate and review Alembic migration including partial unique indexes | High | T-301–T-303 | `0001_init` migration | Not Started | 0.5h | MVP |
 | T-305 | Schemas and error handling | Pydantic request/response models; uniform error envelope and exception handlers | High | T-202 | `schemas/`, error middleware | Not Started | 1.5h | MVP |
