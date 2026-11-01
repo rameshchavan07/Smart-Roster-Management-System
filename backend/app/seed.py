@@ -24,12 +24,12 @@ import uuid
 from datetime import date
 from typing import Any
 
-from argon2 import PasswordHasher
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import NullPool
 
 from app.core.config import get_settings
+from app.core.security import get_password_hash
 from app.db.base import Base
 from app.models.auth import AuditLog, User, UserRole
 from app.models.core import (
@@ -111,8 +111,7 @@ def seed_database(
     if clean:
         clean_database(session)
 
-    hasher = PasswordHasher()
-    hashed_pwd = hasher.hash(demo_password)
+    hashed_pwd = get_password_hash(demo_password)
 
     # -------------------------------------------------------------------------
     # 1. Processes (CS, ACC, RET, NDR)

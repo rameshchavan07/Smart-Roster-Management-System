@@ -5,6 +5,16 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 ## [Unreleased]
 
 ### Added
+- Password hashing and JWT security module (Task T-401 marked Completed in `TASK_TRACKER.md`):
+  - Created security utilities in `backend/app/core/security.py`:
+    - `get_password_hash(password: str) -> str`: Argon2id password hashing conforming to `SECURITY.md` §1.
+    - `verify_password(plain_password: str, hashed_password: str) -> bool`: Safe password verification returning False on mismatch or corrupt hash format.
+    - `create_access_token(subject, role, employee_id, expires_delta)`: Signs standard JWT access tokens containing `sub`, `role`, `employee_id`, and `exp` claims (default 30 min expiration).
+    - `create_refresh_token(subject, expires_delta)`: Signs rotating JWT refresh tokens containing `sub`, `type="refresh"`, and a unique `jti` UUID (default 7 days expiration).
+    - `decode_token(token)`: Validates JWT signature and expiration, mapping `ExpiredSignatureError` and invalid token errors into uniform `AuthenticationError` (HTTP 401).
+    - `verify_token_type(payload, expected_type)`: Ensures access and refresh tokens cannot be interchanged.
+    - `parse_token_payload(token, expected_type) -> TokenPayload`: Type-safe parser extracting strongly typed UUIDs and claims.
+  - Added unit test suite in `backend/tests/unit/test_security.py` covering hash verification, token generation, claim verification, expiration rejection, tampered signatures, and token type validation.
 - Soft-delete, deactivation, and database integrity rules (Task T-310 marked Completed in `TASK_TRACKER.md`):
   - Enforced deactivation guards across master data and rule domain services:
     - Attempting to associate employees or brands with an inactive `Pod` raises HTTP 409 `CONFLICT`.

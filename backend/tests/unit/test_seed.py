@@ -18,11 +18,11 @@ Verifies that seed_database() correctly populates the database per SAMPLE_DATA.m
 from __future__ import annotations
 
 import pytest
-from argon2 import PasswordHasher
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
+from app.core.security import verify_password
 from app.db.base import Base
 from app.models.auth import User, UserRole
 from app.models.core import Assignment, Brand, BrandProcess, Employee, Pod, Process
@@ -196,9 +196,8 @@ def test_seed_database_standard_scale(db_session: Session) -> None:
     # Users and Passwords
     users = db_session.query(User).all()
     assert len(users) == 3
-    hasher = PasswordHasher()
     for u in users:
-        assert hasher.verify(u.password_hash, "TestPassword123!")
+        assert verify_password("TestPassword123!", u.password_hash) is True
 
     ops_user = db_session.query(User).filter(User.role == UserRole.OPS_MANAGER).one()
     assert ops_user.email == "ops@example.test"
