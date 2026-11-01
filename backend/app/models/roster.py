@@ -23,6 +23,7 @@ from sqlalchemy import (
     String,
     Text,
     UniqueConstraint,
+    text,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
@@ -80,6 +81,13 @@ class RosterPeriod(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     __table_args__ = (
         UniqueConstraint("month", "version", name="uq_roster_periods_month_version"),
         Index("ix_roster_periods_month", "month"),
+        Index(
+            "uq_roster_periods_month_published",
+            "month",
+            unique=True,
+            postgresql_where=text("status = 'PUBLISHED'"),
+            sqlite_where=text("status = 'PUBLISHED'"),
+        ),
     )
 
     month: Mapped[date] = mapped_column(Date, nullable=False)

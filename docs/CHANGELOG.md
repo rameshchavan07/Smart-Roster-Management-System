@@ -5,6 +5,15 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 ## [Unreleased]
 
 ### Added
+- Initial Alembic database migration (Task T-304 marked Completed in `TASK_TRACKER.md`):
+  - Created initial schema revision `backend/alembic/versions/754504684d23_0001_initial_schema.py` covering all 16 application tables:
+    - Core: `pods`, `processes`, `brands`, `employees`, `brand_processes`, `assignments`.
+    - Rules & availability: `coverage_rules`, `holidays`, `leaves`, `comp_off_ledger`, `weekly_off_rules`, `employee_preferences`.
+    - Roster & audit: `roster_periods`, `roster_entries`, `roster_conflicts`, `users`, `audit_logs`.
+  - Added partial unique index `uq_roster_periods_month_published` on `roster_periods(month)` where `status = 'PUBLISHED'` enforcing that at most one published roster version exists per month.
+  - Added partial index `ix_leaves_emp_dates_approved` on `leaves(employee_id, start_date, end_date)` where `status = 'APPROVED'`.
+  - Configured `backend/alembic/env.py` to support dynamic `-x url=...` command line arguments for test environments and dialect fallbacks.
+  - Added full migration lifecycle integration tests in `backend/tests/unit/test_alembic_config.py` verifying clean `upgrade(head)` -> `downgrade(base)` -> `upgrade(head)` runs and table discovery.
 - Roster, conflict, user, and audit ORM models (Task T-303 marked Completed in `TASK_TRACKER.md`):
   - Created `backend/app/models/auth.py` defining:
     - `User`: application user accounts with `UserRole` enum (`OPS_MANAGER`, `POD_LEAD`, `EMPLOYEE`), unique email index, optional `employee_id` link, and active state.

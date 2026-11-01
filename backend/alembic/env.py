@@ -21,8 +21,11 @@ target_metadata = Base.metadata
 
 def get_url() -> str:
     """Return database URL from alembic config if overridden, else application settings."""
+    x_args = context.get_x_argument(as_dictionary=True)
+    if "url" in x_args:
+        return x_args["url"]
     cfg_url = config.get_main_option("sqlalchemy.url")
-    if cfg_url and not cfg_url.startswith("%"):
+    if cfg_url and not cfg_url.startswith("%") and not cfg_url.startswith("driver://"):
         return cfg_url
     return get_settings().DATABASE_URL
 

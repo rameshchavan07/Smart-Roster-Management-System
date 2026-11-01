@@ -23,6 +23,7 @@ from sqlalchemy import (
     String,
     Text,
     UniqueConstraint,
+    text,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
@@ -142,7 +143,14 @@ class Leave(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     __tablename__ = "leaves"
     __table_args__ = (
         CheckConstraint("end_date >= start_date", name="ck_leaves_date_range"),
-        Index("ix_leaves_emp_dates_approved", "employee_id", "start_date", "end_date"),
+        Index(
+            "ix_leaves_emp_dates_approved",
+            "employee_id",
+            "start_date",
+            "end_date",
+            postgresql_where=text("status = 'APPROVED'"),
+            sqlite_where=text("status = 'APPROVED'"),
+        ),
     )
 
     employee_id: Mapped[uuid.UUID] = mapped_column(
