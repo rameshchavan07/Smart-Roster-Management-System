@@ -6,6 +6,7 @@ import pytest
 
 from app.scheduler.domain import (
     Assignment,
+    AssignmentType,
     BrandProcess,
     CalendarType,
     Employee,
@@ -230,3 +231,222 @@ def test_build_supply_matrix_and_lookup() -> None:
     # Inverted date range raises ValueError
     with pytest.raises(ValueError, match="cannot be after end_date"):
         build_supply_matrix(employees=(e1,), start_date=end, end_date=start)
+
+
+# ---------------------------------------------------------------------------
+# Table-Driven Supply Matrix Suite (TC-SUP-01 to TC-SUP-03)
+# ---------------------------------------------------------------------------
+def _make_bp(bp_id: str, brand_id: str, cal_type: CalendarType) -> BrandProcess:
+    return BrandProcess(
+        id=bp_id,
+        brand_id=brand_id,
+        brand_name=f"Brand {brand_id}",
+        process_id=f"p-{bp_id}",
+        process_name="Process",
+        calendar_type=cal_type,
+    )
+
+
+SUPPLY_TABLE_CASES = [
+    # TC-SUP-01: Approved leaves and comp-offs vs outside ranges
+    (
+        "TC-SUP-01-approved-annual-leave",
+        date(2026, 12, 10),
+        (),  # assignments
+        (),  # brand processes
+        (),  # holidays
+        (
+            EmployeeLeave(
+                employee_id="emp-1",
+                start_date=date(2026, 12, 10),
+                end_date=date(2026, 12, 12),
+                type=LeaveType.PLANNED,
+                note="Annual vacation",
+            ),
+        ),
+        (),  # locked cells
+        SupplyAvailability.LEAVE,
+        RosterStatus.LEAVE,
+        True,
+    ),
+    (
+        "TC-SUP-01-approved-compoff",
+        date(2026, 12, 14),
+        (),
+        (),
+        (),
+        (
+            EmployeeLeave(
+                employee_id="emp-1",
+                start_date=date(2026, 12, 14),
+                end_date=date(2026, 12, 14),
+                type=LeaveType.COMP_OFF,
+                note="Redeemed comp-off",
+            ),
+        ),
+        (),
+        SupplyAvailability.COMP_OFF,
+        RosterStatus.COMP_OFF,
+        True,
+    ),
+    (
+        "TC-SUP-01-leave-outside-range",
+        date(2026, 12, 15),  # Evaluated on 15 Dec
+        (),
+        (),
+        (),
+        (
+            EmployeeLeave(
+                employee_id="emp-1",
+                start_date=date(2026, 12, 10),
+                end_date=date(2026, 12, 12),  # Ended on 12 Dec
+                type=LeaveType.PLANNED,
+            ),
+        ),
+        (),
+        SupplyAvailability.AVAILABLE,
+        None,
+        False,
+    ),
+    # TC-SUP-02: Holiday where NONE of assigned brand processes operate -> Personal holiday off
+    (
+        "TC-SUP-02-holiday-no-operating-process",
+        date(2026, 12, 25),  # Christmas
+        (Assignment(employee_id="emp-1", brand_process_id="bp-closed", type=AssignmentType.PRIMARY),),
+        (_make_bp("bp-closed", "b-1", CalendarType.ALL_EXCEPT_HOLIDAYS),),
+        (Holiday(date=date(2026, 12, 25), name="Christmas"),),
+        (),
+        (),
+        SupplyAvailability.HOLIDAY_OFF,
+        RosterStatus.HOLIDAY_OFF,
+        True,
+    ),
+    (
+        "TC-SUP-02-unassigned-floater-on-holiday",
+        date(2026, 12, 25),
+        (),  # Unassigned employee
+        (),
+        (Holiday(date=date(2026, 12, 25), name="Christmas"),),
+        (),
+        (),
+        SupplyAvailability.HOLIDAY_OFF,
+        RosterStatus.HOLIDAY_OFF,
+        True,
+    ),
+    # TC-SUP-03: Holiday where AT LEAST ONE assigned process operates -> Available (may work -> HOLIDAY_WORK)
+    (
+        "TC-SUP-03-holiday-one-operating-process",
+        date(2026, 12, 25),
+        (
+            Assignment(employee_id="emp-1", brand_process_id="bp-closed", type=AssignmentType.PRIMARY),
+            Assignment(employee_id="emp-1", brand_process_id="bp-open", type=AssignmentType.BACKUP),
+        ),
+        (
+            _make_bp("bp-closed", "b-1", CalendarType.ALL_EXCEPT_HOLIDAYS),
+            _make_bp("bp-open", "b-2", CalendarType.ALL_365),  # Operates on Christmas!
+        ),
+        (Holiday(date=date(2026, 12, 25), name="Christmas"),),
+        (),
+        (),
+        SupplyAvailability.AVAILABLE,
+        None,
+        False,
+    ),
+    # Precedence: Manager-locked cell beats leave and holiday
+    (
+        "TC-SUP-lock-beats-leave",
+        date(2026, 12, 10),
+        (),
+        (),
+        (),
+        (
+            EmployeeLeave(
+                employee_id="emp-1",
+                start_date=date(2026, 12, 10),
+                end_date=date(2026, 12, 10),
+                type=LeaveType.SICK,
+            ),
+        ),
+        (
+            RosterCell(
+                employee_id="emp-1",
+                date=date(2026, 12, 10),
+                status=RosterStatus.WORK,
+                is_locked=True,
+                note="Mandatory on-site shift",
+            ),
+        ),
+        SupplyAvailability.LOCKED,
+        RosterStatus.WORK,
+        True,
+    ),
+    (
+        "TC-SUP-lock-beats-holiday",
+        date(2026, 12, 25),
+        (Assignment(employee_id="emp-1", brand_process_id="bp-closed", type=AssignmentType.PRIMARY),),
+        (_make_bp("bp-closed", "b-1", CalendarType.ALL_EXCEPT_HOLIDAYS),),
+        (Holiday(date=date(2026, 12, 25), name="Christmas"),),
+        (),
+        (
+            RosterCell(
+                employee_id="emp-1",
+                date=date(2026, 12, 25),
+                status=RosterStatus.HOLIDAY_WORK,
+                is_locked=True,
+            ),
+        ),
+        SupplyAvailability.LOCKED,
+        RosterStatus.HOLIDAY_WORK,
+        True,
+    ),
+]
+
+
+@pytest.mark.parametrize(
+    (
+        "case_id",
+        "target_date",
+        "assignments",
+        "brand_processes",
+        "holidays",
+        "leaves",
+        "locked_cells",
+        "expected_availability",
+        "expected_locked_status",
+        "expected_is_locked",
+    ),
+    SUPPLY_TABLE_CASES,
+)
+def test_supply_matrix_table_driven(
+    case_id: str,
+    target_date: date,
+    assignments: tuple[Assignment, ...],
+    brand_processes: tuple[BrandProcess, ...],
+    holidays: tuple[Holiday, ...],
+    leaves: tuple[EmployeeLeave, ...],
+    locked_cells: tuple[RosterCell, ...],
+    expected_availability: SupplyAvailability,
+    expected_locked_status: RosterStatus | None,
+    expected_is_locked: bool,
+) -> None:
+    """Parametrized table-driven test verifying supply availability and precedence rules."""
+    emp = Employee(id="emp-1", code="E1", full_name="Test Employee", pod_id="p1")
+    cell = build_supply_cell(
+        employee=emp,
+        target_date=target_date,
+        assignments=assignments,
+        brand_processes=brand_processes,
+        holidays=holidays,
+        leaves=leaves,
+        locked_cells=locked_cells,
+    )
+    assert cell.availability == expected_availability, (
+        f"Case {case_id} failed: Expected availability={expected_availability}, got {cell.availability}"
+    )
+    assert cell.locked_status == expected_locked_status, (
+        f"Case {case_id} failed: Expected locked_status={expected_locked_status}, got {cell.locked_status}"
+    )
+    assert cell.is_locked is expected_is_locked, (
+        f"Case {case_id} failed: Expected is_locked={expected_is_locked}, got {cell.is_locked}"
+    )
+

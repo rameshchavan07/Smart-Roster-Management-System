@@ -5,6 +5,11 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 ## [Unreleased]
 
 ### Added
+- Table-Driven Unit Tests for Calendar, Demand, and Supply (Task T-801 marked Completed in `TASK_TRACKER.md`):
+  - Added comprehensive table-driven test suites in `backend/tests/unit/scheduler/test_calendar.py` covering all calendar types (`ALL_365`, `ALL_EXCEPT_HOLIDAYS`, `EXCLUDE_SUNDAY_AND_HOLIDAYS`) across weekdays, weekends, global holidays, and brand-scoped holidays (`TC-CAL-01` to `TC-CAL-04`).
+  - Added comprehensive table-driven test suites in `backend/tests/unit/scheduler/test_demand.py` testing the full precedence hierarchy (Specific Date Overrides > Weekday Overrides > Default Minimums) and strictly asserting that closed/non-operating days evaluate to 0 headcount demand regardless of configured overrides (`TC-DEM-01` and `TC-DEM-02`).
+  - Added comprehensive table-driven test suites in `backend/tests/unit/scheduler/test_supply.py` verifying employee availability states (`LOCKED`, `LEAVE`, `COMP_OFF`, `HOLIDAY_OFF`, `AVAILABLE`) under manager freezes, approved leaves, comp-off redemptions, personal holidays, and cross-trained multi-process staffing (`TC-SUP-01` to `TC-SUP-03`).
+
 - Cache Invalidation and Optimistic Edits (Task T-706 marked Completed in `TASK_TRACKER.md`):
   - Implemented instant optimistic updates with automatic rollback in `frontend/src/api/rosters.ts`:
     - `useUpdateRosterEntriesMutation`: Cancels outgoing queries, snapshots cached grid state, optimistically updates matching employee cells with manual source and audit notes, rolls back on server rejection, and invalidates all related queries (`roster-grid`, `roster-coverage`, `roster-conflicts`, `roster-day-view`, `rosters`) upon settlement.

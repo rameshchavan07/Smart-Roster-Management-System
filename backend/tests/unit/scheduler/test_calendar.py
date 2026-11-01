@@ -210,3 +210,195 @@ def test_resolve_calendar_matrix() -> None:
 
     assert matrix[("bp-365", sunday)] is True
     assert matrix[("bp-no-sun", sunday)] is False
+
+
+# ---------------------------------------------------------------------------
+# Table-Driven Calendar Matrix Suite (TC-CAL-01 to TC-CAL-04)
+# ---------------------------------------------------------------------------
+CALENDAR_TABLE_CASES = [
+    # TC-CAL-01: ALL_365 operates 365 days a year including Sundays, Saturdays, and Holidays
+    (
+        "TC-CAL-01-weekday",
+        CalendarType.ALL_365,
+        date(2026, 12, 2),  # Wednesday
+        "brand-1",
+        (Holiday(date=date(2026, 12, 25), name="Christmas"),),
+        True,
+    ),
+    (
+        "TC-CAL-01-saturday",
+        CalendarType.ALL_365,
+        date(2026, 12, 5),  # Saturday
+        "brand-1",
+        (),
+        True,
+    ),
+    (
+        "TC-CAL-01-sunday",
+        CalendarType.ALL_365,
+        date(2026, 12, 6),  # Sunday
+        "brand-1",
+        (),
+        True,
+    ),
+    (
+        "TC-CAL-01-global-holiday",
+        CalendarType.ALL_365,
+        date(2026, 12, 25),  # Christmas Friday
+        "brand-1",
+        (Holiday(date=date(2026, 12, 25), name="Christmas"),),
+        True,
+    ),
+    (
+        "TC-CAL-01-brand-holiday",
+        CalendarType.ALL_365,
+        date(2026, 12, 10),
+        "brand-1",
+        (Holiday(date=date(2026, 12, 10), name="Founder Day", brand_id="brand-1"),),
+        True,
+    ),
+    # TC-CAL-02: ALL_EXCEPT_HOLIDAYS operates on all days except applicable public holidays
+    (
+        "TC-CAL-02-weekday-normal",
+        CalendarType.ALL_EXCEPT_HOLIDAYS,
+        date(2026, 12, 2),  # Wednesday
+        "brand-1",
+        (Holiday(date=date(2026, 12, 25), name="Christmas"),),
+        True,
+    ),
+    (
+        "TC-CAL-02-sunday-normal",
+        CalendarType.ALL_EXCEPT_HOLIDAYS,
+        date(2026, 12, 6),  # Sunday (no holiday) -> Operates!
+        "brand-1",
+        (),
+        True,
+    ),
+    (
+        "TC-CAL-02-saturday-normal",
+        CalendarType.ALL_EXCEPT_HOLIDAYS,
+        date(2026, 12, 5),  # Saturday -> Operates!
+        "brand-1",
+        (),
+        True,
+    ),
+    (
+        "TC-CAL-02-global-holiday",
+        CalendarType.ALL_EXCEPT_HOLIDAYS,
+        date(2026, 12, 25),  # Christmas Friday -> Non-operating
+        "brand-1",
+        (Holiday(date=date(2026, 12, 25), name="Christmas"),),
+        False,
+    ),
+    (
+        "TC-CAL-02-holiday-on-sunday",
+        CalendarType.ALL_EXCEPT_HOLIDAYS,
+        date(2026, 12, 6),  # Sunday + Holiday -> Non-operating
+        "brand-1",
+        (Holiday(date=date(2026, 12, 6), name="Sunday Festival"),),
+        False,
+    ),
+    # TC-CAL-03: EXCLUDE_SUNDAY_AND_HOLIDAYS operates Mon-Sat except public holidays
+    (
+        "TC-CAL-03-monday-normal",
+        CalendarType.EXCLUDE_SUNDAY_AND_HOLIDAYS,
+        date(2026, 12, 7),  # Monday -> Operates
+        "brand-1",
+        (),
+        True,
+    ),
+    (
+        "TC-CAL-03-saturday-normal",
+        CalendarType.EXCLUDE_SUNDAY_AND_HOLIDAYS,
+        date(2026, 12, 5),  # Saturday -> Operates
+        "brand-1",
+        (),
+        True,
+    ),
+    (
+        "TC-CAL-03-sunday-normal",
+        CalendarType.EXCLUDE_SUNDAY_AND_HOLIDAYS,
+        date(2026, 12, 6),  # Sunday -> Non-operating
+        "brand-1",
+        (),
+        False,
+    ),
+    (
+        "TC-CAL-03-weekday-holiday",
+        CalendarType.EXCLUDE_SUNDAY_AND_HOLIDAYS,
+        date(2026, 12, 25),  # Friday Christmas -> Non-operating
+        "brand-1",
+        (Holiday(date=date(2026, 12, 25), name="Christmas"),),
+        False,
+    ),
+    (
+        "TC-CAL-03-sunday-holiday",
+        CalendarType.EXCLUDE_SUNDAY_AND_HOLIDAYS,
+        date(2026, 12, 6),  # Sunday + Holiday -> Non-operating
+        "brand-1",
+        (Holiday(date=date(2026, 12, 6), name="Sunday Festival"),),
+        False,
+    ),
+    # TC-CAL-04: Brand-specific holiday affects only matching brand
+    (
+        "TC-CAL-04-matching-brand",
+        CalendarType.ALL_EXCEPT_HOLIDAYS,
+        date(2026, 12, 10),
+        "brand-aurora",
+        (Holiday(date=date(2026, 12, 10), name="Aurora Day", brand_id="brand-aurora"),),
+        False,  # Closed for Aurora
+    ),
+    (
+        "TC-CAL-04-other-brand",
+        CalendarType.ALL_EXCEPT_HOLIDAYS,
+        date(2026, 12, 10),
+        "brand-glowcare",
+        (Holiday(date=date(2026, 12, 10), name="Aurora Day", brand_id="brand-aurora"),),
+        True,  # Open for GlowCare
+    ),
+    (
+        "TC-CAL-04-exclude-sunday-matching-brand",
+        CalendarType.EXCLUDE_SUNDAY_AND_HOLIDAYS,
+        date(2026, 12, 10),  # Thursday
+        "brand-aurora",
+        (Holiday(date=date(2026, 12, 10), name="Aurora Day", brand_id="brand-aurora"),),
+        False,  # Closed for Aurora
+    ),
+    (
+        "TC-CAL-04-exclude-sunday-other-brand",
+        CalendarType.EXCLUDE_SUNDAY_AND_HOLIDAYS,
+        date(2026, 12, 10),  # Thursday
+        "brand-glowcare",
+        (Holiday(date=date(2026, 12, 10), name="Aurora Day", brand_id="brand-aurora"),),
+        True,  # Open for GlowCare
+    ),
+]
+
+
+@pytest.mark.parametrize(
+    ("case_id", "cal_type", "target_date", "brand_id", "holidays", "expected_operating"),
+    CALENDAR_TABLE_CASES,
+)
+def test_calendar_matrix_table_driven(
+    case_id: str,
+    cal_type: CalendarType,
+    target_date: date,
+    brand_id: str,
+    holidays: tuple[Holiday, ...],
+    expected_operating: bool,
+) -> None:
+    """Parametrized table-driven test covering all calendar types, day types, and holiday scopes."""
+    bp = BrandProcess(
+        id=f"bp-{brand_id}",
+        brand_id=brand_id,
+        brand_name=f"Brand {brand_id}",
+        process_id="proc-1",
+        process_name="CS",
+        calendar_type=cal_type,
+    )
+    result = is_operating_day(bp, target_date, holidays)
+    assert result == expected_operating, (
+        f"Case {case_id} failed: Expected operating={expected_operating} "
+        f"for {cal_type.value} on {target_date} with {len(holidays)} holiday(s), got {result}"
+    )
+
