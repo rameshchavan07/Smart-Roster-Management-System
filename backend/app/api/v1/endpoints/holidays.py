@@ -6,7 +6,8 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
-from app.db.session import get_db
+from app.api.deps import get_current_user, get_db, require_ops_manager
+from app.models.auth import User
 from app.schemas.common import MessageResponse, PaginatedResponse
 from app.schemas.rules import (
     HolidayCreate,
@@ -28,6 +29,7 @@ def _to_holiday_read(h: Any) -> HolidayRead:
 @router.get("", response_model=PaginatedResponse[HolidayRead])
 def list_holidays(
     db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
     offset: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
     brand_id: uuid.UUID | None = None,
@@ -51,8 +53,9 @@ def list_holidays(
 def create_holiday(
     data: HolidayCreate,
     db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_ops_manager)],
 ) -> HolidayRead:
-    """Create a new global or brand-scoped holiday."""
+    """Create a new global or brand-scoped holiday (Ops Manager only)."""
     service = HolidayService(db)
     holiday = service.create_holiday(data)
     db.commit()
@@ -64,6 +67,7 @@ def create_holiday(
 def get_holiday(
     holiday_id: uuid.UUID,
     db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
 ) -> HolidayRead:
     """Get holiday by ID."""
     service = HolidayService(db)
@@ -76,8 +80,9 @@ def update_holiday(
     holiday_id: uuid.UUID,
     data: HolidayUpdate,
     db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_ops_manager)],
 ) -> HolidayRead:
-    """Update holiday attributes."""
+    """Update holiday attributes (Ops Manager only)."""
     service = HolidayService(db)
     holiday = service.update_holiday(holiday_id, data)
     db.commit()
@@ -89,8 +94,9 @@ def update_holiday(
 def delete_holiday(
     holiday_id: uuid.UUID,
     db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_ops_manager)],
 ) -> MessageResponse:
-    """Delete a holiday."""
+    """Delete a holiday (Ops Manager only)."""
     service = HolidayService(db)
     service.delete_holiday(holiday_id)
     db.commit()

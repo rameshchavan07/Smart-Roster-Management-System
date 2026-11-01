@@ -6,7 +6,14 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
-from app.db.session import get_db
+from app.api.deps import (
+    check_employee_scope,
+    get_current_user,
+    get_db,
+    require_pod_lead_or_manager,
+)
+from app.core.errors import ForbiddenError
+from app.models.auth import User, UserRole
 from app.models.rules import LeaveStatus
 from app.schemas.common import MessageResponse, PaginatedResponse
 from app.schemas.rules import (
@@ -51,10 +58,15 @@ def list_leaves(
 def create_leave(
     data: LeaveCreate,
     db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
 ) -> LeaveRead:
-    """Submit a leave request."""
+    """Submit a leave request (scoped to employee or pod lead/manager)."""
+    check_employee_scope(current_user, data.employee_id, db)
+    if current_user.role == UserRole.EMPLOYEE and data.status == LeaveStatus.APPROVED:
+        raise ForbiddenError("Employees cannot directly approve leaves")
+
     service = LeaveService(db)
-    leave = service.create_leave(data)
+    leave = service.create_leave(data, actor_id=current_user.id)
     db.commit()
     db.refresh(leave)
     return _to_leave_read(leave)
@@ -76,61 +88,81 @@ def update_leave(
     leave_id: uuid.UUID,
     data: LeaveUpdate,
     db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
 ) -> LeaveRead:
     """Update leave dates or notes."""
     service = LeaveService(db)
-    leave = service.update_leave(leave_id, data)
+    leave = service.get_leave(leave_id)
+    check_employee_scope(current_user, leave.employee_id, db)
+
+    updated = service.update_leave(leave_id, data, actor_id=current_user.id)
     db.commit()
-    db.refresh(leave)
-    return _to_leave_read(leave)
+    db.refresh(updated)
+    return _to_leave_read(updated)
 
 
 @router.post("/{leave_id}/approve", response_model=LeaveRead)
 def approve_leave(
     leave_id: uuid.UUID,
     db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_pod_lead_or_manager)],
 ) -> LeaveRead:
-    """Approve a requested leave."""
+    """Approve a requested leave (Ops Manager or scoped Pod Lead)."""
     service = LeaveService(db)
-    leave = service.set_leave_status(leave_id, LeaveStatus.APPROVED)
+    leave = service.get_leave(leave_id)
+    check_employee_scope(current_user, leave.employee_id, db)
+
+    approved = service.set_leave_status(leave_id, LeaveStatus.APPROVED, actor_id=current_user.id)
     db.commit()
-    db.refresh(leave)
-    return _to_leave_read(leave)
+    db.refresh(approved)
+    return _to_leave_read(approved)
 
 
 @router.post("/{leave_id}/reject", response_model=LeaveRead)
 def reject_leave(
     leave_id: uuid.UUID,
     db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_pod_lead_or_manager)],
 ) -> LeaveRead:
-    """Reject a requested leave."""
+    """Reject a requested leave (Ops Manager or scoped Pod Lead)."""
     service = LeaveService(db)
-    leave = service.set_leave_status(leave_id, LeaveStatus.REJECTED)
+    leave = service.get_leave(leave_id)
+    check_employee_scope(current_user, leave.employee_id, db)
+
+    rejected = service.set_leave_status(leave_id, LeaveStatus.REJECTED, actor_id=current_user.id)
     db.commit()
-    db.refresh(leave)
-    return _to_leave_read(leave)
+    db.refresh(rejected)
+    return _to_leave_read(rejected)
 
 
 @router.post("/{leave_id}/cancel", response_model=LeaveRead)
 def cancel_leave(
     leave_id: uuid.UUID,
     db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
 ) -> LeaveRead:
     """Cancel a requested or approved leave."""
     service = LeaveService(db)
-    leave = service.set_leave_status(leave_id, LeaveStatus.CANCELLED)
+    leave = service.get_leave(leave_id)
+    check_employee_scope(current_user, leave.employee_id, db)
+
+    cancelled = service.set_leave_status(leave_id, LeaveStatus.CANCELLED, actor_id=current_user.id)
     db.commit()
-    db.refresh(leave)
-    return _to_leave_read(leave)
+    db.refresh(cancelled)
+    return _to_leave_read(cancelled)
 
 
 @router.delete("/{leave_id}", response_model=MessageResponse)
 def delete_leave(
     leave_id: uuid.UUID,
     db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_pod_lead_or_manager)],
 ) -> MessageResponse:
-    """Delete a leave request."""
+    """Delete a leave request (Manager or scoped Pod Lead)."""
     service = LeaveService(db)
-    service.delete_leave(leave_id)
+    leave = service.get_leave(leave_id)
+    check_employee_scope(current_user, leave.employee_id, db)
+
+    service.delete_leave(leave_id, actor_id=current_user.id)
     db.commit()
     return MessageResponse(message=f"Leave '{leave_id}' deleted successfully")

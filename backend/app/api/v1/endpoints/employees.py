@@ -6,7 +6,14 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
-from app.db.session import get_db
+from app.api.deps import (
+    check_employee_scope,
+    check_pod_scope,
+    get_db,
+    require_ops_manager,
+    require_pod_lead_or_manager,
+)
+from app.models.auth import User
 from app.schemas.common import MessageResponse, PaginatedResponse
 from app.schemas.core import EmployeeCreate, EmployeeRead, EmployeeUpdate
 from app.services.master_data import EmployeeService
@@ -49,10 +56,12 @@ def list_employees(
 def create_employee(
     data: EmployeeCreate,
     db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_pod_lead_or_manager)],
 ) -> EmployeeRead:
-    """Create a new employee."""
+    """Create a new employee (Ops Manager or scoped Pod Lead)."""
+    check_pod_scope(current_user, data.pod_id, db)
     service = EmployeeService(db)
-    emp = service.create_employee(data)
+    emp = service.create_employee(data, actor_id=current_user.id)
     db.commit()
     db.refresh(emp)
     return _to_emp_read(emp)
@@ -74,10 +83,14 @@ def update_employee(
     employee_id: uuid.UUID,
     data: EmployeeUpdate,
     db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_pod_lead_or_manager)],
 ) -> EmployeeRead:
-    """Update employee details."""
+    """Update employee details (Ops Manager or scoped Pod Lead)."""
+    check_employee_scope(current_user, employee_id, db)
+    if data.pod_id is not None:
+        check_pod_scope(current_user, data.pod_id, db)
     service = EmployeeService(db)
-    emp = service.update_employee(employee_id, data)
+    emp = service.update_employee(employee_id, data, actor_id=current_user.id)
     db.commit()
     db.refresh(emp)
     return _to_emp_read(emp)
@@ -87,9 +100,10 @@ def update_employee(
 def delete_employee(
     employee_id: uuid.UUID,
     db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_ops_manager)],
 ) -> MessageResponse:
-    """Delete an employee if they have no active assignments or history."""
+    """Delete an employee if they have no active assignments or history (Ops Manager only)."""
     service = EmployeeService(db)
-    service.delete_employee(employee_id)
+    service.delete_employee(employee_id, actor_id=current_user.id)
     db.commit()
     return MessageResponse(message=f"Employee '{employee_id}' deleted successfully")

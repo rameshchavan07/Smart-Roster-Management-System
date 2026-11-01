@@ -1,5 +1,6 @@
 """Integration tests for rules and availability REST endpoints mounted at /api/v1."""
 
+import uuid
 from collections.abc import Generator
 
 import pytest
@@ -8,14 +9,16 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
+from app.api.deps import get_current_user
 from app.db.base import Base
 from app.db.session import get_db
 from app.main import create_app
+from app.models.auth import User, UserRole
 
 
 @pytest.fixture
 def api_client() -> Generator[TestClient, None, None]:
-    """Test client with test database session dependency override."""
+    """Test client with test database session and admin user dependency override."""
     engine = create_engine(
         "sqlite:///:memory:",
         connect_args={"check_same_thread": False},
@@ -33,7 +36,16 @@ def api_client() -> Generator[TestClient, None, None]:
         finally:
             db.close()
 
+    admin_user = User(
+        id=uuid.uuid4(),
+        email="ops.manager@example.com",
+        password_hash="test_hash",
+        role=UserRole.OPS_MANAGER,
+        is_active=True,
+    )
+
     app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_current_user] = lambda: admin_user
 
     with TestClient(app, raise_server_exceptions=False) as test_client:
         yield test_client

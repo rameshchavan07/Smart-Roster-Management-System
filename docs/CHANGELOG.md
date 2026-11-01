@@ -5,6 +5,20 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 ## [Unreleased]
 
 ### Added
+- Role-based access control and own-pod scoping (Task T-403 marked Completed in `TASK_TRACKER.md`):
+  - Implemented reusable FastAPI RBAC dependencies and scoping verifiers in `backend/app/api/deps.py`:
+    - `require_roles(*allowed_roles)`: Validates authenticated user role, returning HTTP 403 `FORBIDDEN` if unauthorized.
+    - `require_ops_manager` and `require_pod_lead_or_manager`: Role shortcut dependencies for administrative operations.
+    - `check_pod_scope(user, pod_id, db)`: Ensures `OPS_MANAGER` has global access, `POD_LEAD` can only manage their own pod, and `EMPLOYEE` is denied (HTTP 403).
+    - `check_employee_scope(user, target_employee_id, db)`: Grants global management to `OPS_MANAGER`, restricts `POD_LEAD` to employees in their own pod, and restricts `EMPLOYEE` to their own employee record.
+  - Guarded all REST endpoints across master data, rules, and availability routers:
+    - `pods`: Creation and deletion restricted to `OPS_MANAGER`; updates permitted to `POD_LEAD` for own pod.
+    - `employees`: Creation and updates scoped by pod for `POD_LEAD` and open to `OPS_MANAGER`; deletion restricted to `OPS_MANAGER`.
+    - `leaves`: `EMPLOYEE` can submit requests for self (restricted from direct approval; HTTP 403); `POD_LEAD` can approve, reject, or manage leaves for their pod members; `OPS_MANAGER` has global leave authority.
+    - `comp_offs`: Balance lookups and redemption scoped to self for `EMPLOYEE` and pod members for `POD_LEAD`; credit entries restricted to `POD_LEAD` and `OPS_MANAGER`.
+    - `preferences` and `weekly_off_rules`: Scoped by employee ID; employees can manage their own preferences; pod leads can manage within own pod.
+    - `processes`, `holidays`, and `brands`: Creation of global processes and holidays restricted to `OPS_MANAGER`; brand and coverage rule configuration scoped for pod leads.
+  - Added comprehensive RBAC matrix test suite in `backend/tests/api/test_rbac_api.py` covering unauthenticated rejections (HTTP 401), employee boundaries, pod lead scoping, and ops manager global authority.
 - Authentication REST API endpoints and session management (Task T-402 marked Completed in `TASK_TRACKER.md`):
   - Created authentication endpoints in `backend/app/api/v1/endpoints/auth.py` mounted at `/api/v1/auth`:
     - `POST /auth/login`: Authenticates email and password, updates `last_login_at`, records audit mutation, and returns `TokenResponse` while setting a secure HttpOnly `refresh_token` cookie.

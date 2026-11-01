@@ -6,7 +6,8 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
-from app.db.session import get_db
+from app.api.deps import check_pod_scope, get_db, require_ops_manager, require_pod_lead_or_manager
+from app.models.auth import User
 from app.schemas.common import MessageResponse, PaginatedResponse
 from app.schemas.core import PodCreate, PodRead, PodUpdate
 from app.services.master_data import PodService
@@ -39,10 +40,11 @@ def list_pods(
 def create_pod(
     data: PodCreate,
     db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_ops_manager)],
 ) -> PodRead:
-    """Create a new pod."""
+    """Create a new pod (Ops Manager only)."""
     service = PodService(db)
-    pod = service.create_pod(data)
+    pod = service.create_pod(data, actor_id=current_user.id)
     db.commit()
     db.refresh(pod)
     return _to_pod_read(pod)
@@ -64,10 +66,12 @@ def update_pod(
     pod_id: uuid.UUID,
     data: PodUpdate,
     db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_pod_lead_or_manager)],
 ) -> PodRead:
-    """Update pod details."""
+    """Update pod details (Ops Manager or scoped Pod Lead)."""
+    check_pod_scope(current_user, pod_id, db)
     service = PodService(db)
-    pod = service.update_pod(pod_id, data)
+    pod = service.update_pod(pod_id, data, actor_id=current_user.id)
     db.commit()
     db.refresh(pod)
     return _to_pod_read(pod)
@@ -77,9 +81,10 @@ def update_pod(
 def delete_pod(
     pod_id: uuid.UUID,
     db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_ops_manager)],
 ) -> MessageResponse:
-    """Delete a pod if it has no associated members or brands."""
+    """Delete a pod if it has no associated members or brands (Ops Manager only)."""
     service = PodService(db)
-    service.delete_pod(pod_id)
+    service.delete_pod(pod_id, actor_id=current_user.id)
     db.commit()
     return MessageResponse(message=f"Pod '{pod_id}' deleted successfully")

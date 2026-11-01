@@ -6,7 +6,8 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
-from app.db.session import get_db
+from app.api.deps import get_current_user, get_db, require_ops_manager
+from app.models.auth import User
 from app.schemas.common import MessageResponse, PaginatedResponse
 from app.schemas.core import ProcessCreate, ProcessRead, ProcessUpdate
 from app.services.master_data import ProcessService
@@ -17,6 +18,7 @@ router = APIRouter(prefix="/processes", tags=["Processes"])
 @router.get("", response_model=PaginatedResponse[ProcessRead])
 def list_processes(
     db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
     offset: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
     is_active: bool | None = None,
@@ -32,10 +34,11 @@ def list_processes(
 def create_process(
     data: ProcessCreate,
     db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_ops_manager)],
 ) -> ProcessRead:
-    """Create a new process."""
+    """Create a new process (Ops Manager only)."""
     service = ProcessService(db)
-    proc = service.create_process(data)
+    proc = service.create_process(data, actor_id=current_user.id)
     db.commit()
     db.refresh(proc)
     return ProcessRead.model_validate(proc)
@@ -45,6 +48,7 @@ def create_process(
 def get_process(
     process_id: uuid.UUID,
     db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
 ) -> ProcessRead:
     """Get process by ID."""
     service = ProcessService(db)
@@ -57,10 +61,11 @@ def update_process(
     process_id: uuid.UUID,
     data: ProcessUpdate,
     db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_ops_manager)],
 ) -> ProcessRead:
-    """Update process details."""
+    """Update process details (Ops Manager only)."""
     service = ProcessService(db)
-    proc = service.update_process(process_id, data)
+    proc = service.update_process(process_id, data, actor_id=current_user.id)
     db.commit()
     db.refresh(proc)
     return ProcessRead.model_validate(proc)
@@ -70,9 +75,10 @@ def update_process(
 def delete_process(
     process_id: uuid.UUID,
     db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_ops_manager)],
 ) -> MessageResponse:
-    """Delete a process if not associated with active brands."""
+    """Delete a process if not associated with active brands (Ops Manager only)."""
     service = ProcessService(db)
-    service.delete_process(process_id)
+    service.delete_process(process_id, actor_id=current_user.id)
     db.commit()
     return MessageResponse(message=f"Process '{process_id}' deleted successfully")
