@@ -5,6 +5,13 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 ## [Unreleased]
 
 ### Added
+- Employee availability supply builder module (Task T-504 marked Completed in `TASK_TRACKER.md`):
+  - Created `backend/app/scheduler/supply.py` implementing availability classification per `SCHEDULING_ENGINE.md` Section 4:
+    - Precedence evaluation: Manager-locked cell override (`SupplyAvailability.LOCKED`) -> Approved leaves & comp-off redemptions (`LEAVE` / `COMP_OFF`) -> Personal holiday calculation (`HOLIDAY_OFF` when none of assigned brand-processes operate) -> Default scheduling availability (`AVAILABLE`).
+    - Deterministic matrix generator `build_supply_matrix` sorting by date then employee id.
+    - Constant-time lookup index helper `build_supply_lookup`.
+  - Added `EmployeeLeave` dataclass and updated `GenerationInput` in `backend/app/scheduler/domain.py`.
+  - Added unit test suite in `backend/tests/unit/scheduler/test_supply.py` covering default availability, manager locks, sick/planned/comp-off leaves, multi-brand personal holiday scenarios, floater holiday handling, and matrix ordering.
 - Demand matrix builder module (Task T-503 marked Completed in `TASK_TRACKER.md`):
   - Created `backend/app/scheduler/demand.py` enforcing rule precedence per `SCHEDULING_ENGINE.md` Section 3:
     - Precedence hierarchy: 0 demand on non-operating days -> Specific date override (`CoverageRule.specific_date`) -> Weekday override (`CoverageRule.weekday`) -> Default minimum (`BrandProcess.min_coverage_default`).

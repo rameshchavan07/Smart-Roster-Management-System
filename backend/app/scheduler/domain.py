@@ -196,6 +196,27 @@ class Employee:
 
 
 @dataclass(frozen=True)
+class EmployeeLeave:
+    """Approved employee leave or comp-off redemption window."""
+
+    employee_id: str
+    start_date: date
+    end_date: date
+    type: LeaveType = LeaveType.PLANNED
+    note: str = ""
+
+    def __post_init__(self) -> None:
+        if self.start_date > self.end_date:
+            raise ValueError(
+                f"start_date ({self.start_date}) cannot be after end_date ({self.end_date})"
+            )
+
+    def covers(self, target_date: date) -> bool:
+        """Check if target_date falls within the inclusive leave interval."""
+        return self.start_date <= target_date <= self.end_date
+
+
+@dataclass(frozen=True)
 class DemandCell:
     """Calculated headcount demand for a brand-process on a specific date."""
 
@@ -317,8 +338,10 @@ class GenerationInput:
     assignments: tuple[Assignment, ...]
     coverage_rules: tuple[CoverageRule, ...]
     holidays: tuple[Holiday, ...]
-    supply_matrix: tuple[SupplyCell, ...]
-    demand_matrix: tuple[DemandCell, ...]
+    leaves: tuple[EmployeeLeave, ...] = ()
+    locked_cells: tuple[RosterCell, ...] = ()
+    supply_matrix: tuple[SupplyCell, ...] = ()
+    demand_matrix: tuple[DemandCell, ...] = ()
     random_seed: int = 42
     time_limit_seconds: float = 20.0
     previous_tail_work_days: dict[str, int] = field(default_factory=dict)

@@ -55,7 +55,7 @@
 | T-501 | Engine domain types | Pure dataclasses: DemandCell, SupplyCell, RosterCell, Conflict, enums | High | T-104 | `scheduler/domain` | Completed | 1h | MVP |
 | T-502 | Calendar resolver | Operating days per brand-process from calendar type + holidays | High | T-501 | Function + tests | Completed | 1.5h | MVP |
 | T-503 | Demand builder | Precedence: date override → weekday override → default; zero on non-operating days | High | T-502 | Demand matrix | Completed | 1.5h | MVP |
-| T-504 | Supply builder | Per employee-date availability: leave, comp-off, personal holiday, locked cells | High | T-501 | Supply matrix | Not Started | 2h | MVP |
+| T-504 | Supply builder | Per employee-date availability: leave, comp-off, personal holiday, locked cells | High | T-501 | Supply matrix | Completed | 2h | MVP |
 | T-505 | Validator core | Rules E001–E009: coverage, weekly-off, consecutive days, invalid cells, comp-off balance | High | T-503, T-504 | `validate()` | Not Started | 3.5h | MVP |
 | T-506 | Root-cause and explainer | Attach causes (WO/LEAVE/…) and generate plain-language messages | High | T-505 | Conflict messages | Not Started | 1.5h | MVP |
 | T-507 | Greedy baseline generator | Deterministic fallback generator respecting hard constraints | High | T-505 | `generate_greedy()` | Not Started | 3h | MVP |

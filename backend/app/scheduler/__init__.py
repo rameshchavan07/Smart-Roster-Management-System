@@ -30,6 +30,7 @@ from app.scheduler.domain import (
     CoverageRule,
     DemandCell,
     Employee,
+    EmployeeLeave,
     GenerationInput,
     GenerationOutput,
     Holiday,
@@ -44,6 +45,11 @@ from app.scheduler.domain import (
     ValidationResult,
     WeeklyOffMode,
 )
+from app.scheduler.supply import (
+    build_supply_cell,
+    build_supply_lookup,
+    build_supply_matrix,
+)
 
 __all__ = [
     "Assignment",
@@ -57,6 +63,7 @@ __all__ = [
     "CoverageRule",
     "DemandCell",
     "Employee",
+    "EmployeeLeave",
     "GenerationInput",
     "GenerationOutput",
     "Holiday",
@@ -82,4 +89,8 @@ __all__ = [
     "build_demand_cell",
     "build_demand_lookup",
     "build_demand_matrix",
+    # Supply builder
+    "build_supply_cell",
+    "build_supply_lookup",
+    "build_supply_matrix",
 ]
