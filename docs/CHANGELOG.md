@@ -5,6 +5,17 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 ## [Unreleased]
 
 ### Added
+- Independent roster validator core module (Task T-505 marked Completed in `TASK_TRACKER.md`):
+  - Created `backend/app/scheduler/validator.py` implementing comprehensive rule validation independent of solver per `SCHEDULING_ENGINE.md` Section 7:
+    - `E001` (No Coverage) & `E002` (Under-Staffed) with automatic root-cause tagging (`E003` / `WEEKLY_OFF`, `E004` / `LEAVE`, `HOLIDAY_OFF`).
+    - `E006` (Missing Weekly Offs) with Mon–Sun week partitioning and month-boundary pro-rating ($\ge 4$ days in month = 1 off; $< 4$ days = 0).
+    - `E005` (Max Consecutive Work Days) with previous month carry-in tail support.
+    - `E007` (Invalid Cell) catching work/weekly-off assignments during approved leaves, illegal holiday statuses, and manager lock overrides.
+    - `E008` (Multi-Brand Overload WARNING) checking active concurrent brand-processes against threshold.
+    - `E009` (Comp-Off Balance) ensuring redeemed comp-offs do not exceed earned credits.
+    - `W001` (Preference Violations & Fixed Off mandates) and `W003` (Single Point of Failure warnings).
+    - Outputting both `ValidationResult` and `CoverageCell` grids.
+  - Added unit test suite in `backend/tests/unit/scheduler/test_validator.py` with dedicated test cases for each conflict code, month-edge pro-rating, fault injection, clean rosters, and module isolation.
 - Employee availability supply builder module (Task T-504 marked Completed in `TASK_TRACKER.md`):
   - Created `backend/app/scheduler/supply.py` implementing availability classification per `SCHEDULING_ENGINE.md` Section 4:
     - Precedence evaluation: Manager-locked cell override (`SupplyAvailability.LOCKED`) -> Approved leaves & comp-off redemptions (`LEAVE` / `COMP_OFF`) -> Personal holiday calculation (`HOLIDAY_OFF` when none of assigned brand-processes operate) -> Default scheduling availability (`AVAILABLE`).

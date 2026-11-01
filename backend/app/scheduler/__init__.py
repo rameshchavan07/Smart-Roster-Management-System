@@ -50,6 +50,11 @@ from app.scheduler.supply import (
     build_supply_lookup,
     build_supply_matrix,
 )
+from app.scheduler.validator import (
+    partition_into_weeks,
+    validate,
+    validate_roster,
+)
 
 __all__ = [
     "Assignment",
@@ -93,4 +98,8 @@ __all__ = [
     "build_supply_cell",
     "build_supply_lookup",
     "build_supply_matrix",
+    # Validator
+    "partition_into_weeks",
+    "validate",
+    "validate_roster",
 ]

@@ -131,4 +131,3 @@ def build_demand_lookup(
 ) -> dict[tuple[str, date], DemandCell]:
     """Index a list of DemandCells by (brand_process_id, date) for constant-time lookup."""
     return {(cell.brand_process_id, cell.date): cell for cell in demand_cells}
-

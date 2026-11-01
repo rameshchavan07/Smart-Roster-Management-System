@@ -192,4 +192,3 @@ def test_build_demand_matrix_and_lookup() -> None:
     # Inverted date range raises ValueError
     with pytest.raises(ValueError, match="cannot be after end_date"):
         build_demand_matrix(brand_processes=(bp1,), start_date=end, end_date=start)
-
