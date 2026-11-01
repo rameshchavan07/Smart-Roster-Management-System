@@ -5,6 +5,10 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 ## [Unreleased]
 
 ### Added
+- Pure-Python scheduling engine domain types and enums (Task T-501 marked Completed in `TASK_TRACKER.md`):
+  - Defined all pure dataclasses and enums in `backend/app/scheduler/domain.py` with zero framework dependencies: `CalendarType`, `AssignmentType`, `RosterStatus`, `SupplyAvailability`, `WeeklyOffMode`, `LeaveType`, `ConflictSeverity`, `ConflictCode` (E001–E009, W001–W004), `SolverStatus`, `SuggestionType`, `DemandCell`, `SupplyCell`, `RosterCell`, `CoverageCell`, `CoverageRule`, `BrandProcess`, `Assignment`, `Employee`, `Holiday`, `Suggestion`, `Conflict`, `ValidationResult`, `GenerationInput`, and `GenerationOutput`.
+  - Added unit test suite in `backend/tests/unit/scheduler/test_domain.py` verifying framework isolation, validation rules, and immutability.
+  - Verified clean `ruff`, `mypy --strict`, and passing pytest suite.
 - Design tokens, base component library, and interactive showcase page (Task T-206 marked Completed in `TASK_TRACKER.md`):
   - Created reusable UI primitives in `frontend/src/components/ui/`: `Button` (4 variants, loading, disabled), `Input` (32px, error states), `Badge` (all severity types + icon support), `Skeleton`, `EmptyState`, accessible `Modal` (with backdrop & ESC listener), accessible 420px `Drawer`, and `StatusCell` (WCAG AA compliant cell rendering for W, WO, PH, HW, L, CO with manual dot marker and lock glyph).
   - Built interactive `/design-system` showcase page in `frontend/src/features/design-system/DesignSystemPage.tsx` demonstrating all color tokens, typography scales, buttons, inputs, severity badges, and interactive modals/drawers.

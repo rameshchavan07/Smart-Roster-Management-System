@@ -8,14 +8,14 @@ Task-level detail is in `TASK_TRACKER.md`. Hour figures below were **computed fr
 |---|---|
 | Tracker total (all 91 tasks) | 167 |
 | MVP tasks only (80 tasks) | 145 |
-| MVP still to do (T-101–T-104, T-201–T-206 done) | 132.0 |
+| MVP still to do (T-101–T-104, T-201–T-206, T-501 done) | 131.0 |
 | Brief's own expectation | ~1.5–2 days of focused work, 4-day deadline |
 
 The full blueprint is larger than what the brief asks for. The tracker therefore uses **scope levels**; build level by level and stop when time runs out. Every level ends in something demo-able.
 
 | Level | What it adds | Tasks | Hours | Cumulative (remaining) |
 |---|---|---|---|---|
-| *Completed* | Setup & scaffolds (`T-101`–`T-104`, `T-201`–`T-206`) | 10 | 13.0 | 13.0 (done) |
+| *Completed* | Setup, scaffolds & domain types (`T-101`–`T-104`, `T-201`–`T-206`, `T-501`) | 11 | 14.0 | 14.0 (done) |
 | **L1 — Demo-able core** | Scaffold, models, seed, full engine (calendar → demand → supply → validator → explainer → CP-SAT), generate/read/impact/suggestion APIs, roster grid + views + conflict drawer + impact simulator, deployment, README, video | 42 | 81.5 | 81.5 |
 | **L2 — Complete product** | CRUD screens for all master data, leaves UI, auth + roles, cell edit/lock, publish + versioning, cell popover with live impact, unit/property tests, security hardening | 20 | 38.5 | 120.0 |
 | **L3 — Polish** | Greedy fallback generator, comp-off ledger, dashboard, audit API, optimistic cache, API tests, perf tuning, dependency audit, CHANGELOG sync | 11 | 15.5 | 133.5 |

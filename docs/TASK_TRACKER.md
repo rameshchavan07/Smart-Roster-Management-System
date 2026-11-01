@@ -52,7 +52,7 @@
 ## Phase 5 — Core feature development (scheduling engine and roster services)
 | ID | Task | Description | Priority | Depends on | Expected output | Status | Est. | Scope |
 |---|---|---|---|---|---|---|---|---|
-| T-501 | Engine domain types | Pure dataclasses: DemandCell, SupplyCell, RosterCell, Conflict, enums | High | T-104 | `scheduler/domain` | Not Started | 1h | MVP |
+| T-501 | Engine domain types | Pure dataclasses: DemandCell, SupplyCell, RosterCell, Conflict, enums | High | T-104 | `scheduler/domain` | Completed | 1h | MVP |
 | T-502 | Calendar resolver | Operating days per brand-process from calendar type + holidays | High | T-501 | Function + tests | Not Started | 1.5h | MVP |
 | T-503 | Demand builder | Precedence: date override → weekday override → default; zero on non-operating days | High | T-502 | Demand matrix | Not Started | 1.5h | MVP |
 | T-504 | Supply builder | Per employee-date availability: leave, comp-off, personal holiday, locked cells | High | T-501 | Supply matrix | Not Started | 2h | MVP |
