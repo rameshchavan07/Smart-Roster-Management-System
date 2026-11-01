@@ -5,6 +5,14 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 ## [Unreleased]
 
 ### Added
+- App shell layout, month switcher, command palette, and breadcrumbs (Task T-601 marked Completed in `TASK_TRACKER.md`):
+  - Created `MonthContext` and `useMonth` hook in `frontend/src/context/MonthContext.tsx` managing active planning horizon (default `2026-12`), step navigation (`prevMonth`/`nextMonth`), date boundaries (`startDate`/`endDate`), and planning horizon lookup.
+  - Implemented interactive `MonthSwitcher` component in `frontend/src/components/layout/MonthSwitcher.tsx` with chevrons, quick dropdown month picker, and target reset button conforming to `DESIGN_SYSTEM.md`.
+  - Implemented `Breadcrumbs` component in `frontend/src/components/layout/Breadcrumbs.tsx` parsing route segments with semantic accessibility (`nav[aria-label="Breadcrumb"]`) and route mapping.
+  - Implemented searchable `CommandPalette` component in `frontend/src/components/layout/CommandPalette.tsx` accessible via global `Ctrl+K` / `⌘K` or topbar search trigger, featuring categorized commands (Navigation, Planning Month, Quick Actions, Account), keyboard arrow navigation (`↑`/`↓`), execution (`↵`), dismissal (`Esc`), and search matching.
+  - Built desktop-first responsive `Sidebar` in `frontend/src/components/layout/Sidebar.tsx` with brand header, role-aware navigation links, active hairline indicators, mobile drawer overlay, and user profile widget with sign out.
+  - Built `Topbar` in `frontend/src/components/layout/Topbar.tsx` combining month switcher, breadcrumbs, command palette trigger, roster version status chips, and user role metadata.
+  - Composed full `AppShell` in `frontend/src/components/layout/AppShell.tsx` and integrated it with application routing in `frontend/src/routes.tsx` and `frontend/src/App.tsx`.
 - Audit log query API endpoint and service (Task T-519 marked Completed in `TASK_TRACKER.md`):
   - Added property `user_email` to `AuditLog` ORM model in `backend/app/models/auth.py` to seamlessly populate actor email on `AuditLogRead`.
   - Added `AuditLogRepository.list_audit_logs` in `backend/app/repositories/core.py` supporting filtering by `action`, `entity_type`, `entity_id`, `user_id`, date range (`date_from`, `date_to`), with `selectinload(AuditLog.user)` and descending ordering by `created_at`.

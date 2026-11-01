@@ -76,7 +76,7 @@
 ## Phase 6 — Frontend and UI integration
 | ID | Task | Description | Priority | Depends on | Expected output | Status | Est. | Scope |
 |---|---|---|---|---|---|---|---|---|
-| T-601 | App shell | Sidebar, topbar with month switcher, command palette, breadcrumbs | High | T-206, T-405 | Layout | Not Started | 2h | MVP |
+| T-601 | App shell | Sidebar, topbar with month switcher, command palette, breadcrumbs | High | T-206, T-405 | Layout | Completed | 2h | MVP |
 | T-602 | Shared component library | Button, Input, Select/Combobox, Modal, Drawer, Popover, Table, Badge, Toast, Skeleton, EmptyState | High | T-206 | Components | Not Started | 3h | MVP |
 | T-603 | Team screens | Employees table + drawer, Pods list/editor | High | T-602 | Screens | Not Started | 2.5h | MVP |
 | T-604 | Brands and Processes screens | Master–detail brands, brand-processes, assignments editor | High | T-602 | Screens | Not Started | 3h | MVP |
