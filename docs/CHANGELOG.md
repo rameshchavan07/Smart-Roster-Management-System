@@ -5,6 +5,24 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 ## [Unreleased]
 
 ### Added
+- Responsive Layout and Mobile Agenda Roster (Task T-615 marked Completed in `TASK_TRACKER.md`):
+  - Collapsible Navigation Sidebar (`frontend/src/components/layout/Sidebar.tsx`):
+    - Conforms to `DESIGN_SYSTEM.md` §6: 232px desktop sidebar collapsible to 56px icon rail with route tooltips, centered icons, and toggle control.
+    - Automatic responsive collapse to 56px icon rail on tablet viewports (768px–1279px).
+  - Bottom Tab Bar for Mobile (`frontend/src/components/layout/BottomTabBar.tsx`):
+    - Fixed bottom navigation for viewports < 768px with touch targets $\ge 40$px (`Dashboard`, `Roster`, `Conflicts` with alert badge, `Leaves`, and `More`).
+    - Slide-up bottom sheet for the "More" menu containing Team & Pods, Brands & Processes, Rules & Holidays, Impact Simulator, Reports, Settings, user profile, and Sign Out.
+    - Updated `AppShell.tsx` with responsive mobile padding (`pb-20 md:pb-6`).
+  - Tablet and Mobile Drawers (`frontend/src/components/ui/Drawer.tsx`):
+    - Responsive drawer surface: full-width sheet on mobile devices (`< 768px`) with enlarged $\ge 40$px touch targets and full-height scrollable views; overlay drawer on tablet/desktop.
+  - Mobile Agenda Roster Component (`frontend/src/features/roster/MobileAgendaRoster.tsx`):
+    - Conforms to `UI_UX_REQUIREMENTS.md` §4 specification for small screens:
+      - Pick employee / brand filter with quick selector.
+      - Horizontal 5-week pagination strip with sub-period dates (1st–7th, 8th–14th, etc.).
+      - Vertical day-by-day agenda cards displaying date, day of week, public holiday tag, shift status letter badge (`W`, `WO`, `L`, `CO`, `PH`, `HW`) with token colors, brand-process assignment, and lock indicators.
+      - Direct tap-to-edit integration with `CellEditPopover` and direct link to Day View.
+  - Integrated "Agenda" view into `RosterWorkspacePage.tsx` with auto-selection on mobile devices.
+  - Fixed conflict UUID primary key synthesis on re-validation in `backend/app/services/roster.py`.
 - Generation and Publish UX with Gating Checks and Version Management (Task T-614 marked Completed in `TASK_TRACKER.md`):
   - Defined `RosterCloneRequest` in `frontend/src/types/roster.ts`.
   - Added API fetchers and React Query mutation hooks in `frontend/src/api/rosters.ts` (`publishRosterApi`, `usePublishRosterMutation`, `cloneRosterApi`, `useCloneRosterMutation`).

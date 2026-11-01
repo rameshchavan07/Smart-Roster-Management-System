@@ -90,7 +90,7 @@
 | T-612 | Impact simulator screen | Before/after, remaining-employees matrix, apply/repair | High | T-611 | Screen | Completed | 2.5h | MVP |
 | T-613 | Dashboard | KPI strip, needs-attention list, heatmap, workload bars | High | T-608 | Screen | Completed | 2.5h | MVP |
 | T-614 | Generation and publish UX | Generate dialog with progress, publish confirmation, versions | High | T-602 | Flows | Completed | 1.5h | MVP |
-| T-615 | Responsive and mobile agenda | Collapsible nav, tablet drawers, mobile agenda roster | Medium | T-609 | Responsive layouts | Not Started | 2.5h | Stretch |
+| T-615 | Responsive and mobile agenda | Collapsible nav, tablet drawers, mobile agenda roster | Medium | T-609 | Responsive layouts | Completed | 2.5h | Stretch |
 | T-616 | My Roster and Settings | Employee calendar; weights/defaults/audit log screens | Low | T-602 | Screens | Not Started | 2h | Stretch |
 | T-617 | Compare and export UI | Versions compare view, export buttons | Low | T-517, T-518 | Screens | Not Started | 1.5h | Stretch |
 

@@ -1870,6 +1870,7 @@ class RosterService:
 
         new_db_conflicts = [
             DbRosterConflict(
+                id=uuid.uuid4(),
                 roster_period_id=target_period.id,
                 code=ec.code.value,
                 severity=DbConflictSeverity(ec.severity.value),
