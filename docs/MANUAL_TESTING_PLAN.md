@@ -254,3 +254,4 @@
   FROM audit_logs 
   ORDER BY created_at DESC LIMIT 10;
   ```
+
