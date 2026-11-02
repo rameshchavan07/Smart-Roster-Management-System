@@ -11,7 +11,6 @@ import {
   FileText,
   Sliders,
   CalendarDays,
-  Palette,
   LogOut,
   X,
   ChevronLeft,
@@ -270,24 +269,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </NavLink>
           </>
         )}
-
-        {!isCollapsed ? (
-          <div className="pt-3 pb-1 px-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-3">
-            Reference
-          </div>
-        ) : (
-          <div className="my-2 border-t border-border" />
-        )}
-
-        <NavLink
-          to="/design-system"
-          title="Design System"
-          className={navLinkClass}
-          onClick={onCloseMobile}
-        >
-          <Palette className="h-4 w-4 shrink-0 text-accent-600" />
-          {!isCollapsed && <span>Design System</span>}
-        </NavLink>
       </nav>
 
       {/* Collapse / Expand Toggle Button for Desktop */}
