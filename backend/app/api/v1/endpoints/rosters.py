@@ -133,15 +133,33 @@ def get_roster_grid(
         str, Query(description="View mode: company, pod, brand, process, employee")
     ] = "company",
     ref_id: Annotated[
-        uuid.UUID | None,
+        str | None,
         Query(
-            description="Optional entity UUID to filter by (pod_id, brand_id, process_id, employee_id)"
+            description="Optional entity UUID or code to filter by (pod_id, brand_id, process_id, employee_id)"
         ),
     ] = None,
 ) -> RosterGridViewResponse:
     """Fetch full interactive schedule matrix for the chosen view."""
+    target_uuid: uuid.UUID | None = None
+    if ref_id:
+        try:
+            target_uuid = uuid.UUID(ref_id)
+        except (ValueError, TypeError):
+            # Support fallback lookups by code (e.g. 'EMP-007' or 'emp-007')
+            if view.lower().strip() == "employee":
+                from app.models.employee import Employee as DbEmployee
+
+                normalized = ref_id.upper().strip()
+                emp = (
+                    db.query(DbEmployee)
+                    .filter((DbEmployee.code == normalized) | (DbEmployee.code == ref_id))
+                    .first()
+                )
+                if emp:
+                    target_uuid = emp.id
+
     service = RosterService(db)
-    return service.get_grid_view(period_id=period_id, view=view, ref_id=ref_id)
+    return service.get_grid_view(period_id=period_id, view=view, ref_id=target_uuid)
 
 
 @router.get(

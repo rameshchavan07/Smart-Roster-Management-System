@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Search,
@@ -107,7 +107,7 @@ export const RosterWorkspacePage: React.FC = () => {
   const [selectedPodId, setSelectedPodId] = useState<string>('');
   const [selectedBrandId, setSelectedBrandId] = useState<string>('');
   const [selectedProcessId, setSelectedProcessId] = useState<string>('');
-  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('emp-007');
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('');
 
   // Active day view date (for Day View Drawer)
   const [dayViewDate, setDayViewDate] = useState<string | null>(null);
@@ -118,13 +118,31 @@ export const RosterWorkspacePage: React.FC = () => {
   const { data: processesResult } = useProcessesQuery({ limit: 100 });
   const { data: employeesResult } = useEmployeesQuery({ limit: 200 });
 
-  // Compute active ref_id for backend view filtering
+  // Sync selected employee ID with real backend UUIDs when loaded
+  useEffect(() => {
+    if (employeesResult?.items && employeesResult.items.length > 0) {
+      setSelectedEmployeeId((prev) => {
+        if (prev && employeesResult.items.some((e) => e.id === prev)) {
+          return prev;
+        }
+        const riya = employeesResult.items.find((e) => e.code === 'EMP-007');
+        return riya ? riya.id : employeesResult.items[0].id;
+      });
+    }
+  }, [employeesResult]);
+
+  // Compute active ref_id for backend view filtering (safeguard against non-UUID mock strings)
+  const isUuid = (val?: string): boolean =>
+    Boolean(val && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val));
+
   const activeRefId = useMemo(() => {
-    if (viewMode === 'pod') return selectedPodId || undefined;
-    if (viewMode === 'brand') return selectedBrandId || undefined;
-    if (viewMode === 'process') return selectedProcessId || undefined;
-    if (viewMode === 'employee') return selectedEmployeeId || undefined;
-    return undefined;
+    let candidate: string | undefined;
+    if (viewMode === 'pod') candidate = selectedPodId || undefined;
+    else if (viewMode === 'brand') candidate = selectedBrandId || undefined;
+    else if (viewMode === 'process') candidate = selectedProcessId || undefined;
+    else if (viewMode === 'employee') candidate = selectedEmployeeId || undefined;
+
+    return isUuid(candidate) ? candidate : undefined;
   }, [viewMode, selectedPodId, selectedBrandId, selectedProcessId, selectedEmployeeId]);
 
   // Selected cell for CellEditPopover with live impact
