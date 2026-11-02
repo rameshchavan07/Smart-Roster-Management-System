@@ -838,8 +838,10 @@ export const RosterWorkspacePage: React.FC = () => {
             size="sm"
             onClick={() => {
               refetchPeriods();
-              refetchGrid();
-              refetchCoverage();
+              if (activePeriod?.id) {
+                refetchGrid();
+                refetchCoverage();
+              }
             }}
             title="Refresh Roster Grid & Coverage"
           >
@@ -1092,8 +1094,6 @@ export const RosterWorkspacePage: React.FC = () => {
         onGenerated={(res) => {
           setSelectedPeriodId(res.id);
           refetchPeriods();
-          refetchGrid();
-          refetchCoverage();
         }}
       />
 

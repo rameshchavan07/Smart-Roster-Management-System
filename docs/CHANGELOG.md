@@ -5,6 +5,9 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 ## [Unreleased]
 
 ### Fixed
+- Frontend Query Resilience:
+  - Eliminated `"Operation Failed: periodId is required to fetch grid"` error toast by safely returning empty/null fallback data in `frontend/src/api/rosters.ts` when `periodId` is unassigned (`useRosterGridQuery`, `useRosterCoverageQuery`, `useRosterDayViewQuery`, `useRosterConflictsQuery`, `useRosterSuggestionsQuery`, `useCompareRostersQuery`).
+  - Guarded sync and post-generation query invalidation in `frontend/src/features/roster/RosterWorkspacePage.tsx` to prevent premature grid refetches before a period is selected.
 - Bug-Fix Buffer & Clean Build Hardening (Task T-807 marked Completed in `TASK_TRACKER.md`):
   - **Backend Lint & Static Quality**: Cleaned up all remaining Ruff linter warnings across `backend/app/export_openapi.py` and `backend/app/generate_client.py` (unused imports, trailing whitespace, top-level import ordering with `# noqa: E402`). `ruff check backend/` now passes 100% clean with zero warnings or errors.
   - **Deprecation Warning Elimination**: Migrated Starlette HTTP status codes in `backend/app/core/errors.py` from `status.HTTP_422_UNPROCESSABLE_ENTITY` to `status.HTTP_422_UNPROCESSABLE_CONTENT` (for `BusinessValidationError` and `RosterBlockedError`), eliminating all runtime Starlette deprecation warnings across the test suite.

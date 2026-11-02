@@ -198,7 +198,7 @@ export function useRosterGridQuery(
   return useQuery({
     queryKey: ['roster-grid', periodId, view, refId],
     queryFn: () => {
-      if (!periodId) throw new Error('periodId is required to fetch grid');
+      if (!periodId) return null;
       return getRosterGridApi(periodId, view, refId);
     },
     enabled: Boolean(periodId),
@@ -214,7 +214,7 @@ export function useRosterCoverageQuery(
   return useQuery({
     queryKey: ['roster-coverage', periodId, brandProcessId, dateFrom, dateTo],
     queryFn: () => {
-      if (!periodId) throw new Error('periodId is required to fetch coverage');
+      if (!periodId) return [];
       return getRosterCoverageApi(periodId, brandProcessId, dateFrom, dateTo);
     },
     enabled: Boolean(periodId),
@@ -225,7 +225,7 @@ export function useRosterDayViewQuery(periodId?: string, date?: string) {
   return useQuery({
     queryKey: ['roster-day-view', periodId, date],
     queryFn: () => {
-      if (!periodId) throw new Error('periodId is required to fetch day view');
+      if (!periodId || !date) return null;
       return getRosterDayViewApi(periodId, date);
     },
     enabled: Boolean(periodId && date),
@@ -398,7 +398,7 @@ export function useRosterConflictsQuery(
   return useQuery({
     queryKey: ['roster-conflicts', periodId, params],
     queryFn: () => {
-      if (!periodId) throw new Error('periodId is required to fetch conflicts');
+      if (!periodId) return [];
       return getRosterConflictsApi(periodId, params);
     },
     enabled: Boolean(periodId),
@@ -416,7 +416,7 @@ export function useRosterSuggestionsQuery(
   return useQuery({
     queryKey: ['roster-suggestions', periodId, params],
     queryFn: () => {
-      if (!periodId) throw new Error('periodId is required to fetch suggestions');
+      if (!periodId || (!params?.conflict_id && !params?.brand_process_id)) return [];
       return getRosterSuggestionsApi(periodId, params);
     },
     enabled: Boolean(periodId && (params?.conflict_id || params?.brand_process_id)),
@@ -557,7 +557,7 @@ export function useCompareRostersQuery(periodIdA?: string, periodIdB?: string) {
   return useQuery({
     queryKey: ['rosters-compare', periodIdA, periodIdB],
     queryFn: () => {
-      if (!periodIdA || !periodIdB) throw new Error('Both period IDs are required for comparison');
+      if (!periodIdA || !periodIdB) return null;
       return compareRostersApi(periodIdA, periodIdB);
     },
     enabled: Boolean(periodIdA && periodIdB && periodIdA !== periodIdB),
