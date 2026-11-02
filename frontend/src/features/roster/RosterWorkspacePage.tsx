@@ -875,7 +875,7 @@ export const RosterWorkspacePage: React.FC = () => {
       )}
 
       {/* Empty State when no roster periods exist for this month */}
-      {!isPeriodsLoading && (!periods || periods.length === 0) && (
+      {!isPeriodsLoading && (!periods || periods.length === 0) ? (
         <EmptyState
           title={`No roster for ${monthLabel} yet`}
           description="Generate one from your current team, rules and leaves."
@@ -883,9 +883,9 @@ export const RosterWorkspacePage: React.FC = () => {
           actionLabel={canEdit ? 'Generate Roster' : undefined}
           onAction={canEdit ? () => setIsGenerateModalOpen(true) : undefined}
         />
-      )}
-
-      {/* KPI Stats Strip */}
+      ) : (
+        <>
+          {/* KPI Stats Strip */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="p-3 bg-surface-1 border border-border rounded-md">
           <span className="text-[11px] font-medium text-text-muted uppercase">Staff in View</span>
@@ -1042,19 +1042,20 @@ export const RosterWorkspacePage: React.FC = () => {
           }}
         />
       ) : (
-        /* Mobile Agenda Roster View */
-        <MobileAgendaRoster
-          monthDates={monthDates}
-          rows={filteredRows}
-          holidaysSet={holidaysSet}
-          canEdit={canEdit}
-          onCellClick={(row, date, cell, e) => {
-            const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-            setSelectedCellInfo({ row, date, cell, anchorRect: rect });
-          }}
-          onOpenDayView={(d) => setDayViewDate(d)}
-        />
-      )}
+          <MobileAgendaRoster
+            monthDates={monthDates}
+            rows={filteredRows}
+            holidaysSet={holidaysSet}
+            canEdit={canEdit}
+            onCellClick={(row, date, cell, e) => {
+              const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+              setSelectedCellInfo({ row, date, cell, anchorRect: rect });
+            }}
+            onOpenDayView={(d) => setDayViewDate(d)}
+          />
+        )}
+      </>
+    )}
 
       {/* Operational Day View Drawer */}
       <DayViewDrawer
