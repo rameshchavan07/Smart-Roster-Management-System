@@ -62,7 +62,9 @@ def generate_roster(
 ) -> RosterGenerateResponse:
     """Generate and persist a new draft roster for the target month."""
     service = RosterService(db)
-    return service.generate_roster(data, actor_id=current_user.id)
+    result = service.generate_roster(data, actor_id=current_user.id)
+    db.commit()
+    return result
 
 
 @router.get(
