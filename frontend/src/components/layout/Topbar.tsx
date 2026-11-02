@@ -42,9 +42,9 @@ export const Topbar: React.FC<TopbarProps> = ({
   const statusChip = getStatusChip();
 
   return (
-    <header className="flex h-14 shrink-0 items-center justify-between border-b border-border bg-surface px-4 sm:px-6">
+    <header className="relative z-30 flex h-14 shrink-0 items-center justify-between border-b border-border bg-surface px-4 sm:px-6">
       {/* Left: Mobile hamburger + Breadcrumbs & Month Switcher */}
-      <div className="flex items-center gap-3 sm:gap-4 overflow-hidden">
+      <div className="flex items-center gap-3 sm:gap-4 min-w-0">
         {/* Mobile menu button */}
         <button
           type="button"
@@ -62,7 +62,7 @@ export const Topbar: React.FC<TopbarProps> = ({
         <div className="hidden sm:block h-4 w-px bg-border" />
 
         {/* Breadcrumb navigation */}
-        <div className="hidden lg:block">
+        <div className="hidden lg:block min-w-0 truncate">
           <Breadcrumbs />
         </div>
       </div>

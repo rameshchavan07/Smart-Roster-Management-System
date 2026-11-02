@@ -49,7 +49,7 @@ export const MonthSwitcher: React.FC = () => {
           onClick={prevMonth}
           title="Previous month"
           aria-label="Previous month"
-          className="flex h-8 w-7 items-center justify-center rounded-l-ctl text-ink-2 hover:bg-surface-2 hover:text-ink active:bg-surface-2 transition-colors border-r border-border focus:outline-none focus:ring-2 focus:ring-accent-600"
+          className="flex h-8 w-7 items-center justify-center rounded-l-ctl text-ink-2 hover:bg-surface-2 hover:text-ink active:bg-surface-2 transition-colors border-r border-border focus:outline-none focus:ring-2 focus:ring-accent-600 cursor-pointer"
         >
           <ChevronLeft className="h-3.5 w-3.5" />
         </button>
@@ -61,7 +61,7 @@ export const MonthSwitcher: React.FC = () => {
           aria-expanded={isOpen}
           aria-haspopup="listbox"
           title={`Active month: ${monthLabel}. Click to switch.`}
-          className="flex h-8 items-center gap-1.5 px-2.5 text-xs font-semibold font-mono text-ink hover:bg-surface-2 active:bg-surface-2 transition-colors focus:outline-none focus:ring-2 focus:ring-accent-600"
+          className="flex h-8 items-center gap-1.5 px-2.5 text-xs font-semibold font-mono text-ink hover:bg-surface-2 active:bg-surface-2 transition-colors focus:outline-none focus:ring-2 focus:ring-accent-600 cursor-pointer"
         >
           <Calendar className="h-3.5 w-3.5 text-accent-600" />
           <span>{monthShortLabel}</span>
@@ -76,7 +76,7 @@ export const MonthSwitcher: React.FC = () => {
           onClick={nextMonth}
           title="Next month"
           aria-label="Next month"
-          className="flex h-8 w-7 items-center justify-center rounded-r-ctl text-ink-2 hover:bg-surface-2 hover:text-ink active:bg-surface-2 transition-colors border-l border-border focus:outline-none focus:ring-2 focus:ring-accent-600"
+          className="flex h-8 w-7 items-center justify-center rounded-r-ctl text-ink-2 hover:bg-surface-2 hover:text-ink active:bg-surface-2 transition-colors border-l border-border focus:outline-none focus:ring-2 focus:ring-accent-600 cursor-pointer"
         >
           <ChevronRight className="h-3.5 w-3.5" />
         </button>
@@ -87,7 +87,7 @@ export const MonthSwitcher: React.FC = () => {
         <div
           role="listbox"
           aria-label="Select planning month"
-          className="absolute left-0 top-full z-50 mt-1.5 w-56 rounded-pop border border-border bg-surface p-1.5 shadow-layer"
+          className="absolute left-0 top-full z-50 mt-1.5 w-60 rounded-pop border border-border bg-surface p-1.5 shadow-layer"
         >
           <div className="px-2 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-ink-3 border-b border-border mb-1">
             Planning Horizon
@@ -106,7 +106,7 @@ export const MonthSwitcher: React.FC = () => {
                     setMonth(m.value);
                     setIsOpen(false);
                   }}
-                  className={`flex w-full items-center justify-between rounded-ctl px-2.5 py-1.5 text-xs font-mono transition-colors ${
+                  className={`flex w-full items-center justify-between rounded-ctl px-2.5 py-1.5 text-xs font-mono transition-colors cursor-pointer ${
                     isSelected
                       ? 'bg-accent-50 font-semibold text-accent-700'
                       : 'text-ink-2 hover:bg-surface-2 hover:text-ink'
@@ -127,7 +127,7 @@ export const MonthSwitcher: React.FC = () => {
                   resetToDefault();
                   setIsOpen(false);
                 }}
-                className="w-full text-left rounded-ctl px-2.5 py-1 text-[11px] text-accent-600 hover:bg-accent-50 font-medium transition-colors"
+                className="w-full text-left rounded-ctl px-2.5 py-1 text-[11px] text-accent-600 hover:bg-accent-50 font-medium transition-colors cursor-pointer"
               >
                 Reset to Target (Dec 2026)
               </button>
