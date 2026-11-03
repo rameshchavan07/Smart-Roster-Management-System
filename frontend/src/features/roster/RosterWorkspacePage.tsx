@@ -464,8 +464,12 @@ export const RosterWorkspacePage: React.FC = () => {
       }
 
       // 2. Generic Pod Filter in company view
-      if (viewMode === 'company' && selectedPodFilter !== 'ALL' && row.pod_name !== selectedPodFilter) {
-        return false;
+      if (viewMode === 'company' && selectedPodFilter !== 'ALL') {
+        const rowPod = (row.pod_name || '').toLowerCase();
+        const filter = selectedPodFilter.toLowerCase();
+        if (rowPod !== filter && !rowPod.startsWith(filter) && !rowPod.includes(filter)) {
+          return false;
+        }
       }
 
       // 3. Search Query
@@ -977,18 +981,18 @@ export const RosterWorkspacePage: React.FC = () => {
                   </div>
 
                   {viewMode === 'company' && (
-                    <div className="w-36">
+                    <div className="w-56">
                       <Select
                         value={selectedPodFilter}
                         onChange={(val) => setSelectedPodFilter(val)}
                         options={[
                           { value: 'ALL', label: 'All Pods' },
-                          { value: 'Pod A', label: 'Pod A' },
-                          { value: 'Pod B', label: 'Pod B' },
-                          { value: 'Pod C', label: 'Pod C' },
-                          { value: 'Pod D', label: 'Pod D' },
-                          { value: 'Pod E', label: 'Pod E' },
-                          { value: 'Pod F', label: 'Pod F' },
+                          { value: 'Pod A', label: 'Pod A (Support Specialists)' },
+                          { value: 'Pod B', label: 'Pod B (D2C Accelerators)' },
+                          { value: 'Pod C', label: 'Pod C (Operations & Retention)' },
+                          { value: 'Pod D', label: 'Pod D (Logistics & NDR)' },
+                          { value: 'Pod E', label: 'Pod E (Growth & Engagement)' },
+                          { value: 'Pod F', label: 'Pod F (Flex & Peak Operations)' },
                         ]}
                         className="text-xs h-8"
                       />

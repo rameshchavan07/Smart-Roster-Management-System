@@ -289,7 +289,7 @@ def explain_conflict_llm(
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> RosterConflictLLMExplanation:
     """Provide AI-augmented managerial briefing on a structured conflict."""
-    from app.core.errors import EntityNotFoundError
+    from app.core.errors import NotFoundError
     from app.models.roster import RosterConflict as DbConflict
     from app.services.llm_explainer import generate_llm_conflict_explanation
 
@@ -302,7 +302,7 @@ def explain_conflict_llm(
         .first()
     )
     if not conflict:
-        raise EntityNotFoundError("RosterConflict", conflict_id)
+        raise NotFoundError("RosterConflict", str(conflict_id))
 
     return generate_llm_conflict_explanation(conflict)
 
