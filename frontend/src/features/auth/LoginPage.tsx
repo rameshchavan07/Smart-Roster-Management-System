@@ -3,10 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
-import { DEMO_ACCOUNTS } from '../../config/demoAccounts';
-import { getDemoAccountsApi } from '../../api/auth';
-import type { DemoAccountInfo } from '../../types/auth';
-import { ChevronDown, ChevronUp, Lock, ShieldCheck, UserCheck } from 'lucide-react';
+import { UserCheck } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
   const { login, isAuthenticated } = useAuth();
@@ -17,8 +14,6 @@ export const LoginPage: React.FC = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showDemoDisclosure, setShowDemoDisclosure] = useState(false);
-  const [remoteDemoAccounts, setRemoteDemoAccounts] = useState<DemoAccountInfo[] | null>(null);
 
   const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/';
 
@@ -27,15 +22,6 @@ export const LoginPage: React.FC = () => {
       navigate(from, { replace: true });
     }
   }, [isAuthenticated, navigate, from]);
-
-  useEffect(() => {
-    // Optionally fetch dynamic demo accounts from backend
-    getDemoAccountsApi()
-      .then((data) => setRemoteDemoAccounts(data))
-      .catch(() => {
-        // Fallback to local config if backend unreachable
-      });
-  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,12 +41,6 @@ export const LoginPage: React.FC = () => {
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const handleSelectDemoAccount = (demoEmail: string, demoPassword?: string | null) => {
-    setEmail(demoEmail);
-    setPassword(demoPassword || 'DemoPass123!');
-    setError(null);
   };
 
   return (
@@ -120,65 +100,6 @@ export const LoginPage: React.FC = () => {
               Sign In
             </Button>
           </form>
-
-          {/* Evaluator Demo Access Disclosure */}
-          <div className="mt-5 border-t border-border pt-4">
-            <button
-              type="button"
-              onClick={() => setShowDemoDisclosure((prev) => !prev)}
-              className="flex w-full items-center justify-between text-left text-xs font-medium text-ink-2 hover:text-ink focus:outline-none"
-            >
-              <span className="flex items-center gap-1.5 text-accent-700">
-                <ShieldCheck className="h-3.5 w-3.5" />
-                Demo Access (for Evaluators)
-              </span>
-              {showDemoDisclosure ? (
-                <ChevronUp className="h-3.5 w-3.5 text-ink-3" />
-              ) : (
-                <ChevronDown className="h-3.5 w-3.5 text-ink-3" />
-              )}
-            </button>
-
-            {showDemoDisclosure && (
-              <div className="mt-3 space-y-2 text-xs">
-                <p className="text-[11px] text-ink-3 leading-relaxed">
-                  Click any demo role to auto-populate credentials for evaluation:
-                </p>
-
-                <div className="space-y-1.5">
-                  {(remoteDemoAccounts || DEMO_ACCOUNTS).map((account) => {
-                    const pwd = ('default_password' in account ? account.default_password : null) || 'DemoPass123!';
-                    return (
-                      <button
-                        key={account.email}
-                        type="button"
-                        onClick={() => handleSelectDemoAccount(account.email, pwd)}
-                        className="w-full text-left rounded-ctl border border-border bg-surface-2 p-2 hover:border-accent-600 hover:bg-accent-50/50 transition-colors group"
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="font-semibold text-ink group-hover:text-accent-700">
-                            {'roleLabel' in account ? account.roleLabel : account.role}
-                          </span>
-                          <span className="text-[10px] font-mono text-ink-3 bg-surface px-1.5 py-0.5 rounded border border-border">
-                            {account.role}
-                          </span>
-                        </div>
-                        <p className="mt-0.5 font-mono text-[11px] text-ink-2 truncate">{account.email}</p>
-                        <p className="mt-0.5 text-[10px] text-ink-3 truncate">
-                          {'description' in account ? account.description : account.scope}
-                        </p>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                <div className="flex items-center gap-1.5 pt-1 text-[11px] text-ink-3">
-                  <Lock className="h-3 w-3 shrink-0" />
-                  <span>Default password: <code className="font-mono bg-surface px-1 py-0.5 rounded border border-border">DemoPass123!</code></span>
-                </div>
-              </div>
-            )}
-          </div>
         </div>
 
         {/* Security & System Info Footer */}
