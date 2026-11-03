@@ -52,12 +52,22 @@ jobs:
         run: |
           mypy app/scheduler/
 
+      - name: Run Database Migrations
+        working-directory: backend
+        env:
+          DATABASE_URL: postgresql+psycopg://rosterops:rosterops_pw@localhost:5432/rosterops_test
+          APP_ENV: test
+          JWT_SECRET: test-secret-key-at-least-32-chars-long
+        run: |
+          alembic upgrade head
+
       - name: Run Pytest Suite
         working-directory: backend
         env:
-          DATABASE_URL: postgresql://rosterops:rosterops_pw@localhost:5432/rosterops_test
+          DATABASE_URL: postgresql+psycopg://rosterops:rosterops_pw@localhost:5432/rosterops_test
           APP_ENV: test
-          JWT_SECRET_KEY: test-secret-key-at-least-32-chars-long
+          JWT_SECRET: test-secret-key-at-least-32-chars-long
+          DEMO_PASSWORD: DemoPass123!
         run: |
           pytest tests/ -v
 
