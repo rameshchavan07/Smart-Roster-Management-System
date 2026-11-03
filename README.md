@@ -54,7 +54,7 @@ docker compose -f docker-compose.prod.yml up --build
 
 ## Demo Accounts & Personas
 
-All accounts use the password: **`TestPassword123!`**
+All accounts use the password: **`DemoPass123!`**
 
 | Persona | Role | Email | Capabilities |
 | :--- | :--- | :--- | :--- |

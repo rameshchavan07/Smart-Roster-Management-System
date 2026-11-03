@@ -34,7 +34,7 @@ The platform has been built to meet all functional and non-functional requiremen
 - **Architecture & "How Do You Think" Answers**: Detailed in `README.md` (addressing all 8 evaluation questions)
 - **Automated Test Suite**: 226 tests passing (`pytest backend/tests` in ~40s) including property-based tests with Hypothesis and golden tests for demo scenarios S1–S5.
 
-### Demo Credentials (All personas use password: `TestPassword123!`)
+### Demo Credentials (All personas use password: `DemoPass123!`)
 1. **Operations Manager**: `ops@example.test` (Full company-wide scheduling, solver controls, publish gating, comp-off accruals)
 2. **Pod Lead**: `lead.a@example.test` (Aanya Sharma — Pod A scoped operations, localized repairs, what-if simulations)
 3. **Regular Employee**: `emp@example.test` (Riya Shah — Personal monthly schedule, leave submissions, comp-off balance)
