@@ -4,6 +4,12 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 
 ## [Unreleased]
 
+### Added
+- Security Hardening & Rate Limiting (Task T-903 marked Completed in `TASK_TRACKER.md`):
+  - **Security Headers Middleware**: Configured HTTP response headers in `backend/app/main.py` (`X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy`, and `Content-Security-Policy: default-src 'self'; frame-ancestors 'none';`) conforming to `SECURITY.md` §5.
+  - **Sliding-Window Rate Limiting**: Implemented in-memory sliding window rate limiter in `backend/app/core/rate_limit.py` protecting sensitive `/auth/login` and solver `POST /rosters` endpoints, returning uniform HTTP 429 `RATE_LIMITED` responses with retry hints.
+  - **Security Unit Tests**: Added `backend/tests/unit/test_security_headers_and_rate_limit.py` testing header presence, sliding window logic, and 429 enforcement.
+
 ### Fixed
 - Frontend Query Resilience:
   - Eliminated `"Operation Failed: periodId is required to fetch grid"` error toast by safely returning empty/null fallback data in `frontend/src/api/rosters.ts` when `periodId` is unassigned (`useRosterGridQuery`, `useRosterCoverageQuery`, `useRosterDayViewQuery`, `useRosterConflictsQuery`, `useRosterSuggestionsQuery`, `useCompareRostersQuery`).

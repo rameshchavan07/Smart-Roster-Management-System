@@ -9,7 +9,7 @@ import datetime as dt
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query, Response, status
+from fastapi import APIRouter, Depends, Query, Request, Response, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import (
@@ -18,6 +18,7 @@ from app.api.deps import (
     require_ops_manager,
     require_pod_lead_or_manager,
 )
+from app.core.rate_limit import solver_rate_limiter
 from app.models.auth import User
 from app.models.roster import ConflictSeverity
 from app.schemas.roster import (
@@ -57,10 +58,14 @@ router = APIRouter(prefix="/rosters", tags=["Rosters"])
 )
 def generate_roster(
     data: RosterGenerateRequest,
+    request: Request,
     db: Annotated[Session, Depends(get_db)],
     current_user: Annotated[User, Depends(require_ops_manager)],
 ) -> RosterGenerateResponse:
     """Generate and persist a new draft roster for the target month."""
+    client_ip = request.client.host if request.client else "unknown"
+    solver_rate_limiter.check(f"solver:{client_ip}")
+
     service = RosterService(db)
     result = service.generate_roster(data, actor_id=current_user.id)
     db.commit()

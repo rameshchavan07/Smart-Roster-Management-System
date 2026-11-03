@@ -45,6 +45,19 @@ def create_app() -> FastAPI:
         response.headers["X-Request-ID"] = req_id
         return response
 
+    # Middleware: Security Headers (T-903 / docs/SECURITY.md)
+    @app.middleware("http")
+    async def security_headers_middleware(
+        request: Request, call_next: Callable[[Request], Awaitable[Response]]
+    ) -> Response:
+        response: Response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+        response.headers["Content-Security-Policy"] = "default-src 'self'; frame-ancestors 'none';"
+        return response
+
     # Middleware: CORS
     cors_origins = (
         settings.CORS_ORIGINS

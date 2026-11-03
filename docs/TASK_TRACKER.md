@@ -120,7 +120,7 @@
 |---|---|---|---|---|---|---|---|---|
 | T-901 | Generation performance | Profile, tune solver params and time limit; stress test with 100+ employees | Medium | T-508 | Benchmarks | Not Started | 1.5h | MVP |
 | T-902 | Query and index tuning | Review EXPLAIN on grid/coverage queries; batch loads | Medium | T-510 | Faster endpoints | Not Started | 1h | MVP |
-| T-903 | Security hardening | CORS allow-list, security headers, rate limiting on auth, input limits | High | T-403 | Checklist passed | Not Started | 1.5h | MVP |
+| T-903 | Security hardening | CORS allow-list, security headers, rate limiting on auth, input limits | High | T-403 | Checklist passed | Completed | 1.5h | MVP |
 | T-904 | Accessibility pass | Keyboard, focus, contrast, ARIA for grid | Medium | T-609 | Audit notes | Not Started | 1.5h | Stretch |
 | T-905 | Dependency audit | `pip-audit`, `npm audit`, pin versions | Medium | T-207 | Clean audit | Not Started | 0.5h | MVP |
 

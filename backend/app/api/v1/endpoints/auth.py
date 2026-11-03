@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_current_user, get_current_user_optional, get_db
 from app.core.config import get_settings
 from app.core.errors import AuthenticationError
+from app.core.rate_limit import login_rate_limiter
 from app.models.auth import User, UserRole
 from app.schemas.auth import (
     DemoAccountRead,
@@ -37,7 +38,10 @@ def login(
     """Authenticate user with email and password, returning JWT access and refresh tokens."""
     settings = get_settings()
     auth_service = AuthService(db)
-    client_ip = request.client.host if request.client else None
+    client_ip = request.client.host if request.client else "unknown"
+
+    # Enforce login rate limit per IP + email (SECURITY.md §1)
+    login_rate_limiter.check(f"login:{client_ip}:{data.email}")
 
     token_response, refresh_token = auth_service.login(data, actor_ip=client_ip)
     db.commit()
