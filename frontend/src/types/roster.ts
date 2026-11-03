@@ -241,6 +241,16 @@ export interface RosterConflict {
   employee_code?: string | null;
 }
 
+export interface RosterConflictLLMExplanation {
+  conflict_id: string;
+  deterministic_message: string;
+  executive_summary: string;
+  operational_impact: string;
+  recommended_action: string;
+  confidence_score: number;
+  model_used: string;
+}
+
 export interface SuggestionNetEffect {
   fixes: number;
   opens: number;

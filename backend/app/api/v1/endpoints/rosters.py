@@ -25,6 +25,7 @@ from app.schemas.roster import (
     RosterAcknowledgeRequest,
     RosterCloneRequest,
     RosterCompareResponse,
+    RosterConflictLLMExplanation,
     RosterConflictRead,
     RosterCoverageCell,
     RosterDayViewResponse,
@@ -273,6 +274,37 @@ def get_roster_conflicts(
         target_date=date,
         employee_id=employee_id,
     )
+
+
+@router.post(
+    "/{period_id}/conflicts/{conflict_id}/explain-llm",
+    response_model=RosterConflictLLMExplanation,
+    summary="Get LLM conflict explanation",
+    description="Generate executive rephrasing, SLA impact analysis, and strategic recommendations (T-520).",
+)
+def explain_conflict_llm(
+    period_id: uuid.UUID,
+    conflict_id: uuid.UUID,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> RosterConflictLLMExplanation:
+    """Provide AI-augmented managerial briefing on a structured conflict."""
+    from app.core.errors import EntityNotFoundError
+    from app.models.roster import RosterConflict as DbConflict
+    from app.services.llm_explainer import generate_llm_conflict_explanation
+
+    conflict = (
+        db.query(DbConflict)
+        .filter(
+            DbConflict.id == conflict_id,
+            DbConflict.roster_period_id == period_id,
+        )
+        .first()
+    )
+    if not conflict:
+        raise EntityNotFoundError("RosterConflict", conflict_id)
+
+    return generate_llm_conflict_explanation(conflict)
 
 
 @router.post(

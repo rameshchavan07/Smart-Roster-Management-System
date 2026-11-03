@@ -16,6 +16,7 @@ import type {
   RosterImpactRequest,
   RosterImpactResponse,
   RosterConflict,
+  RosterConflictLLMExplanation,
   RosterSuggestionItem,
   RosterAcknowledgeRequest,
   RosterRepairRequest,
@@ -167,6 +168,18 @@ export async function acknowledgeRosterConflictApi(
     method: 'POST',
     body: JSON.stringify(request),
   });
+}
+
+export async function explainConflictWithLlmApi(
+  periodId: string,
+  conflictId: string
+): Promise<RosterConflictLLMExplanation> {
+  return apiClient<RosterConflictLLMExplanation>(
+    `/rosters/${periodId}/conflicts/${conflictId}/explain-llm`,
+    {
+      method: 'POST',
+    }
+  );
 }
 
 export async function repairRosterApi(
@@ -420,6 +433,22 @@ export function useRosterSuggestionsQuery(
       return getRosterSuggestionsApi(periodId, params);
     },
     enabled: Boolean(periodId && (params?.conflict_id || params?.brand_process_id)),
+  });
+}
+
+export function useConflictLlmExplanationQuery(
+  periodId?: string,
+  conflictId?: string,
+  enabled: boolean = false
+) {
+  return useQuery({
+    queryKey: ['roster-conflict-llm', periodId, conflictId],
+    queryFn: () => {
+      if (!periodId || !conflictId) return null;
+      return explainConflictWithLlmApi(periodId, conflictId);
+    },
+    enabled: Boolean(periodId && conflictId && enabled),
+    staleTime: 5 * 60 * 1000,
   });
 }
 

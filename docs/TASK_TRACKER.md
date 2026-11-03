@@ -71,7 +71,7 @@
 | T-517 | Export CSV/XLSX | Per-view export using openpyxl/csv | Medium | T-510 | `GET /export` | Completed | 1.5h | Stretch |
 | T-518 | Roster compare | Compare two versions: conflicts, coverage %, fairness spread | Low | T-515 | `GET /compare` | Completed | 2h | Stretch |
 | T-519 | Audit log API | Query audit entries | Low | T-306 | Endpoint | Completed | 0.5h | MVP |
-| T-520 | LLM conflict explanations | Optional rephrasing of structured conflicts | Low | T-506 | Optional toggle | Not Started | 2h | Stretch |
+| T-520 | LLM conflict explanations | Optional rephrasing of structured conflicts | Low | T-506 | Optional toggle | Completed | 2h | Stretch |
 
 ## Phase 6 — Frontend and UI integration
 | ID | Task | Description | Priority | Depends on | Expected output | Status | Est. | Scope |

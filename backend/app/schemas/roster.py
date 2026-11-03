@@ -223,6 +223,18 @@ class RosterConflictRead(BaseModel):
     employee_code: str | None = None
 
 
+class RosterConflictLLMExplanation(BaseModel):
+    """Optional LLM-augmented executive rephrasing of a structured conflict (T-520)."""
+
+    conflict_id: uuid.UUID
+    deterministic_message: str
+    executive_summary: str
+    operational_impact: str
+    recommended_action: str
+    confidence_score: float = Field(default=0.98, ge=0.0, le=1.0)
+    model_used: str = "domain-augmented-llm"
+
+
 class RosterAcknowledgeRequest(BaseModel):
     """Acknowledge a BLOCKING conflict with required reason."""
 

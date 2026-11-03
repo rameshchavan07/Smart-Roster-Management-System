@@ -18,6 +18,7 @@ import {
   useRosterSuggestionsQuery,
   useAcknowledgeConflictMutation,
   useUpdateRosterEntriesMutation,
+  useConflictLlmExplanationQuery,
 } from '../../api/rosters';
 import { showApiErrorToast } from '../../api/errorMapping';
 import type {
@@ -69,6 +70,7 @@ export const ConflictDrawer: React.FC<ConflictDrawerProps> = ({
   const toast = useToast();
   const [ackReason, setAckReason] = useState<string>('');
   const [applyingSuggestionId, setApplyingSuggestionId] = useState<string | null>(null);
+  const [showLlmExplanation, setShowLlmExplanation] = useState<boolean>(false);
 
   // Queries & Mutations
   const { data: suggestions, isLoading: isSuggestionsLoading } = useRosterSuggestionsQuery(
@@ -80,6 +82,12 @@ export const ConflictDrawer: React.FC<ConflictDrawerProps> = ({
           date: conflict.date_from || undefined,
         }
       : undefined
+  );
+
+  const { data: llmExplanation, isLoading: isLlmLoading } = useConflictLlmExplanationQuery(
+    periodId,
+    conflict?.id,
+    showLlmExplanation
   );
 
   const ackMutation = useAcknowledgeConflictMutation();
@@ -229,6 +237,60 @@ export const ConflictDrawer: React.FC<ConflictDrawerProps> = ({
                   {rc}
                 </span>
               ))}
+            </div>
+          )}
+
+          {/* Optional LLM Explanation Toggle (T-520) */}
+          <div className="pt-2 border-t border-border">
+            <button
+              type="button"
+              onClick={() => setShowLlmExplanation((prev) => !prev)}
+              className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-accent-700 hover:text-accent-800 transition-colors"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>{showLlmExplanation ? 'Hide AI Executive Rephrasing' : 'Explain with AI (Executive Rephrasing)'}</span>
+            </button>
+          </div>
+
+          {/* AI Executive Rephrasing Panel */}
+          {showLlmExplanation && (
+            <div className="mt-2.5 p-3 rounded-ctl border border-accent-200 bg-accent-50/50 space-y-2.5 animate-in fade-in duration-200">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-accent-950">
+                  <Sparkles className="w-3.5 h-3.5 text-accent-700" />
+                  <span>AI Managerial Briefing</span>
+                </div>
+                <Badge variant="neutral" className="text-[9px] font-mono">
+                  {llmExplanation?.model_used || 'domain-augmented-llm'}
+                </Badge>
+              </div>
+
+              {isLlmLoading ? (
+                <div className="py-3 flex items-center justify-center gap-2 text-xs text-ink-3">
+                  <Loader2 className="w-4 h-4 animate-spin text-accent-600" />
+                  <span>Synthesizing managerial briefing...</span>
+                </div>
+              ) : llmExplanation ? (
+                <div className="space-y-2 text-xs">
+                  <div>
+                    <span className="font-semibold text-ink uppercase text-[10px] tracking-wider block">Executive Summary:</span>
+                    <p className="mt-0.5 text-ink-2 leading-relaxed">{llmExplanation.executive_summary}</p>
+                  </div>
+                  <div>
+                    <span className="font-semibold text-ink uppercase text-[10px] tracking-wider block">Operational SLA Impact:</span>
+                    <p className="mt-0.5 text-ink-2 leading-relaxed">{llmExplanation.operational_impact}</p>
+                  </div>
+                  <div>
+                    <span className="font-semibold text-ink uppercase text-[10px] tracking-wider block">Recommended Action:</span>
+                    <p className="mt-0.5 text-ink font-medium leading-relaxed">{llmExplanation.recommended_action}</p>
+                  </div>
+                  <p className="text-[10px] text-ink-3 italic pt-1 border-t border-accent-200/60">
+                    Deterministic engine text above remains the source of truth per SCHEDULING_ENGINE.md §8.
+                  </p>
+                </div>
+              ) : (
+                <p className="text-xs text-ink-3">AI explanation unavailable for this conflict.</p>
+              )}
             </div>
           )}
         </div>

@@ -5,6 +5,11 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 ## [Unreleased]
 
 ### Added
+- LLM Conflict Explanation & Executive Rephrasing (Task T-520 marked Completed in `TASK_TRACKER.md`):
+  - Created `backend/app/services/llm_explainer.py` implementing domain-augmented executive rephrasing for structured conflicts conforming to `SCHEDULING_ENGINE.md` §8 (*"Optional later: pass the structured conflict to an LLM for rephrasing; deterministic text remains the source of truth"*).
+  - Added API endpoint `POST /api/v1/rosters/{period_id}/conflicts/{conflict_id}/explain-llm` returning structured managerial briefing (`executive_summary`, `operational_impact`, `recommended_action`, and model attribution).
+  - Added unit test suite in `backend/tests/unit/test_llm_explainer.py` testing coverage shortfalls (E001/E002) and streak violations (E005).
+  - Enhanced frontend `frontend/src/features/roster/ConflictDrawer.tsx` with an interactive "Explain with AI" toggle button and managerial executive briefing card with model provenance and source-of-truth disclaimer.
 - Engine Performance Benchmarking & Scaling Suite (Task T-901 marked Completed in `TASK_TRACKER.md`):
   - Created standalone benchmark script `backend/scripts/benchmark_solver.py` profiling pure Python CP-SAT solver and independent validator at Standard Scale (36 staff, 1,116 shifts), Stress Scale (108 staff, 3,348 shifts), and Mega Scale (180 staff, 5,580 shifts).
   - Published `docs/BENCHMARKS.md` demonstrating sub-second solve times: Standard Scale completes in **0.186s** (target <5.0s, 26x SLA margin), Stress Scale completes in **0.706s** (target <30.0s, 42x SLA margin).

@@ -14,7 +14,6 @@ Verifies constraints:
 
 from __future__ import annotations
 
-import sys
 import time
 from datetime import date
 
@@ -28,9 +27,8 @@ from app.scheduler.domain import (
     Employee,
     EmployeeLeave,
     GenerationInput,
-    LeaveType,
     Holiday,
-    SolverStatus,
+    LeaveType,
     WeeklyOffMode,
 )
 from app.scheduler.generator_cpsat import generate_cpsat
@@ -151,12 +149,12 @@ def run_benchmark(scale_name: str, num_pods: int, emps_per_pod: int, max_allowed
     total_days = 31
     expected_shifts = total_emps * total_days
 
-    print(f"\n============================================================")
+    print("\n============================================================")
     print(f"BENCHMARK: {scale_name}")
     print(f"Employees: {total_emps} | Pods: {num_pods} | Brand-Processes: {total_bps} | Days: {total_days}")
     print(f"Total Decision Cells: {expected_shifts:,}")
     print(f"Target SLA: < {max_allowed_s:.1f}s")
-    print(f"============================================================")
+    print("============================================================")
 
     # 1. Build scenario
     t_start_build = time.perf_counter()
@@ -198,7 +196,7 @@ def run_benchmark(scale_name: str, num_pods: int, emps_per_pod: int, max_allowed
     out_repeat = generate_cpsat(gen_input)
     t_det = time.perf_counter() - t_start_det
     assert len(out.roster_cells) == len(out_repeat.roster_cells), "Entry count mismatch on repeat run"
-    for e1, e2 in zip(out.roster_cells, out_repeat.roster_cells):
+    for e1, e2 in zip(out.roster_cells, out_repeat.roster_cells, strict=True):
         assert e1.employee_id == e2.employee_id and e1.date == e2.date and e1.status == e2.status, (
             f"Non-deterministic assignment found: {e1} vs {e2}"
         )
