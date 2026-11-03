@@ -13,7 +13,7 @@
 | T-102 | Write documentation set | Produce the Markdown blueprint (requirements, architecture, DB, API, UI, tracker…) | High | T-101 | 25 files (20 docs + 5 agent files) | Completed | 3h | MVP |
 | T-103 | Resolve open questions | Confirm Q1–Q6 and Q11 (frontend, shifts, weekly off, floaters, generate-vs-assist, multi-brand, deadline) | High | T-102 | Updated assumptions log | Completed | 1h | MVP |
 | T-104 | Freeze model and demo scenarios | Lock schema, rule definitions and the five demo scenarios used in the video | High | T-103 | Frozen `DATABASE_DESIGN.md`, `SAMPLE_DATA.md` | Completed | 1h | MVP |
-| T-105 | Clickable visual mockup | Build HTML mockup of Dashboard and Roster workspace for design sign-off | Medium | T-103 | Reviewed mockup | Not Started | 2h | Stretch |
+| T-105 | Clickable visual mockup | Build HTML mockup of Dashboard and Roster workspace for design sign-off | Medium | T-103 | Reviewed mockup | Completed | 2h | Stretch |
 
 ## Phase 2 — Environment setup and project initialisation
 | ID | Task | Description | Priority | Depends on | Expected output | Status | Est. | Scope |
@@ -24,7 +24,7 @@
 | T-204 | ORM base and migrations | SQLAlchemy 2.0 base, session management, Alembic configured | High | T-202, T-203 | `alembic upgrade head` runs | Completed | 1h | MVP |
 | T-205 | Frontend scaffold | Vite + React + TS + Tailwind + Router + TanStack Query + lint/format | High | T-201 | Blank shell on :5173 | Completed | 1.5h | MVP |
 | T-206 | Design tokens and base components | Tailwind theme from `DESIGN_SYSTEM.md`, fonts, global CSS | Medium | T-205 | Theme + token page | Completed | 1.5h | MVP |
-| T-207 | CI pipeline | GitHub Actions: lint, type-check, backend tests, frontend build | Medium | T-202, T-205 | Green CI badge | Not Started | 1h | Stretch |
+| T-207 | CI pipeline | GitHub Actions: lint, type-check, backend tests, frontend build | Medium | T-202, T-205 | Green CI badge | Completed | 1h | Stretch |
 
 ## Phase 3 — Database design and backend development
 | ID | Task | Description | Priority | Depends on | Expected output | Status | Est. | Scope |
@@ -118,10 +118,10 @@
 ## Phase 9 — Performance optimisation and security
 | ID | Task | Description | Priority | Depends on | Expected output | Status | Est. | Scope |
 |---|---|---|---|---|---|---|---|---|
-| T-901 | Generation performance | Profile, tune solver params and time limit; stress test with 100+ employees | Medium | T-508 | Benchmarks | Not Started | 1.5h | MVP |
-| T-902 | Query and index tuning | Review EXPLAIN on grid/coverage queries; batch loads | Medium | T-510 | Faster endpoints | Not Started | 1h | MVP |
+| T-901 | Generation performance | Profile, tune solver params and time limit; stress test with 100+ employees | Medium | T-508 | Benchmarks | Completed | 1.5h | MVP |
+| T-902 | Query and index tuning | Review EXPLAIN on grid/coverage queries; batch loads | Medium | T-510 | Faster endpoints | Completed | 1h | MVP |
 | T-903 | Security hardening | CORS allow-list, security headers, rate limiting on auth, input limits | High | T-403 | Checklist passed | Completed | 1.5h | MVP |
-| T-904 | Accessibility pass | Keyboard, focus, contrast, ARIA for grid | Medium | T-609 | Audit notes | Not Started | 1.5h | Stretch |
+| T-904 | Accessibility pass | Keyboard, focus, contrast, ARIA for grid | Medium | T-609 | Audit notes | Completed | 1.5h | Stretch |
 | T-905 | Dependency audit | `pip-audit`, `npm audit`, pin versions | Medium | T-207 | Clean audit | Completed | 0.5h | MVP |
 
 ## Phase 10 — Final deployment and documentation

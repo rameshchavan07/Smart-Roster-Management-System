@@ -5,6 +5,22 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 ## [Unreleased]
 
 ### Added
+- Engine Performance Benchmarking & Scaling Suite (Task T-901 marked Completed in `TASK_TRACKER.md`):
+  - Created standalone benchmark script `backend/scripts/benchmark_solver.py` profiling pure Python CP-SAT solver and independent validator at Standard Scale (36 staff, 1,116 shifts), Stress Scale (108 staff, 3,348 shifts), and Mega Scale (180 staff, 5,580 shifts).
+  - Published `docs/BENCHMARKS.md` demonstrating sub-second solve times: Standard Scale completes in **0.186s** (target <5.0s, 26x SLA margin), Stress Scale completes in **0.706s** (target <30.0s, 42x SLA margin).
+  - Confirmed 100% bit-exact determinism across repeat runs with identical seed, and validated independent decoupling (validator verifies 3,348 shifts in 21.8 ms).
+- PostgreSQL Composite Index & Query Tuning (Task T-902 marked Completed in `TASK_TRACKER.md`):
+  - Validated composite B-tree indexes across core tables: `ix_roster_entries_period_date`, `ix_roster_entries_period_emp`, `ix_roster_conflicts_period_severity`, `ix_assignments_employee_id`, and `uq_roster_periods_month_version`.
+  - Authored `docs/QUERY_TUNING.md` documenting `EXPLAIN ANALYZE` execution plans showing sub-millisecond execution times on production PostgreSQL (0.026 ms for period versions, 0.141 ms for day view, 0.221 ms for blocking conflicts, 0.237 ms for full 1,116-cell matrix).
+- CI Automation Workflow (Task T-207 marked Completed in `TASK_TRACKER.md`):
+  - Created `.github/workflows/ci.yml` running automated multi-stage CI pipeline with PostgreSQL 16 service container: Ruff linting (`ruff check .`), Mypy strict type checking (`mypy app/scheduler/`), full Pytest suite, and frontend TypeScript check + production Vite build (`npm run typecheck && npm run build`).
+- Accessibility & WCAG 2.1 AA Audit (Task T-904 marked Completed in `TASK_TRACKER.md`):
+  - Authored `docs/ACCESSIBILITY.md` checklist confirming adherence to WCAG 2.1 Level AA standards: roving tabindex, semantic `role="grid"` with arrow key navigation, text-letter status codes (W, WO, PH, HW, L, CO), and focus-trapped Radix dialogs.
+
+### Fixed
+- Backend Grid Query Fallback Resolution:
+  - Fixed `ModuleNotFoundError: No module named 'app.models.employee'` in `backend/app/api/v1/endpoints/rosters.py` by importing domain entities (`DbEmployee`, `DbPod`, `DbBrand`, `DbProcess`) from `app.models.core`.
+  - Added robust case-insensitive fallback lookups by code or name (e.g., `EMP-007` or `emp-007`) across `employee`, `pod`, `brand`, and `process` query view modes.
 - Final Deployment & Submission Package (Tasks T-1001, T-1005, T-1006, T-1007, T-1008, T-1009 marked Completed in `TASK_TRACKER.md`):
   - **Production Dockerization (T-1001)**: Created multi-stage `backend/Dockerfile` (Python 3.12-slim with non-root `appuser` and healthcheck), `frontend/Dockerfile` (Node 20 build stage with Nginx Alpine static server and SPA routing fallback), and `docker-compose.prod.yml` orchestrating PostgreSQL, backend, and frontend.
   - **Comprehensive Project README & Evaluation Answers (T-1005)**: Authored root `README.md` containing full architecture diagrams, setup instructions, persona credentials, and detailed technical answers to the 8 required evaluation questions from the assessment brief.

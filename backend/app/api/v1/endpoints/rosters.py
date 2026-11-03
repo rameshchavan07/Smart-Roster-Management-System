@@ -150,9 +150,10 @@ def get_roster_grid(
         try:
             target_uuid = uuid.UUID(ref_id)
         except (ValueError, TypeError):
-            # Support fallback lookups by code (e.g. 'EMP-007' or 'emp-007')
-            if view.lower().strip() == "employee":
-                from app.models.employee import Employee as DbEmployee
+            # Support fallback lookups by code/name (e.g. 'EMP-007' or 'emp-007')
+            v_lower = view.lower().strip()
+            if v_lower == "employee":
+                from app.models.core import Employee as DbEmployee
 
                 normalized = ref_id.upper().strip()
                 emp = (
@@ -162,6 +163,36 @@ def get_roster_grid(
                 )
                 if emp:
                     target_uuid = emp.id
+            elif v_lower == "pod":
+                from app.models.core import Pod as DbPod
+
+                pod = (
+                    db.query(DbPod)
+                    .filter((DbPod.name.ilike(ref_id)) | (DbPod.code.ilike(ref_id)))
+                    .first()
+                )
+                if pod:
+                    target_uuid = pod.id
+            elif v_lower == "brand":
+                from app.models.core import Brand as DbBrand
+
+                brand = (
+                    db.query(DbBrand)
+                    .filter((DbBrand.name.ilike(ref_id)) | (DbBrand.code.ilike(ref_id)))
+                    .first()
+                )
+                if brand:
+                    target_uuid = brand.id
+            elif v_lower == "process":
+                from app.models.core import Process as DbProcess
+
+                proc = (
+                    db.query(DbProcess)
+                    .filter((DbProcess.name.ilike(ref_id)) | (DbProcess.code.ilike(ref_id)))
+                    .first()
+                )
+                if proc:
+                    target_uuid = proc.id
 
     service = RosterService(db)
     return service.get_grid_view(period_id=period_id, view=view, ref_id=target_uuid)
