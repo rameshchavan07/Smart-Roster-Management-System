@@ -37,3 +37,4 @@ As mandated by `AGENTS.md` §3, the **validator is strictly decoupled from the g
 - The validator does not trust solver output.
 - It recomputes coverage sums, rest streaks, and weekly-off intervals from scratch against raw demand and supply matrices.
 - Even at 108 employees (3,348 shifts), independent validation completes in **21.8 milliseconds**, allowing sub-100ms roundtrip live conflict validation on every manual edit in the UI grid.
+

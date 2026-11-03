@@ -40,3 +40,4 @@ This checklist verifies full compliance of RosterOps against **WCAG 2.1 Level AA
 - [x] **Radix UI Primitives**: Modals, popovers, and dropdowns use Radix UI primitives with focus trapping, `Escape` key listeners, and `aria-expanded` / `aria-controls` bindings.
 - [x] **Form Labels**: Every form input (`GenerateRosterModal`, `CellEditPopover`, `ExportModal`, `PublishConfirmModal`) has an associated `<label>` element.
 - [x] **Error States**: Form validation errors render live inline messages with `aria-live="polite"`.
+

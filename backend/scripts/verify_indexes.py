@@ -9,8 +9,8 @@ Validates:
 
 from __future__ import annotations
 
-import sys
 from sqlalchemy import text
+
 from app.db.session import engine
 
 
@@ -72,3 +72,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+

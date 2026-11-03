@@ -112,3 +112,4 @@ Execution Time: 0.026 ms
 ```
 *Index Used:* `uq_roster_periods_month_version` (Index Scan Backward)  
 *Execution Time:* **0.026 ms** (Sub-millisecond)
+
