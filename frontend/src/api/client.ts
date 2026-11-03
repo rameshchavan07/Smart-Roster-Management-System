@@ -3,7 +3,10 @@
  * and uniform error parsing conforming to API_DOCUMENTATION.md §1 & §3.
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
+const RAW_API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
+const API_BASE_URL = RAW_API_URL.endsWith('/api/v1')
+  ? RAW_API_URL
+  : `${RAW_API_URL.replace(/\/$/, '')}/api/v1`;
 
 const ACCESS_TOKEN_STORAGE_KEY = 'rosterops_access_token';
 

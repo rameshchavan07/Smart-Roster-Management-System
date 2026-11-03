@@ -50,16 +50,17 @@ RUN groupadd -g 10001 appgroup && \
 COPY app ./app
 COPY alembic ./alembic
 COPY alembic.ini ./alembic.ini
+COPY entrypoint.sh ./entrypoint.sh
 
-# Set ownership
-RUN chown -R appuser:appgroup /app
+# Set ownership and execute permissions
+RUN chmod +x ./entrypoint.sh && chown -R appuser:appgroup /app
 USER appuser
 
 EXPOSE 8000
 
 # Container healthcheck targeting standard health endpoint
-HEALTHCHECK --interval=15s --timeout=5s --start-period=5s --retries=3 \
+HEALTHCHECK --interval=15s --timeout=5s --start-period=10s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["./entrypoint.sh"]
 
