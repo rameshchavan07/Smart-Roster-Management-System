@@ -1,199 +1,389 @@
-# Smart Roster Management System (RosterOps)
+# RosterOps — Smart Roster Management System
 
-An intelligent, constraint-aware operations scheduling platform engineered with **FastAPI (Python 3.12)**, **Google OR-Tools CP-SAT**, and **React 18 + TypeScript**. 
+**An intelligent, constraint-aware workforce scheduling platform**
 
-Built for modern operations managers to **generate, validate, simulate, and edit monthly rosters** across brands, processes, and pods — with a non-negotiable guarantee: **the system never presents an invalid roster as valid and explains every conflict**.
+RosterOps is a workforce scheduling platform designed to help operations teams generate, validate, simulate, and manage monthly employee rosters across multiple brands, processes, and pods.
 
----
+The platform combines **FastAPI (Python 3.12)**, **Google OR-Tools CP-SAT**, and **React 18 with TypeScript** to solve complex staffing constraints while maintaining schedule transparency and operational reliability.
 
-## 🌐 Live Production Deployment
-
-- **Live Application:** **[https://rosterops-web.onrender.com](https://rosterops-web.onrender.com)**
-- **Interactive API Swagger UI:** **[https://rosterops-api.onrender.com/docs](https://rosterops-api.onrender.com/docs)**
-- **Service Health Check:** **[https://rosterops-api.onrender.com/health](https://rosterops-api.onrender.com/health)**
-- **Demo Video Walkthrough:** **[https://drive.google.com/file/d/1CgaYl3Nw7C4FywWsiK6Pp96d0_OKQzSv/view?usp=sharing](https://drive.google.com/file/d/1CgaYl3Nw7C4FywWsiK6Pp96d0_OKQzSv/view?usp=sharing)**
-
-All demo accounts use password: **`DemoPass123!`** (Ops Manager: `ops@example.test`, Pod Lead: `lead.a@example.test`, Employee: `emp@example.test`).
+> **Core principle:** RosterOps never presents an invalid roster as valid. Every detected scheduling conflict is identified, explained, and made actionable.
 
 ---
 
-## Quickstart & Local Setup
+## 1. Live Deployment
 
-### Prerequisites
-- **Python 3.12+**
-- **Node.js 20+**
-- **PostgreSQL 16+** (running on port `5432`)
+| Resource | Link |
+|---|---|
+| Production application | [Open RosterOps](https://rosterops-web.onrender.com) |
+| Interactive API documentation | [Swagger UI](https://rosterops-api.onrender.com/docs) |
+| API health check | [Health endpoint](https://rosterops-api.onrender.com/health) |
+| Product walkthrough | [Watch the demo video](https://drive.google.com/file/d/1CgaYl3Nw7C4FywWsiK6Pp96d0_OKQzSv/view?usp=sharing) |
 
-### 1. Database Setup
+### Demo access
+
+All demo accounts use the password `DemoPass123!`.
+
+| User type | Email | Role |
+|---|---|---|
+| Operations Manager | `ops@example.test` | `OPS_MANAGER` |
+| Pod Lead | `lead.a@example.test` | `POD_LEAD` |
+| Employee | `emp@example.test` | `EMPLOYEE` |
+
+The employee demo account represents **Riya Shah (EMP-007)**.
+
+---
+
+## 2. Technology Stack
+
+| Layer | Technologies |
+|---|---|
+| Frontend | React 18, TypeScript |
+| UI | Tailwind CSS, Radix UI primitives |
+| Data fetching and state | TanStack Query |
+| Data tables and virtualization | TanStack Table, TanStack Virtual |
+| Backend | FastAPI, Python 3.12 |
+| Scheduling and optimization | Google OR-Tools CP-SAT |
+| Database | PostgreSQL 16 |
+| Database migrations | Alembic |
+| Authentication and security | Argon2id, JWT, rate limiting |
+| Deployment | Docker Compose, Nginx, Render |
+
+---
+
+## 3. Key Capabilities
+
+- **Automated roster generation:** Generate monthly schedules using demand, employee availability, operating calendars, and business rules.
+- **Constraint validation:** Independently validate generated schedules and identify coverage gaps or rule violations.
+- **Conflict explanations:** Provide conflict codes, severity, affected employees and dates, root causes, and plain-language explanations.
+- **Floater recommendations:** Recommend qualified employees to cover staffing gaps.
+- **What-if simulation:** Evaluate proposed changes without modifying the saved roster.
+- **Localized roster repair:** Recalculate only the affected date and pod window while preserving unaffected assignments.
+- **Roster versioning:** Maintain published versions and create working drafts for subsequent changes.
+- **Audit logging:** Record roster changes, overrides, and manager acknowledgements.
+- **Role-based access control:** Provide different capabilities for operations managers, pod leads, and employees.
+
+---
+
+## 4. Local Development Setup
+
+### 4.1 Prerequisites
+
+Install the following before starting:
+
+- Python 3.12 or later
+- Node.js 20 or later
+- PostgreSQL 16 or later
+- Git
+- Docker (optional, for containerized deployment)
+
+The local PostgreSQL instance is expected to run on port `5432`.
+
+### 4.2 Database configuration
+
+Connect to PostgreSQL and create the application user and database:
+
 ```bash
-# Connect to PostgreSQL and create the database & user
 psql -U postgres -c "CREATE USER rosterops WITH PASSWORD 'rosterops' CREATEDB;"
 psql -U postgres -c "CREATE DATABASE rosterops OWNER rosterops;"
 ```
 
-### 2. Backend Setup
+> **Security note:** These credentials are intended for local development only. Use environment-specific, securely managed credentials in production.
+
+### 4.3 Backend setup
+
+From the project root:
+
 ```bash
 cd backend
+
+# Create a virtual environment
 python -m venv .venv
-# On Windows:
+
+# Activate on Windows
 .\.venv\Scripts\activate
-# On Linux/macOS:
+
+# Activate on Linux/macOS
 source .venv/bin/activate
 
+# Install backend dependencies
 pip install -e .
+
+# Apply database migrations
 alembic upgrade head
+
+# Seed development data
 python -m app.seed --scale 1
+
+# Start the API server
 uvicorn app.main:app --reload --port 8000
 ```
-*Backend runs at `http://localhost:8000` (`/health` &rarr; 200 OK, interactive docs at `/docs`).*
 
-### 3. Frontend Setup
+The backend will be available at:
+
+- API base URL: `http://localhost:8000`
+- Health check: `http://localhost:8000/health`
+- Interactive API documentation: `http://localhost:8000/docs`
+
+### 4.4 Frontend setup
+
+Open a separate terminal:
+
 ```bash
 cd frontend
+
+# Install dependencies
 npm install
+
+# Start the development server
 npm run dev
 ```
-*Frontend runs at `http://localhost:5173`.*
 
-### 4. Running with Production Docker Compose
+The frontend will be available at `http://localhost:5173`.
+
+### 4.5 Run with Docker Compose
+
+To start the production-style containerized stack:
+
 ```bash
 docker compose -f docker-compose.prod.yml up --build
 ```
-*Spins up PostgreSQL, Backend API (port 8000), and Nginx Frontend (port 80).*
+
+This starts:
+
+- PostgreSQL database
+- Backend API on port `8000`
+- Nginx-served frontend on port `80`
 
 ---
 
-## 🔑 Demo Accounts & Credentials
+## 5. Demo Roles and Permissions
 
-All accounts use the password: **`DemoPass123!`**
-
-| Persona | Role | Email | Password | Capabilities |
-| :--- | :--- | :--- | :--- | :--- |
-| **Ops Manager** | `OPS_MANAGER` | `ops@example.test` | `DemoPass123!` | Full authority: CP-SAT generation, cell freezing/locking, floater assignments, conflict overrides, publish gating, comp-off accruals, audit logs. |
-| **Pod Lead** | `POD_LEAD` | `lead.a@example.test` | `DemoPass123!` | Scoped to Pod A: localized solver repairs (`/repair`), what-if simulations, team schedule reviews. Restricted from final company publishing. |
-| **Employee** | `EMPLOYEE` | `emp@example.test` | `DemoPass123!` | Riya Shah (`EMP-007`): personal monthly schedule, leave submissions (`REQUESTED`), comp-off ledger balance. Shift cells are read-only. |
+| Role | Demo account | Main permissions |
+|---|---|---|
+| **Operations Manager** (`OPS_MANAGER`) | `ops@example.test` | Full operational access, including CP-SAT roster generation, cell freezing and locking, floater assignments, conflict overrides, publish gating, comp-off accruals, and audit logs. |
+| **Pod Lead** (`POD_LEAD`) | `lead.a@example.test` | Access limited to Pod A, including localized repairs (`/repair`), what-if simulations, and team schedule reviews. Cannot publish the final company roster. |
+| **Employee** (`EMPLOYEE`) | `emp@example.test` | View personal monthly roster, submit leave requests (`REQUESTED`), and view comp-off ledger balance. Shift cells are read-only. |
 
 ---
 
-## System Architecture
+## 6. System Architecture
 
 ```mermaid
 flowchart TD
-    subgraph Client["Frontend SPA (React 18 + TypeScript)"]
-        UI["Tailwind CSS + Radix Primitives"]
-        TQ["TanStack Query + Table + Virtual"]
+    subgraph Client["Frontend SPA — React 18 + TypeScript"]
+        UI["Tailwind CSS + Radix UI"]
+        DATA["TanStack Query + Table + Virtual"]
     end
 
     subgraph API["FastAPI Application Layer"]
-        AUTH["Argon2id + JWT Security & Rate Limiter"]
-        ROUTERS["Routers (/rosters, /conflicts, /simulator, /comp-offs)"]
+        AUTH["Argon2id + JWT Security + Rate Limiter"]
+        ROUTERS["API Routers: Rosters, Conflicts, Simulator, Comp-offs"]
     end
 
-    subgraph Engine["Pure-Python Scheduling Core (backend/app/scheduler)"]
+    subgraph Engine["Pure-Python Scheduling Core"]
         CPSAT["Google OR-Tools CP-SAT Solver"]
         GREEDY["Deterministic Greedy Fallback"]
-        VAL["Independent Constraint Validator (E001-E009)"]
-        SUG["Second-Order Suggestion Engine"]
-        EXP["Plain-Language Root Cause Explainer"]
+        VALIDATOR["Independent Constraint Validator — E001–E009"]
+        SUGGESTIONS["Second-Order Suggestion Engine"]
+        EXPLAINER["Plain-Language Root Cause Explainer"]
     end
 
-    subgraph Storage["PostgreSQL 16 Database"]
-        DB[(Roster Periods, Entries, Conflicts, Audit Logs)]
+    subgraph Storage["PostgreSQL 16"]
+        DB[("Roster Periods, Entries, Conflicts, Audit Logs")]
     end
 
-    Client -->|REST API with Uniform Error Envelope| API
+    Client -->|"REST API — Uniform Error Envelope"| API
     API --> Engine
     API --> Storage
 ```
 
-### Layer Separation & Invariants
-- **Layering**: `api → services → (repositories, scheduler, domain)`. Routers contain zero business logic.
-- **Pure-Python Scheduling Engine**: `backend/app/scheduler/` is 100% pure Python: no imports from FastAPI, SQLAlchemy, or database models. It takes pure dataclasses in and returns pure dataclasses out.
-- **Independent Validator**: The validator never trusts solver output; it re-evaluates demand, supply, streaks, and rules from scratch.
-- **Deterministic**: Stable sorting and reproducible results for identical inputs and random seeds.
+### 6.1 Architectural principles
+
+- **Clear layer separation:** The application follows `API → Services → (Repositories, Scheduler, Domain)`. Routers contain no business logic.
+- **Framework-independent scheduling core:** `backend/app/scheduler/` is implemented in pure Python. It does not import FastAPI, SQLAlchemy, or database models. It accepts dataclasses and returns dataclasses.
+- **Independent validation:** The validator does not trust solver output. It independently evaluates staffing demand, employee supply, work streaks, and scheduling rules.
+- **Deterministic execution:** Stable sorting and controlled random seeds support reproducible results for identical inputs.
 
 ---
 
-## The 8 "How Do You Think" Submission Answers
+## 7. Scheduling Model and Design Decisions
 
-### 1. How do you think about the core scheduling problem?
-We model rostering fundamentally as a **Demand vs. Supply constraint-satisfaction optimization problem**:
-- **Demand** is derived per operating day from each brand-process's operating calendar (`ALL_365`, `ALL_EXCEPT_HOLIDAYS`, `EXCLUDE_SUNDAY_AND_HOLIDAYS`) and weekday/date staffing overrides.
-- **Supply** is evaluated per employee-date from primary/backup allocations, subtractive availability (approved leaves, public holidays, comp-offs, weekly offs), and frozen manager locks.
-- Rather than an all-or-nothing boolean check, the engine uses **slack variables** on coverage: `Coverage[bp, d] + slack[bp, d] >= Demand[bp, d]`. Slack is penalised so heavily in the objective function that the solver never raises "infeasible"; it always returns the best mathematically possible schedule and explicitly quantifies every shortfall as an actionable conflict.
+This section summarizes the principal scheduling decisions and the reasoning behind them.
 
-### 2. How do you handle mandatory constraints vs. preferences?
-In our CP-SAT formulation, mandatory constraints and preferences occupy fundamentally different tiers:
-- **Hard Constraints (H1–H5)** are enforced via strict linear constraints:
-  - `H1`: Locked cells are immutable.
-  - `H2`: No employee works on approved leave or comp-off.
-  - `H3`: Maximum consecutive work days limit is never exceeded (default 6).
-  - `H4`: Non-floater employees never work across simultaneous brand processes exceeding capacity.
-  - `H5`: Mandatory weekly-off counts are strictly honored.
-- **Soft Preferences (P1–P6)** are modelled as penalty terms in the minimization objective:
-  $$\text{Minimize} \quad W_{\text{slack}} \cdot \sum \text{slack} + W_{\text{fairness}} \cdot \Delta_{\text{weekend}} + W_{\text{pref}} \cdot \sum \text{violated\_prefs}$$
-- **Dominance Principle**: The coverage shortfall weight ($W_{\text{slack}} = 10{,}000$) dominates all preference weights combined. A preferred day off will never cause an uncovered operational shift.
+### 7.1 Demand and supply model
 
-### 3. How do you represent and resolve single-resource brands?
-Single-resource brands (representing ~80% of brands in our 25-brand dataset) cannot mathematically provide their sole employee a mandatory weekly off without causing an operational gap.
-- We resolve this through a **dedicated Floater Pool** (`EMP-033` through `EMP-036`). Floaters hold no fixed primary brand.
-- In initial generation, floaters are held as backups.
-- When an employee takes their scheduled weekly off or planned leave, the independent validator flags `E001 NO_COVERAGE` with root cause `WEEKLY_OFF` or `LEAVE`.
-- The **Suggestion Engine** automatically matches qualified, on-duty floaters to cover the gap. Applying the suggestion dynamically assigns the floater as an active backup for that date, immediately clearing the conflict.
+Roster generation is treated as a **demand-versus-supply constraint optimization problem**.
 
-### 4. How do you ensure explainability for conflicts and recommendations?
-Every conflict generated by the engine includes:
-- Unique conflict code (`E001` to `E009`).
-- Severity (`BLOCKING`, `WARNING`, `INFO`).
-- Brand, process, affected dates, and involved employees.
-- Root cause tags (`WEEKLY_OFF`, `LEAVE`, `SOLO_RESOURCE`, `WEEKEND_BALANCE`).
-- Plain-language explanation generated by the explainer module (e.g., *"Brand Aurora — Customer Support has no coverage on 14 Dec (Mon). Required: 1. Its only assigned employee Riya Shah is on approved leave (13–15 Dec). Backups available that day: Kabir Nair (floater, working)."*).
-- **Second-Order Net Impact Simulation**: Every recommendation simulates the proposed fix through the validator before surfacing, showing net impact (e.g. *"Fixes 1 gap, opens 0 new gaps"*).
+**Demand** is calculated for each operating day using:
 
-### 5. How is the architecture designed for maintainability and scalability?
-- **Domain Decoupling**: The scheduling engine has zero framework or database dependencies. It can run in serverless functions, background workers, or CLI scripts without FastAPI or SQLAlchemy.
-- **Rules as Data**: Calendars, coverage minimums, weekly-off rules, and preference weights live in PostgreSQL tables, editable in real time without code deployment.
-- **Linear Scaling**: For $2\times$ scale (100+ employees, 50 brands), the CP-SAT solver completes within 10–20 seconds, and TanStack Virtual table virtualization maintains 60 FPS rendering in the frontend.
+- Brand-process operating calendars:
+  - `ALL_365`
+  - `ALL_EXCEPT_HOLIDAYS`
+  - `EXCLUDE_SUNDAY_AND_HOLIDAYS`
+- Weekday and date-specific staffing overrides.
 
-### 6. How do you handle real-time changes and what-if simulation?
-- **Impact Simulator (`POST /api/v1/rosters/{id}/impact`)**: Evaluates proposed cell modifications or leave requests in memory without mutating the database, returning the exact diff of new, resolved, and unchanged conflicts.
-- **Localized Window Repair (`POST /api/v1/rosters/{id}/repair`)**: When a change occurs, the solver freezes all cells outside the impacted date/pod window and re-solves only the affected subset, preserving schedule stability.
+**Supply** is evaluated for each employee and date using:
 
-### 7. How do you guarantee determinism and auditability?
-- **Random Seed Control**: Solver runs are parameterized with an explicit integer seed and stable sorting across all arrays. Identical inputs and seeds yield 100% bit-for-bit identical roster outputs.
-- **Immutable Version History**: Publishing locks a version (`status = PUBLISHED`). Subsequent edits create working drafts (`v2`, `v3`).
-- **Audit Ledger**: Every mutation, cell override, and manager conflict acknowledgment is recorded in `audit_logs` with actor UUID, action timestamp, and before/after JSON states.
+- Primary and backup allocations
+- Approved leave
+- Public holidays
+- Comp-off
+- Weekly offs
+- Frozen manager locks
 
-### 8. What tradeoffs did you make and what would you build next?
-- **Tradeoff 1: Day-Level Granularity vs. Hourly Shifts**: Focused on multi-brand day-level coverage and fairness for v1, while designing the database schema to be forward-compatible with shift times.
-- **Tradeoff 2: In-Memory Sliding-Window Rate Limiting**: Built a zero-dependency in-memory rate limiter for simplicity and speed; in distributed multi-instance production, this would be backed by Redis.
-- **Next Horizon**:
-  1. Automated multi-agent LLM negotiation for employee shift swaps.
-  2. Bi-directional sync with Google Calendar / Slack for leave notifications.
-  3. Real-time WebSocket updates for collaborative multi-manager roster editing.
+Coverage uses slack variables:
+
+\[
+Coverage[bp,d] + slack[bp,d] \geq Demand[bp,d]
+\]
+
+The solver heavily penalizes slack. This allows it to return the best mathematically possible schedule while explicitly reporting any remaining coverage shortfall as a conflict, rather than silently treating the schedule as fully covered.
+
+### 7.2 Hard constraints and soft preferences
+
+RosterOps separates mandatory business rules from employee or operational preferences.
+
+**Hard constraints (H1–H5)**
+
+| Rule | Description |
+|---|---|
+| H1 | Locked roster cells are immutable. |
+| H2 | Employees cannot be scheduled during approved leave or comp-off. |
+| H3 | The maximum consecutive working-day limit cannot be exceeded; the default is six days. |
+| H4 | Non-floater employees cannot be assigned across simultaneous brand processes beyond their capacity. |
+| H5 | Mandatory weekly-off counts must be respected. |
+
+**Soft preferences (P1–P6)**
+
+Soft preferences are represented as penalties in the optimization objective:
+
+\[
+\text{Minimize } W_{\text{slack}}\sum slack
++ W_{\text{fairness}}\Delta_{\text{weekend}}
++ W_{\text{pref}}\sum violated\_prefs
+\]
+
+The coverage-shortfall weight is `W_slack = 10,000`, which is designed to outweigh the combined preference penalties. As a result, a preferred day off does not take priority over required operational coverage.
+
+### 7.3 Single-resource brands and floater coverage
+
+A single-resource brand has only one assigned employee. That employee cannot take a mandatory weekly off without creating a potential coverage gap unless another qualified employee is available.
+
+RosterOps addresses this through a dedicated floater pool: `EMP-033` through `EMP-036`.
+
+1. Floaters are initially held as backup resources.
+2. When an employee is unavailable due to a weekly off or planned leave, the independent validator detects the coverage gap.
+3. The conflict is reported as `E001 NO_COVERAGE`, with a root cause such as `WEEKLY_OFF` or `LEAVE`.
+4. The suggestion engine identifies qualified, on-duty floaters.
+5. Applying a recommendation assigns the floater as an active backup for the affected date and revalidates the roster.
+
+### 7.4 Explainable conflicts and recommendations
+
+Each detected conflict includes:
+
+- A unique conflict code (`E001`–`E009`)
+- Severity: `BLOCKING`, `WARNING`, or `INFO`
+- Brand and process
+- Affected dates and employees
+- Root-cause tags, such as `WEEKLY_OFF`, `LEAVE`, `SOLO_RESOURCE`, and `WEEKEND_BALANCE`
+- A plain-language explanation
+
+**Illustrative explanation:**
+
+> Brand Aurora — Customer Support has no coverage on 14 Dec (Mon). Required: 1. Its only assigned employee, Riya Shah, is on approved leave (13–15 Dec). Backups available that day: Kabir Nair (floater, working).
+
+Recommendations also undergo a **second-order net-impact simulation**. The proposed change is validated before it is shown, and the result communicates its effect—for example: *“Fixes 1 gap, opens 0 new gaps.”*
+
+### 7.5 Maintainability and scalability
+
+- **Domain decoupling:** The scheduling engine has no framework or database dependencies. It can run independently in background workers, serverless functions, or command-line processes.
+- **Rules stored as data:** Operating calendars, coverage minimums, weekly-off rules, and preference weights are stored in PostgreSQL and can be updated without a code deployment.
+- **Performance target:** The project documents a 2× scale scenario of 100+ employees and 50 brands, with CP-SAT solving targeted at 10–20 seconds. TanStack Virtual is used to support responsive rendering of large frontend tables.
+
+### 7.6 Real-time changes and what-if simulation
+
+Two API capabilities support roster changes:
+
+- **Impact simulator:** `POST /api/v1/rosters/{id}/impact` evaluates proposed cell changes or leave requests in memory. It does not mutate the database and returns the differences between new, resolved, and unchanged conflicts.
+- **Localized window repair:** `POST /api/v1/rosters/{id}/repair` freezes cells outside the affected date and pod window, then solves the impacted subset. This helps preserve unaffected assignments.
+
+### 7.7 Determinism and auditability
+
+- **Controlled solver seed:** Solver runs use an explicit integer seed and stable sorting. Identical inputs and seeds are intended to produce identical roster outputs.
+- **Immutable published versions:** Publishing locks a roster version with `status = PUBLISHED`. Later changes are made in new working drafts, such as `v2` and `v3`.
+- **Audit ledger:** Mutations, cell overrides, and manager conflict acknowledgements are recorded in `audit_logs`, including actor UUID, timestamp, and before-and-after JSON states.
+
+### 7.8 Trade-offs and future enhancements
+
+**Current design trade-offs**
+
+1. **Day-level rather than hourly scheduling:** Version 1 focuses on multi-brand, day-level coverage and fairness. The database schema is designed to support future shift-time extensions.
+2. **In-memory rate limiting:** A zero-dependency in-memory rate limiter was selected for simplicity and speed. A distributed production deployment would benefit from Redis-backed rate limiting.
+
+**Potential next steps**
+
+1. Introduce multi-agent LLM-assisted negotiation for employee shift swaps.
+2. Add two-way synchronization with Google Calendar and Slack for leave notifications.
+3. Add real-time WebSocket updates for collaborative roster editing by multiple managers.
 
 ---
 
-## Golden Demo Scenarios (S1–S5)
+## 8. Golden Demo Scenarios
 
-The automated test suite (`backend/tests/api/test_scenarios_golden.py`) verifies all five demo scenarios against the seeded December 2026 dataset:
-- **Scenario S1 (Single-Resource Brand Unavailable)**: `BRD-01` Aurora, sole employee `EMP-007` (Riya Shah) on leave Dec 13–15. Verified 8 `E001` conflicts with root cause `LEAVE`, surfaced floater `EMP-033` (Kabir Nair) recommendations with "fixes 8, opens 0".
-- **Scenario S2 (Three-Person Brand Coverage Evaluation)**: `BRD-21` Nova (`EMP-015`, `EMP-016`, `EMP-017`). Evaluates multi-person coverage when staff take overlapping leaves and weekly offs.
-- **Scenario S3 (Shared Process with Minimum 2 Staff)**: `BRD-23` Pulse CS requiring minimum 2 staff on Mondays. Verified `E002 UNDER_STAFFED` detection and weekly off swap resolution.
-- **Scenario S4 (Holiday Work & Comp-Off Ledger)**: `BRD-02` Solace (`ALL_365`), employee `EMP-008` (Karan Mehta) works Dec 25 Christmas (`HOLIDAY_WORK`). Verified +1 earned comp-off credit, balance tracking, and redemption on Dec 29.
-- **Scenario S5 (Over-Constrained Month & Publish Gating)**: `BRD-24` Orion (`EMP-023`, `EMP-024`) with dual Friday mandatory weekly offs. Verified HTTP 422 `ROSTER_BLOCKED` gating until manager justifications are logged.
+The automated test suite in `backend/tests/api/test_scenarios_golden.py` verifies five scenarios using the seeded **December 2026** dataset.
+
+| Scenario | Description | Expected or verified behavior |
+|---|---|---|
+| **S1 — Single-resource brand unavailable** | `BRD-01` Aurora; sole employee `EMP-007` (Riya Shah) is on leave from Dec 13–15. | Verifies eight `E001` conflicts with root cause `LEAVE`. Recommends floater `EMP-033` (Kabir Nair), with a net impact of “fixes 8, opens 0”. |
+| **S2 — Three-person brand coverage** | `BRD-21` Nova has employees `EMP-015`, `EMP-016`, and `EMP-017`. | Evaluates coverage when multiple employees have overlapping leave and weekly-off dates. |
+| **S3 — Shared process with minimum staffing** | `BRD-23` Pulse CS requires at least two staff members on Mondays. | Verifies `E002 UNDER_STAFFED` detection and weekly-off swap resolution. |
+| **S4 — Holiday work and comp-off ledger** | `BRD-02` Solace uses `ALL_365`; employee `EMP-008` (Karan Mehta) works on Dec 25. | Verifies `HOLIDAY_WORK`, one earned comp-off credit, balance tracking, and redemption on Dec 29. |
+| **S5 — Over-constrained month and publish gating** | `BRD-24` Orion has employees `EMP-023` and `EMP-024`, with dual mandatory Friday weekly offs. | Verifies HTTP 422 `ROSTER_BLOCKED` gating until manager justifications are recorded. |
 
 ---
 
-## Automated Test Suite
+## 9. Automated Testing and Quality Checks
+
+Run the backend test suite from the project root:
 
 ```bash
-# Run complete test suite (226 tests)
 pytest backend/tests
+```
 
-# Run frontend build verification
+Run the frontend production build check:
+
+```bash
 npm --prefix frontend run build
 ```
-- **226 tests passing in ~40s** (unit tests, scheduler property-based tests with Hypothesis, RBAC matrix, golden scenario tests).
-- **TypeScript strict compilation** with 0 warnings/errors.
 
+### Reported verification results
+
+- **226 backend tests passing** in approximately 40 seconds.
+- Coverage includes unit tests, Hypothesis-based scheduler property tests, RBAC matrix tests, and golden scenario tests.
+- **TypeScript strict compilation** completes with zero reported warnings or errors.
+
+---
+
+## 10. Project Structure References
+
+| Component | Location |
+|---|---|
+| Scheduling engine | `backend/app/scheduler/` |
+| Golden scenario tests | `backend/tests/api/test_scenarios_golden.py` |
+| Backend application | `backend/` |
+| Frontend application | `frontend/` |
+| Production Docker Compose | `docker-compose.prod.yml` |
+
+---
+
+## 11. Operational Notes
+
+- Use the demo credentials only for evaluation and demonstration.
+- Do not reuse the documented local database credentials in a production environment.
+- Configure production secrets and database credentials through the deployment environment.
+- Review conflict explanations and manager justifications before publishing a roster.
+- Treat the test results and performance figures in this document as project-reported results; verify them against the current deployment and repository before making external claims.
+
+---
+
+**RosterOps — Reliable scheduling through optimization, validation, and explainability.**
