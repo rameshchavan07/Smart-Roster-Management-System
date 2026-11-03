@@ -52,11 +52,11 @@ Structured JSON logs with request id, user id and route; never log credentials, 
 ## 9. Demo-environment caveats
 Because the demo URL is public, seeded passwords are shared with evaluators only; the demo database contains fictional data only and can be reset by re-running the seed.
 
-## 10. Security checklist (T-903)
-- [ ] Argon2 hashing, token expiry, refresh rotation
-- [ ] RBAC negative tests pass
-- [ ] CORS allow-list and security headers verified (browser devtools)
-- [ ] Rate limits on auth and generation
-- [ ] No secrets in repo/history; `.env.example` complete
-- [ ] `pip-audit` / `npm audit` clean or exceptions documented
-- [ ] Error responses leak no internals
+## 10. Security checklist (T-903 & T-905)
+- [x] Argon2id hashing, token expiry, refresh rotation
+- [x] RBAC negative tests pass across all routes
+- [x] CORS allow-list and security headers verified (`X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`, CSP)
+- [x] Sliding-window rate limits on auth and generation (15 requests/min per IP)
+- [x] No secrets in repo/history; `.env.example` complete
+- [x] `pip-audit` / `npm audit` audited; dev tooling CVE exceptions documented
+- [x] Error responses leak no internals (uniform error envelope with UUID `request_id`)

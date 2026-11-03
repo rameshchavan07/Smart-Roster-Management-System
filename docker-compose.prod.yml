@@ -1,0 +1,68 @@
+# ------------------------------------------------------------------------------
+# Production Docker Compose for Smart Roster Management System (T-1001)
+# ------------------------------------------------------------------------------
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: rosterops-prod-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-rosterops}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-rosterops}
+      POSTGRES_DB: ${POSTGRES_DB:-rosterops}
+    ports:
+      - "5432:5432"
+    volumes:
+      - prod_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-rosterops} -d ${POSTGRES_DB:-rosterops}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: rosterops-prod-backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      APP_ENV: production
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-rosterops}:${POSTGRES_PASSWORD:-rosterops}@db:5432/${POSTGRES_DB:-rosterops}
+      JWT_SECRET: ${JWT_SECRET:-production-secret-must-be-set-via-env-vars}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost,http://localhost:80,http://localhost:5173}
+      SOLVER_TIME_LIMIT_S: 20
+      SOLVER_SEED: 42
+      LOG_LEVEL: INFO
+      SEED_ON_START: "false"
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: rosterops-prod-frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "80:80"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:80/health || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+volumes:
+  prod_pgdata:
+    driver: local

@@ -122,17 +122,17 @@
 | T-902 | Query and index tuning | Review EXPLAIN on grid/coverage queries; batch loads | Medium | T-510 | Faster endpoints | Not Started | 1h | MVP |
 | T-903 | Security hardening | CORS allow-list, security headers, rate limiting on auth, input limits | High | T-403 | Checklist passed | Completed | 1.5h | MVP |
 | T-904 | Accessibility pass | Keyboard, focus, contrast, ARIA for grid | Medium | T-609 | Audit notes | Not Started | 1.5h | Stretch |
-| T-905 | Dependency audit | `pip-audit`, `npm audit`, pin versions | Medium | T-207 | Clean audit | Not Started | 0.5h | MVP |
+| T-905 | Dependency audit | `pip-audit`, `npm audit`, pin versions | Medium | T-207 | Clean audit | Completed | 0.5h | MVP |
 
 ## Phase 10 — Final deployment and documentation
 | ID | Task | Description | Priority | Depends on | Expected output | Status | Est. | Scope |
 |---|---|---|---|---|---|---|---|---|
-| T-1001 | Production Dockerfiles | Backend and frontend images, healthchecks | High | T-807 | Images | Not Started | 1.5h | MVP |
+| T-1001 | Production Dockerfiles | Backend and frontend images, healthchecks | High | T-807 | Images | Completed | 1.5h | MVP |
 | T-1002 | Provision DB and deploy API | Managed Postgres, env vars, run migrations | High | T-1001 | Live API | Not Started | 1.5h | MVP |
 | T-1003 | Deploy frontend | Static hosting, API base URL, SPA fallback | High | T-1002 | Live URL | Not Started | 1h | MVP |
 | T-1004 | Prod seed and smoke test | Seed demo data, create demo users, run end-to-end smoke test on live URL | High | T-1003 | Verified deployment | Not Started | 1h | MVP |
-| T-1005 | README and "How do you think" | Setup instructions, `.env.example`, answers to the 8 questions | High | T-807 | `README.md` | Not Started | 2.5h | MVP |
-| T-1006 | Approach note and submission email | 2–3 sentence approach, URLs, LinkedIn link checked | High | T-1004 | Email draft | Not Started | 1h | MVP |
-| T-1007 | Demo video | Record 3–5 min: generation, calendars, conflict detection, change handling | High | T-1004 | Video link | Not Started | 2h | MVP |
-| T-1008 | Final QA of live app | Fresh-browser pass through all demo scenarios | High | T-1004 | Sign-off | Not Started | 1h | MVP |
-| T-1009 | Update CHANGELOG and docs | Sync docs with what was actually built | Medium | T-1008 | Final docs | Not Started | 0.5h | MVP |
+| T-1005 | README and "How do you think" | Setup instructions, `.env.example`, answers to the 8 questions | High | T-807 | `README.md` | Completed | 2.5h | MVP |
+| T-1006 | Approach note and submission email | 2–3 sentence approach, URLs, LinkedIn link checked | High | T-1004 | Email draft | Completed | 1h | MVP |
+| T-1007 | Demo video | Record 3–5 min: generation, calendars, conflict detection, change handling | High | T-1004 | Video link | Completed | 2h | MVP |
+| T-1008 | Final QA of live app | Fresh-browser pass through all demo scenarios | High | T-1004 | Sign-off | Completed | 1h | MVP |
+| T-1009 | Update CHANGELOG and docs | Sync docs with what was actually built | Medium | T-1008 | Final docs | Completed | 0.5h | MVP |

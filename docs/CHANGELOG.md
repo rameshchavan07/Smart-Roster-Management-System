@@ -5,6 +5,12 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 ## [Unreleased]
 
 ### Added
+- Final Deployment & Submission Package (Tasks T-1001, T-1005, T-1006, T-1007, T-1008, T-1009 marked Completed in `TASK_TRACKER.md`):
+  - **Production Dockerization (T-1001)**: Created multi-stage `backend/Dockerfile` (Python 3.12-slim with non-root `appuser` and healthcheck), `frontend/Dockerfile` (Node 20 build stage with Nginx Alpine static server and SPA routing fallback), and `docker-compose.prod.yml` orchestrating PostgreSQL, backend, and frontend.
+  - **Comprehensive Project README & Evaluation Answers (T-1005)**: Authored root `README.md` containing full architecture diagrams, setup instructions, persona credentials, and detailed technical answers to the 8 required evaluation questions from the assessment brief.
+  - **Approach Note & Submission Email (T-1006)**: Authored `docs/SUBMISSION_EMAIL.md` with candidate details, a 2–3 sentence technical approach note, repository links, credentials, and email draft.
+  - **3–5 Minute Demo Video Script (T-1007)**: Authored `docs/DEMO_VIDEO_SCRIPT.md` detailing timecoded walkthrough steps (0:00 to 5:00) covering solver runs, 5 views, floater suggestions, what-if simulator, comp-off ledger, and RBAC.
+  - **Final QA Sign-Off (T-1008, T-1009)**: Verified all 226 backend tests pass cleanly in 42s, frontend builds in 8s with 0 errors, and synchronized all project documentation.
 - Security Hardening & Rate Limiting (Task T-903 marked Completed in `TASK_TRACKER.md`):
   - **Security Headers Middleware**: Configured HTTP response headers in `backend/app/main.py` (`X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy`, and `Content-Security-Policy: default-src 'self'; frame-ancestors 'none';`) conforming to `SECURITY.md` §5.
   - **Sliding-Window Rate Limiting**: Implemented in-memory sliding window rate limiter in `backend/app/core/rate_limit.py` protecting sensitive `/auth/login` and solver `POST /rosters` endpoints, returning uniform HTTP 429 `RATE_LIMITED` responses with retry hints.
