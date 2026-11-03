@@ -55,7 +55,16 @@ def create_app() -> FastAPI:
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
-        response.headers["Content-Security-Policy"] = "default-src 'self'; frame-ancestors 'none';"
+        if request.url.path in ("/docs", "/redoc", "/openapi.json"):
+            response.headers["Content-Security-Policy"] = (
+                "default-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; "
+                "img-src 'self' https://fastapi.tiangolo.com data:; "
+                "style-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; "
+                "script-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; "
+                "frame-ancestors 'none';"
+            )
+        else:
+            response.headers["Content-Security-Policy"] = "default-src 'self'; frame-ancestors 'none';"
         return response
 
     # Middleware: CORS
