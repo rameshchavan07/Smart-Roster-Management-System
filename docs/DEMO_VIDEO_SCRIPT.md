@@ -92,3 +92,4 @@
 - **Visual**: Show GitHub repo with 226 tests passing, Dockerfiles, and documentation.
 - **Narration**:
   > *"In summary, RosterOps pairs mathematical rigor with intuitive operational workflows: CP-SAT solver, pure-Python validator, full auditability, and 226 automated tests. Thank you!"*
+

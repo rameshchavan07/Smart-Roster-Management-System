@@ -185,3 +185,4 @@ npm --prefix frontend run build
 ```
 - **226 tests passing in ~40s** (unit tests, scheduler property-based tests with Hypothesis, RBAC matrix, golden scenario tests).
 - **TypeScript strict compilation** with 0 warnings/errors.
+
