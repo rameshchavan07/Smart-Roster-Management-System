@@ -85,7 +85,7 @@ const SAMPLE_EMPLOYEES = [
 export const RosterWorkspacePage: React.FC = () => {
   const navigate = useNavigate();
   const { currentMonth, monthLabel, daysInMonth, year } = useMonth();
-  const { isOpsManager, isPodLead } = useAuth();
+  const { isOpsManager, isPodLead, user } = useAuth();
   const toast = useToast();
 
   const canEdit = isOpsManager || isPodLead;
@@ -130,6 +130,16 @@ export const RosterWorkspacePage: React.FC = () => {
       });
     }
   }, [employeesResult]);
+
+  // Auto-default Pod Lead to their own pod
+  useEffect(() => {
+    if (isPodLead && user?.employee_id && employeesResult?.items) {
+      const myEmp = employeesResult.items.find((e) => e.id === user.employee_id);
+      if (myEmp?.pod_name) {
+        setSelectedPodFilter(myEmp.pod_name);
+      }
+    }
+  }, [isPodLead, user?.employee_id, employeesResult]);
 
   // Compute active ref_id for backend view filtering (safeguard against non-UUID mock strings)
   const isUuid = (val?: string): boolean =>
