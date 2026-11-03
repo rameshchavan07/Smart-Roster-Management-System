@@ -128,9 +128,9 @@
 | ID | Task | Description | Priority | Depends on | Expected output | Status | Est. | Scope |
 |---|---|---|---|---|---|---|---|---|
 | T-1001 | Production Dockerfiles | Backend and frontend images, healthchecks | High | T-807 | Images | Completed | 1.5h | MVP |
-| T-1002 | Provision DB and deploy API | Managed Postgres, env vars, run migrations | High | T-1001 | Live API | Not Started | 1.5h | MVP |
-| T-1003 | Deploy frontend | Static hosting, API base URL, SPA fallback | High | T-1002 | Live URL | Not Started | 1h | MVP |
-| T-1004 | Prod seed and smoke test | Seed demo data, create demo users, run end-to-end smoke test on live URL | High | T-1003 | Verified deployment | Not Started | 1h | MVP |
+| T-1002 | Provision DB and deploy API | Managed Postgres, env vars, run migrations | High | T-1001 | Live API | Completed | 1.5h | MVP |
+| T-1003 | Deploy frontend | Static hosting, API base URL, SPA fallback | High | T-1002 | Live URL | Completed | 1h | MVP |
+| T-1004 | Prod seed and smoke test | Seed demo data, create demo users, run end-to-end smoke test on live URL | High | T-1003 | Verified deployment | Completed | 1h | MVP |
 | T-1005 | README and "How do you think" | Setup instructions, `.env.example`, answers to the 8 questions | High | T-807 | `README.md` | Completed | 2.5h | MVP |
 | T-1006 | Approach note and submission email | 2–3 sentence approach, URLs, LinkedIn link checked | High | T-1004 | Email draft | Completed | 1h | MVP |
 | T-1007 | Demo video | Record 3–5 min: generation, calendars, conflict detection, change handling | High | T-1004 | Video link | Completed | 2h | MVP |

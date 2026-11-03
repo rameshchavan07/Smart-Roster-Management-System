@@ -29,8 +29,9 @@ I am pleased to submit my technical assessment for the Smart Roster Management S
 The platform has been built to meet all functional and non-functional requirements outlined in the brief, featuring a pure-Python scheduling engine, Google OR-Tools CP-SAT constraint optimization with deterministic greedy fallback, an independent conflict validator, what-if impact simulation, and a full-featured React 18 / TypeScript operations portal.
 
 ### Key Links & Resources
+- **Live Application**: https://rosterops-web.onrender.com
+- **Interactive API Documentation (Swagger)**: https://rosterops-api.onrender.com/docs
 - **GitHub Repository**: https://github.com/rameshchavan07/Smart-Roster-Management-System
-- **Interactive API Documentation**: `/docs` (OpenAPI Swagger UI)
 - **Architecture & "How Do You Think" Answers**: Detailed in `README.md` (addressing all 8 evaluation questions)
 - **Automated Test Suite**: 226 tests passing (`pytest backend/tests` in ~40s) including property-based tests with Hypothesis and golden tests for demo scenarios S1–S5.
 

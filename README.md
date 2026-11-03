@@ -6,6 +6,16 @@ Built for modern operations managers to **generate, validate, simulate, and edit
 
 ---
 
+## 🌐 Live Production Deployment
+
+- **Live Application:** **[https://rosterops-web.onrender.com](https://rosterops-web.onrender.com)**
+- **Interactive API Swagger UI:** **[https://rosterops-api.onrender.com/docs](https://rosterops-api.onrender.com/docs)**
+- **Service Health Check:** **[https://rosterops-api.onrender.com/health](https://rosterops-api.onrender.com/health)**
+
+All demo accounts use password: **`DemoPass123!`** (Ops Manager: `ops@example.test`, Pod Lead: `lead.a@example.test`, Employee: `emp@example.test`).
+
+---
+
 ## Quickstart & Local Setup
 
 ### Prerequisites
