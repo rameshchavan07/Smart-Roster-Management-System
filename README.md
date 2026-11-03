@@ -11,6 +11,7 @@ Built for modern operations managers to **generate, validate, simulate, and edit
 - **Live Application:** **[https://rosterops-web.onrender.com](https://rosterops-web.onrender.com)**
 - **Interactive API Swagger UI:** **[https://rosterops-api.onrender.com/docs](https://rosterops-api.onrender.com/docs)**
 - **Service Health Check:** **[https://rosterops-api.onrender.com/health](https://rosterops-api.onrender.com/health)**
+- **Demo Video Walkthrough:** **[https://drive.google.com/file/d/1CgaYl3Nw7C4FywWsiK6Pp96d0_OKQzSv/view?usp=sharing](https://drive.google.com/file/d/1CgaYl3Nw7C4FywWsiK6Pp96d0_OKQzSv/view?usp=sharing)**
 
 All demo accounts use password: **`DemoPass123!`** (Ops Manager: `ops@example.test`, Pod Lead: `lead.a@example.test`, Employee: `emp@example.test`).
 
@@ -62,15 +63,15 @@ docker compose -f docker-compose.prod.yml up --build
 
 ---
 
-## Demo Accounts & Personas
+## 🔑 Demo Accounts & Credentials
 
 All accounts use the password: **`DemoPass123!`**
 
-| Persona | Role | Email | Capabilities |
-| :--- | :--- | :--- | :--- |
-| **Ops Manager** | `OPS_MANAGER` | `ops@example.test` | Full authority: CP-SAT generation, cell freezing/locking, floater assignments, conflict overrides, publish gating, comp-off accruals, audit logs. |
-| **Pod Lead** | `POD_LEAD` | `lead.a@example.test` | Scoped to Pod A: localized solver repairs (`/repair`), what-if simulations, team schedule reviews. Restricted from final company publishing. |
-| **Employee** | `EMPLOYEE` | `emp@example.test` | Riya Shah (`EMP-007`): personal monthly schedule, leave submissions (`REQUESTED`), comp-off ledger balance. Shift cells are read-only. |
+| Persona | Role | Email | Password | Capabilities |
+| :--- | :--- | :--- | :--- | :--- |
+| **Ops Manager** | `OPS_MANAGER` | `ops@example.test` | `DemoPass123!` | Full authority: CP-SAT generation, cell freezing/locking, floater assignments, conflict overrides, publish gating, comp-off accruals, audit logs. |
+| **Pod Lead** | `POD_LEAD` | `lead.a@example.test` | `DemoPass123!` | Scoped to Pod A: localized solver repairs (`/repair`), what-if simulations, team schedule reviews. Restricted from final company publishing. |
+| **Employee** | `EMPLOYEE` | `emp@example.test` | `DemoPass123!` | Riya Shah (`EMP-007`): personal monthly schedule, leave submissions (`REQUESTED`), comp-off ledger balance. Shift cells are read-only. |
 
 ---
 

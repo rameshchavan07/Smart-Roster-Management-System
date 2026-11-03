@@ -74,3 +74,6 @@ Thumbs.db
 *~
 *.log
 
+# Internal Project Docs (Excluded from Git Remote)
+docs/
+
